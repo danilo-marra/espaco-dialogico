@@ -1,0 +1,32 @@
+body {
+  background-color: #f5f2e8;
+}
+
+.banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.banner img {
+  max-width: 100%;
+  height: auto;
+}
+
+.instagram-link {
+  text-align: center;
+}
+
+.instagram-link a {
+  display: inline-block;
+  text-decoration: none;
+  color: #C7465C; 
+}
+
+.instagram-link a:hover {
+  text-decoration: underline;
+}
+
+.instagram-link i {
+  padding-right: 5px; 
+}
