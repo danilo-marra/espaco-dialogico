@@ -15,6 +15,7 @@ body {
 
 .instagram-link {
   text-align: center;
+  font-size: 2rem;
 }
 
 .instagram-link a {
@@ -28,5 +29,5 @@ body {
 }
 
 .instagram-link i {
-  padding-right: 5px; 
+  margin-right: 20px; 
 }
