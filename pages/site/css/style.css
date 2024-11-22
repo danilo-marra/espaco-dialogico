@@ -21,7 +21,7 @@ body {
 .instagram-link a {
   display: inline-block;
   text-decoration: none;
-  color: #C7465C; 
+  color: #c7465c;
 }
 
 .instagram-link a:hover {
@@ -29,5 +29,5 @@ body {
 }
 
 .instagram-link i {
-  margin-right: 20px; 
+  margin-right: 20px;
 }

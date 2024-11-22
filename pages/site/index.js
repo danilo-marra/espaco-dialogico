@@ -1,5 +1,5 @@
-import Head from 'next/head';
-import Image from 'next/image';
+import Head from "next/head";
+import Image from "next/image";
 
 function SitePage() {
   return (
@@ -26,16 +26,16 @@ function SitePage() {
 
       <main className="container text-center">
         <Image
-          src={'/img/logo.png'}
+          src={"/img/logo.png"}
           width={200}
           height={200}
-          className='img-fluid mb-3'
-          alt='Espaço Dialógico - Clínica de Psicologia Infantil'
+          className="img-fluid mb-3"
+          alt="Espaço Dialógico - Clínica de Psicologia Infantil"
         />
 
         <div>
           <Image
-            src={'/img/menina2x.jpg'}
+            src={"/img/menina2x.jpg"}
             width={900}
             height={700}
             className="img-fluid"
@@ -43,7 +43,7 @@ function SitePage() {
           />
 
           <p className="mt-4 instagram-link">
-            Acompanhe em nossa{' '}
+            Acompanhe em nossa{" "}
             <a href="https://www.instagram.com/espacodialogico/">
               <span className="bold-500">rede social</span>
               <i className="bi bi-instagram"></i>
