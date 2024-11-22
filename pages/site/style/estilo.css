@@ -1,12 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,700;1,400;1,900&display=swap');
-
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,700;1,400;1,900&display=swap");
 
 /* bege: #F9F7ED */
 /* azul: #4D9FB7 */
 /* vermelho: #C36475 */
 body {
-  background-color: #F9F7ED;
-  font-family: 'Montserrat', sans-serif;
+  background-color: #f9f7ed;
+  font-family: "Montserrat", sans-serif;
 }
 
 .instagram-link {
@@ -17,7 +16,7 @@ body {
 .instagram-link a {
   display: inline-block;
   text-decoration: none;
-  color: #C7465C; 
+  color: #c7465c;
 }
 
 .instagram-link a:hover {
@@ -26,9 +25,9 @@ body {
 
 .bold-500 {
   font-weight: 500;
-  color: #C7465C;
+  color: #c7465c;
 }
 
 main p {
-  font-size:1.2em;
+  font-size: 1.2em;
 }
