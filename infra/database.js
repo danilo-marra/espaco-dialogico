@@ -1,4 +1,4 @@
-import { Client } from "pg"
+import { Client } from "pg";
 
 async function query(queryObject) {
   let client;
@@ -7,7 +7,7 @@ async function query(queryObject) {
     const result = await client.query(queryObject);
     return result;
   } catch (error) {
-    console.error('Erro ao executar query:', error);
+    console.error("Erro ao executar query:", error);
     throw error;
   } finally {
     await client.end();
@@ -26,7 +26,7 @@ async function getNewClient() {
 
   await client.connect();
   return client;
-};
+}
 
 export default {
   query,
@@ -38,7 +38,7 @@ function getSSLValues() {
     return {
       ca: process.env.POSTGRES_CA,
     };
-  };
+  }
 
-  return process.env.NODE_ENV === 'production' ? true : false;
+  return process.env.NODE_ENV === "production" ? true : false;
 }
