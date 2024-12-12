@@ -16,8 +16,11 @@
     "migration:create": "node-pg-migrate -m infra/migrations create",
     "migration:up": "node-pg-migrate -m infra/migrations --envPath .env.development up",
     "wait-for-postgres": "node infra/scripts/wait-for-postgres.js",
-    "prepare": "husky",
+    "prepare": "husky install",
     "commit": "cz"
+  },
+  "lint-staged": {
+    "*": "secretlint"
   },
   "author": "",
   "license": "MIT",
@@ -44,8 +47,9 @@
     "eslint-config-next": "14.2.4",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-jest": "^28.6.0",
-    "husky": "^9.1.4",
+    "husky": "^8.0.0",
     "jest": "^29.6.2",
+    "lint-staged": "^15.2.11",
     "prettier": "^2.8.8",
     "secretlint": "^9.0.0"
   },
