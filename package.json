@@ -20,7 +20,11 @@
     "commit": "cz"
   },
   "lint-staged": {
-    "*": "secretlint"
+    "*": "secretlint",
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   },
   "author": "",
   "license": "MIT",

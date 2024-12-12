@@ -1,1 +1,9 @@
-npx secretlint "**/*"
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run lint-staged which includes secretlint, eslint, and prettier
+npx lint-staged
+
+# Run additional checks
+npm run lint:eslint:check
+npm run lint:prettier:check
