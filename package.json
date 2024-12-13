@@ -16,7 +16,7 @@
     "migration:create": "node-pg-migrate -m infra/migrations create",
     "migration:up": "node-pg-migrate -m infra/migrations --envPath .env.development up",
     "wait-for-postgres": "node infra/scripts/wait-for-postgres.js",
-    "prepare": "husky && husky install",
+    "prepare": "husky",
     "commit": "cz"
   },
   "lint-staged": {
