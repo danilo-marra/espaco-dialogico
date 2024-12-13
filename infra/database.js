@@ -1,4 +1,8 @@
 import { Client } from "pg";
+import dotenv from "dotenv";
+
+// Load environment variables from .env.development
+dotenv.config({ path: ".env.development" });
 
 async function query(queryObject) {
   let client;
@@ -7,10 +11,12 @@ async function query(queryObject) {
     const result = await client.query(queryObject);
     return result;
   } catch (error) {
-    console.error("Erro ao executar query:", error);
+    console.error(error);
     throw error;
   } finally {
-    await client.end();
+    if (client) {
+      await client.end();
+    }
   }
 }
 
