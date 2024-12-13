@@ -11,7 +11,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "18.20.4"
+          node-version: "20.17.0"
 
       - run: npm ci
 
@@ -24,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "18.20.4"
+          node-version: "20.17.0"
 
       - run: npm ci
 
@@ -38,7 +38,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: "18.20.4"
+          node-version: "20.17.0"
 
       - run: npm ci
 
