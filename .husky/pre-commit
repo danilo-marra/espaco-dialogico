@@ -1,12 +1,6 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-# Run lint-staged which includes secretlint, eslint, prettier, and tests
 npx lint-staged
 
-# Run additional checks
 npm run lint:eslint:check
 npm run lint:prettier:check
 
-# Run tests
 npm run test
