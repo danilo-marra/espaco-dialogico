@@ -1,6 +1,6 @@
 {
   "liveServer.settings.port": 5501,
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.requireConfig": false,
   "prettier.configPath": ""
