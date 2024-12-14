@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "npm run services:up && npm run services:wait:database && npm run migrations:up && next dev",
+    "neodev": "node ./handle-dev-services.js",
     "test": "npm run services:up && concurrently -n next,jest --hide next -k -s command-jest \"next dev\" \"jest --runInBand --verbose\"",
+    "posttest": "npm run services:stop",
     "test:watch": "jest --watchAll --runInBand",
     "services:up": "docker compose -f infra/compose.yaml up -d",
     "services:stop": "docker compose -f infra/compose.yaml stop",
@@ -47,6 +49,7 @@
     "@secretlint/secretlint-rule-preset-recommend": "9.0.0",
     "commitizen": "4.3.1",
     "concurrently": "9.1.0",
+    "cross-env": "^7.0.3",
     "cz-conventional-changelog": "3.3.0",
     "eslint": "8.57.0",
     "eslint-config-next": "15.1.0",
