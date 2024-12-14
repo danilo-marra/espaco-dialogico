@@ -20,7 +20,11 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*": "secretlint"
+    "*": "secretlint",
+    "*.{js,jsx,ts,tsx,md,html,css}": [
+      "npm run lint:eslint:check --",
+      "npm run lint:prettier:fix --"
+    ]
   },
   "author": "Danilo Marra Rabelo",
   "license": "MIT",

@@ -1,6 +1,2 @@
 npx lint-staged
-
-npm run lint:eslint:check
-npm run lint:prettier:check
-
 npm run test
