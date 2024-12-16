@@ -4,5 +4,12 @@
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.requireConfig": false,
   "prettier.configPath": "",
-  "prettier.prettierPath": "./node_modules/prettier"
+  "prettier.prettierPath": "./node_modules/prettier",
+  "prettier.semi": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
 }
