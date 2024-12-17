@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Image from "next/image";
+import Link from "next/link";
 
 function Home() {
   return (
@@ -31,6 +32,11 @@ function Home() {
               <i className="bi bi-instagram"></i>
             </a>
           </p>
+        </div>
+        <div>
+          <Link href="/dashboard">
+            <a>sistema</a>
+          </Link>
         </div>
       </main>
     </>
