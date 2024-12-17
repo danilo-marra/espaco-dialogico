@@ -13,14 +13,13 @@ function Home() {
           content="width=device-width, initial-scale=1, shrink-to-fit=no"
         />
       </Head>
-
       <main className="container text-center">
         <Image
           src={"/img/logo.png"}
           width={400}
           height={400}
           className="img-fluid"
-          alt="Espaço Dialógico - Clínica de Psicologia Infantil"
+          alt="Espaço Dialógico Clínica de Psicologia Infantil"
         />
 
         <div>
@@ -34,9 +33,7 @@ function Home() {
           </p>
         </div>
         <div>
-          <Link href="/dashboard">
-            <a>sistema</a>
-          </Link>
+          <Link href="/dashboard">Sistema</Link>
         </div>
       </main>
     </>
