@@ -11,7 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
 
-export function Menu() {
+const Menu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   return (
     <div>
@@ -70,4 +70,6 @@ export function Menu() {
       </aside>
     </div>
   );
-}
+};
+
+export default Menu;
