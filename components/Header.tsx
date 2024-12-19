@@ -2,7 +2,7 @@ import { SignOut, User } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
-export function Header() {
+const Header = () => {
   return (
     <header className="flex items-center justify-between bg-gray-100 py-4 px-8">
       <div>
@@ -34,4 +34,6 @@ export function Header() {
       </div>
     </header>
   );
-}
+};
+
+export default Header;
