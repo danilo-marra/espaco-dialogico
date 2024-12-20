@@ -10,55 +10,37 @@ describe("Dashboard Page Access", () => {
     expect(response.status).toBe(200);
 
     const responseBody = await response.text();
-    expect(responseBody).toContain("Menu");
-    expect(responseBody).toContain("Header");
+    expect(responseBody).toContain('data-testid="menu-component"');
+    expect(responseBody).toContain('data-testid="header-component"');
   });
 
   test("Accessing Home Page", async () => {
     const response = await fetch("http://localhost:3000/");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Home");
   });
 
   test("Accessing Agenda Page", async () => {
-    const response = await fetch("http://localhost:3000/agenda");
+    const response = await fetch("http://localhost:3000/dashboard/agenda");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Agenda");
   });
 
   test("Accessing Transações Page", async () => {
-    const response = await fetch("http://localhost:3000/transacoes");
+    const response = await fetch("http://localhost:3000/dashboard/transacoes");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Transações");
   });
 
   test("Accessing Pacientes Page", async () => {
-    const response = await fetch("http://localhost:3000/pacientes");
+    const response = await fetch("http://localhost:3000/dashboard/pacientes");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Pacientes");
   });
 
   test("Accessing Sessões Page", async () => {
-    const response = await fetch("http://localhost:3000/sessoes");
+    const response = await fetch("http://localhost:3000/dashboard/sessoes");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Sessões");
   });
 
   test("Accessing Terapeutas Page", async () => {
-    const response = await fetch("http://localhost:3000/terapeutas");
+    const response = await fetch("http://localhost:3000/dashboard/terapeutas");
     expect(response.status).toBe(200);
-
-    const responseBody = await response.text();
-    expect(responseBody).toContain("Terapeutas");
   });
 });

@@ -4,7 +4,10 @@ import Link from "next/link";
 
 const Header = () => {
   return (
-    <header className="flex items-center justify-between bg-gray-100 py-4 px-8">
+    <header
+      data-testid="header-component"
+      className="flex items-center justify-between bg-gray-100 py-4 px-8"
+    >
       <div>
         <p className="text-xl hidden md:block">
           Bem vindo,
