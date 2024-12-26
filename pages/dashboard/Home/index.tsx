@@ -1,12 +1,12 @@
 import Head from "next/head";
 
-export default function Agenda() {
+export default function Home() {
   return (
     <div className="p-8">
       <Head>
-        <title>Agenda</title>
+        <title>Home</title>
       </Head>
-      <h1>Agenda</h1>
+      <h1>Home</h1>
     </div>
   );
 }
