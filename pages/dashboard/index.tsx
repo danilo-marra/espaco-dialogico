@@ -1,15 +1,14 @@
-import React from "react";
-import Menu from "../../components/Menu";
-import Header from "../../components/Header";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
-export default function Dashboard() {
-  return (
-    <div className="flex min-h-screen">
-      <Menu />
+const DashboardIndex = () => {
+  const router = useRouter();
 
-      <div className="flex-1">
-        <Header />
-      </div>
-    </div>
-  );
-}
+  useEffect(() => {
+    router.replace("/Dashboard/Home");
+  }, [router]);
+
+  return null;
+};
+
+export default DashboardIndex;
