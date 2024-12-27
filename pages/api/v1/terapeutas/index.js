@@ -1,12 +1,15 @@
 import database from "infra/database.js";
 
-export default async function terapeutasHandler(req, res) {
+async function terapeutasHandler(req, res) {
   if (req.method === "GET") {
     try {
       const result = await database.query(
         'SELECT * FROM terapeutas ORDER BY "nomeTerapeuta" ASC;',
       );
-      res.status(200).json(result.rows);
+      res.status(200).json({
+        data: result.rows,
+        timestamp: new Date().toISOString(),
+      });
     } catch (error) {
       console.error("Database Error:", error.message);
       res.status(500).json({ error: "Internal Server Error" });
@@ -16,3 +19,5 @@ export default async function terapeutasHandler(req, res) {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
+
+export default terapeutasHandler;

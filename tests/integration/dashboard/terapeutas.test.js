@@ -6,7 +6,7 @@ beforeAll(async () => {
 
 describe("GET /api/v1/terapeutas", () => {
   describe("Anonymous user", () => {
-    test("Retrieving current system status", async () => {
+    test("Retrieving current terapeutas endpoint status", async () => {
       const response = await fetch("http://localhost:3000/api/v1/terapeutas");
       expect(response.status).toBe(200);
     });
