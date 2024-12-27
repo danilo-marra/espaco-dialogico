@@ -5,7 +5,7 @@ const DashboardIndex = () => {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/dashboard/Home/");
+    router.replace("/dashboard/home/");
   }, [router]);
 
   return null;
