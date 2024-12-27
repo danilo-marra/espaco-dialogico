@@ -17,7 +17,7 @@ function Home() {
       </Head>
       {/* Add a div for the Sistema link */}
       <div className="absolute top-4 right-4">
-        <Link href="/Dashboard/" className="text-blue-600 hover:text-blue-800">
+        <Link href="/dashboard/" className="text-blue-600 hover:text-blue-800">
           Sistema
         </Link>
       </div>
