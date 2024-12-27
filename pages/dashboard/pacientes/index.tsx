@@ -1,14 +1,12 @@
-import Header from "components/Header";
-import Menu from "components/Menu";
+import Head from "next/head";
 
 export default function Pacientes() {
   return (
-    <div className="flex min-h-screen">
-      <Menu />
-
-      <div className="flex-1">
-        <Header />
-      </div>
+    <div className="p-8">
+      <Head>
+        <title>Pacientes</title>
+      </Head>
+      <h1>Pacientes</h1>
     </div>
   );
 }

@@ -1,7 +1,17 @@
+import type { AppProps } from "next/app";
 import "../styles/globals.css"; // Importa Tailwind CSS
+import { useRouter } from "next/router";
+import Layout from "components/Layout";
 
-function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />;
+export default function MyApp({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const isDashboard = router.pathname.startsWith("/Dashboard");
+
+  return isDashboard ? (
+    <Layout>
+      <Component {...pageProps} />
+    </Layout>
+  ) : (
+    <Component {...pageProps} />
+  );
 }
-
-export default MyApp;
