@@ -5,7 +5,7 @@ import Layout from "components/Layout";
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const isDashboard = router.pathname.startsWith("/Dashboard");
+  const isDashboard = router.pathname.startsWith("/dashboard");
 
   return isDashboard ? (
     <Layout>
