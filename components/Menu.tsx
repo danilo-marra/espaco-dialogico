@@ -39,32 +39,32 @@ const Menu = () => {
         <ul className="menu space-y-4">
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <House weight="fill" size={24} />
-            <Link href="/Dashboard/Home">Home</Link>
+            <Link href="/dashboard/home">Home</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <CalendarBlank size={24} />
-            <Link href="/Dashboard/Agenda">Agenda</Link>
+            <Link href="/dashboard/agenda">Agenda</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <Money size={24} />
-            <Link href="/Dashboard/Transacoes">Transações</Link>
+            <Link href="/dashboard/transacoes">Transações</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <Person size={24} />
-            <Link href="/Dashboard/Pacientes">Pacientes</Link>
+            <Link href="/dashboard/pacientes">Pacientes</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <CalendarCheck size={24} />
-            <Link href="/Dashboard/Sessoes">Sessões</Link>
+            <Link href="/dashboard/sessoes">Sessões</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <UsersThree size={24} />
-            <Link href="/Dashboard/Terapeutas">Terapeutas</Link>
+            <Link href="/dashboard/terapeutas">Terapeutas</Link>
           </li>
           <hr />
         </ul>

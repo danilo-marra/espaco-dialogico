@@ -48,7 +48,8 @@ async function fetchAPI(url: string): Promise<Terapeuta[]> {
   if (!response.ok) {
     throw new Error("Falha ao buscar terapeutas");
   }
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export default function Terapeutas() {
@@ -138,7 +139,7 @@ export default function Terapeutas() {
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <UsersThree size={24} />
             <span className="text-xl font-semibold">
-              Total de Terapeutas: {terapeutas.length}
+              Total de Terapeutas: {terapeutas?.length || 0}
             </span>
           </div>
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">

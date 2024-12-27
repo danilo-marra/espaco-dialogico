@@ -6,10 +6,7 @@ async function terapeutasHandler(req, res) {
       const result = await database.query(
         'SELECT * FROM terapeutas ORDER BY "nomeTerapeuta" ASC;',
       );
-      res.status(200).json({
-        data: result.rows,
-        timestamp: new Date().toISOString(),
-      });
+      res.status(200).json(result.rows);
     } catch (error) {
       console.error("Database Error:", error.message);
       res.status(500).json({ error: "Internal Server Error" });
