@@ -39,7 +39,7 @@ const Menu = () => {
         <ul className="menu space-y-4">
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
             <House weight="fill" size={24} />
-            <Link href="/dashboard/home">Home</Link>
+            <Link href="/dashboard">Home</Link>
           </li>
           <hr />
           <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">

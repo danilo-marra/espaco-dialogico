@@ -1,14 +1,12 @@
-import { useEffect } from "react";
-import { useRouter } from "next/router";
+import Head from "next/head";
 
-const DashboardIndex = () => {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace("/dashboard/home/");
-  }, [router]);
-
-  return null;
-};
-
-export default DashboardIndex;
+export default function Dashboard() {
+  return (
+    <div className="p-8">
+      <Head>
+        <title>Dashboard Home</title>
+      </Head>
+      <h1>Dashboard Home</h1>
+    </div>
+  );
+}
