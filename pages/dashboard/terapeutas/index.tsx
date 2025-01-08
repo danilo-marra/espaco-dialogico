@@ -151,73 +151,91 @@ export default function Terapeutas() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded shadow overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-rosa text-white">
-              <tr>
-                <th className="p-4 text-left">Nome</th>
-                <th className="p-4 text-left">Foto</th>
-                <th className="p-4 text-left">Telefone</th>
-                <th className="p-4 text-left">Email</th>
-                <th className="p-4 text-left">Endereço</th>
-                <th className="p-4 text-left">Data de Entrada</th>
-                <th className="p-4 text-left">Chave PIX</th>
-                <th className="p-4 text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedTerapeutas.map((terapeuta) => (
-                <tr key={terapeuta.id}>
-                  <td className="p-4">{terapeuta.nomeTerapeuta}</td>
-                  <td className="p-4">
-                    {terapeuta.foto ? (
-                      <Image
-                        src={terapeuta.foto}
-                        alt={terapeuta.nomeTerapeuta}
-                        className="w-10 h-10 rounded-full object-cover aspect-square"
-                        width={40}
-                        height={40}
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <User size={24} className="text-white" />
-                      </div>
-                    )}
-                  </td>
-                  <td className="p-4">{terapeuta.telefoneTerapeuta}</td>
-                  <td className="p-4">{terapeuta.emailTerapeuta}</td>
-                  <td className="p-4">{terapeuta.enderecoTerapeuta}</td>
-                  <td className="p-4">
-                    {dateFormatter.format(new Date(terapeuta.dtEntrada))}
-                  </td>
-                  <td className="p-4">{terapeuta.chavePix}</td>
-                  <td className="p-2 space-x-2">
-                    <button
-                      type="button"
-                      title="Editar Terapeuta"
-                      className="text-green-500 hover:text-green-700"
-                      // onClick={() => handleEditTerapeuta(terapeuta)}
-                    >
-                      <PencilSimple size={20} weight="bold" />
-                    </button>
-                    <button
-                      type="button"
-                      title="Excluir Terapeuta"
-                      className="text-red-500 hover:text-red-700"
-                      // onClick={() =>
-                      //   openModalExcluir(
-                      //     "Deseja realmente excluir este terapeuta?",
-                      //     terapeuta.id,
-                      //   )
-                      // }
-                    >
-                      <TrashSimple size={20} weight="bold" />
-                    </button>
-                  </td>
+        <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
+          <div className="min-w-full md:min-w-[1000px]">
+            <table className="w-full">
+              <thead className="bg-rosa text-white">
+                <tr>
+                  <th className="p-4 text-left">Nome</th>
+                  <th className="p-4 text-left">Foto</th>
+                  <th className="p-4 text-left hidden md:table-cell">
+                    Telefone
+                  </th>
+                  <th className="p-4 text-left hidden md:table-cell">Email</th>
+                  <th className="p-4 text-left hidden lg:table-cell">
+                    Endereço
+                  </th>
+                  <th className="p-4 text-left hidden lg:table-cell">
+                    Data de Entrada
+                  </th>
+                  <th className="p-4 text-left hidden lg:table-cell">
+                    Chave PIX
+                  </th>
+                  <th className="p-4 text-left">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedTerapeutas.map((terapeuta) => (
+                  <tr key={terapeuta.id}>
+                    <td className="p-4">{terapeuta.nomeTerapeuta}</td>
+                    <td className="p-4">
+                      {terapeuta.foto ? (
+                        <Image
+                          src={terapeuta.foto}
+                          alt={terapeuta.nomeTerapeuta}
+                          className="w-10 h-10 rounded-full object-cover aspect-square"
+                          width={40}
+                          height={40}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                          <User size={24} className="text-white" />
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4 hidden md:table-cell">
+                      {terapeuta.telefoneTerapeuta}
+                    </td>
+                    <td className="p-4 hidden md:table-cell">
+                      {terapeuta.emailTerapeuta}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      {terapeuta.enderecoTerapeuta}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      {dateFormatter.format(new Date(terapeuta.dtEntrada))}
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      {terapeuta.chavePix}
+                    </td>
+                    <td className="p-2 space-x-2">
+                      <button
+                        type="button"
+                        title="Editar Terapeuta"
+                        className="text-green-500 hover:text-green-700"
+                        // onClick={() => handleEditTerapeuta(terapeuta)}
+                      >
+                        <PencilSimple size={20} weight="bold" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Excluir Terapeuta"
+                        className="text-red-500 hover:text-red-700"
+                        // onClick={() =>
+                        //   openModalExcluir(
+                        //     "Deseja realmente excluir este terapeuta?",
+                        //     terapeuta.id,
+                        //   )
+                        // }
+                      >
+                        <TrashSimple size={20} weight="bold" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Pagination */}
