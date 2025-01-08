@@ -66,3 +66,22 @@ export const maskCPF = (value: string) => {
 
   return formattedValue;
 };
+
+export const maskDate = (value: string): string => {
+  // Remove todos os caracteres que não são dígitos
+  const digits = value.replace(/\D/g, "").slice(0, 8); // Limita a 8 dígitos (ddMMyyyy)
+
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+
+  let maskedValue = day;
+  if (digits.length > 2) {
+    maskedValue += `/${month}`;
+  }
+  if (digits.length > 4) {
+    maskedValue += `/${year}`;
+  }
+
+  return maskedValue;
+};
