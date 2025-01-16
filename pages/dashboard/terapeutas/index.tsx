@@ -1,27 +1,22 @@
 import {
   PencilSimple,
+  Plus,
   TrashSimple,
   User,
   Users,
   UsersThree,
 } from "@phosphor-icons/react";
+import * as Dialog from "@radix-ui/react-dialog";
 import Pagination from "components/Pagination";
+import { DeletarTerapeutaModal } from "components/Terapeuta/DeletarTerapeutaModal";
+import { EditarTerapeutaModal } from "components/Terapeuta/EditarTerapeutaModal";
+import { NovoTerapeutaModal } from "components/Terapeuta/NovoTerapeutaModal";
+import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import Head from "next/head";
 import Image from "next/image";
 import React, { useMemo, useState } from "react";
-import useSWR from "swr";
+import type { Terapeuta } from "tipos";
 import { dateFormatter } from "utils/formatter";
-
-interface Terapeuta {
-  id: string;
-  nomeTerapeuta: string;
-  foto: string | null;
-  telefoneTerapeuta: string;
-  emailTerapeuta: string;
-  enderecoTerapeuta: string;
-  dtEntrada: Date;
-  chavePix: string;
-}
 
 const TERAPEUTAS_PER_PAGE = 10;
 
@@ -29,13 +24,6 @@ const filterTerapeutas = (
   terapeutas: Terapeuta[],
   selectedTerapeuta: string,
 ): Terapeuta[] => {
-  // Add debug log
-  // console.log("Selected:", selectedTerapeuta);
-  // console.log(
-  //   "Available:",
-  //   terapeutas.map((t) => ({ id: t.id, nome: t.nomeTerapeuta })),
-  // );
-
   return terapeutas.filter(
     (terapeuta) =>
       selectedTerapeuta === "Todos" ||
@@ -43,30 +31,42 @@ const filterTerapeutas = (
   );
 };
 
-async function fetchAPI(url: string): Promise<Terapeuta[]> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("Falha ao buscar terapeutas");
-  }
-  const data = await response.json();
-  return Array.isArray(data) ? data : [];
-}
-
 export default function Terapeutas() {
-  const { data, error, isLoading } = useSWR<Terapeuta[]>(
-    "/api/v1/terapeutas",
-    fetchAPI,
-  );
+  const { terapeutas, isLoading, isError, mutate } = useFetchTerapeutas();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
-  const terapeutas = data;
-
-  // Ensure data exists before filtering
-  const filteredTerapeutas = useMemo(
-    () => (data ? filterTerapeutas(data, selectedTerapeuta) : []),
-    [data, selectedTerapeuta],
+  const [editingTerapeuta, setEditingTerapeuta] = useState<Terapeuta | null>(
+    null,
+  );
+  const [deletingTerapeuta, setDeletingTerapeuta] = useState<Terapeuta | null>(
+    null,
   );
 
+  const handleEditTerapeuta = (terapeuta: Terapeuta) => {
+    setEditingTerapeuta(terapeuta);
+  };
+
+  const handleEditSuccess = () => {
+    mutate();
+    setEditingTerapeuta(null);
+  };
+
+  const handleDeleteClick = (terapeuta: Terapeuta) => {
+    setDeletingTerapeuta(terapeuta);
+  };
+
+  const handleDeleteSuccess = () => {
+    mutate();
+    setDeletingTerapeuta(null);
+  };
+
+  // Filtrar terapeutas
+  const filteredTerapeutas = useMemo(
+    () => (terapeutas ? filterTerapeutas(terapeutas, selectedTerapeuta) : []),
+    [terapeutas, selectedTerapeuta],
+  );
+
+  // Paginação
   const paginatedTerapeutas = useMemo(() => {
     const startIndex = (currentPage - 1) * TERAPEUTAS_PER_PAGE;
     return filteredTerapeutas.slice(
@@ -79,7 +79,7 @@ export default function Terapeutas() {
   if (isLoading) return <div>Carregando...</div>;
 
   // Show error state
-  if (error) return <div>Erro ao carregar dados: {error.message}</div>;
+  if (isError) return <div>Erro ao carregar dados.</div>;
 
   const totalPages = Math.ceil(filteredTerapeutas.length / TERAPEUTAS_PER_PAGE);
 
@@ -100,7 +100,7 @@ export default function Terapeutas() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Terapeutas</h1>
-          {/* <Dialog.Root>
+          <Dialog.Root>
             <Dialog.Trigger asChild>
               <button
                 type="button"
@@ -110,8 +110,8 @@ export default function Terapeutas() {
                 Novo Terapeuta
               </button>
             </Dialog.Trigger>
-            <NovoTerapeutaModal />
-          </Dialog.Root> */}
+            <NovoTerapeutaModal onSuccess={() => mutate()} />
+          </Dialog.Root>
         </div>
 
         {/* Filters and Summary */}
@@ -149,7 +149,6 @@ export default function Terapeutas() {
             </span>
           </div>
         </div>
-
         {/* Table */}
         <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
           <div className="min-w-full md:min-w-[1000px]">
@@ -179,7 +178,7 @@ export default function Terapeutas() {
                   <tr key={terapeuta.id}>
                     <td className="p-4">{terapeuta.nomeTerapeuta}</td>
                     <td className="p-4">
-                      {terapeuta.foto ? (
+                      {typeof terapeuta.foto === "string" ? (
                         <Image
                           src={terapeuta.foto}
                           alt={terapeuta.nomeTerapeuta}
@@ -213,20 +212,15 @@ export default function Terapeutas() {
                         type="button"
                         title="Editar Terapeuta"
                         className="text-green-500 hover:text-green-700"
-                        // onClick={() => handleEditTerapeuta(terapeuta)}
+                        onClick={() => handleEditTerapeuta(terapeuta)}
                       >
                         <PencilSimple size={20} weight="bold" />
                       </button>
                       <button
                         type="button"
                         title="Excluir Terapeuta"
+                        onClick={() => handleDeleteClick(terapeuta)}
                         className="text-red-500 hover:text-red-700"
-                        // onClick={() =>
-                        //   openModalExcluir(
-                        //     "Deseja realmente excluir este terapeuta?",
-                        //     terapeuta.id,
-                        //   )
-                        // }
                       >
                         <TrashSimple size={20} weight="bold" />
                       </button>
@@ -246,21 +240,23 @@ export default function Terapeutas() {
         />
 
         {/* Modals */}
-        {/* <ExcluirModal
-          isOpen={isModalOpen}
-          onOpenChange={closeModal}
-          title="Excluir Terapeuta"
-          message={modalMessage}
-          onConfirm={handleDeleteTerapeuta}
-          isSuccess={isSuccess}
-        /> */}
-        {/* {terapeutaEditando && (
-          <EditarTerapeutaModal
-            terapeutaId={terapeutaEditando.id}
-            open={isEditModalOpen}
-            onClose={closeEditModal}
+        {deletingTerapeuta && (
+          <DeletarTerapeutaModal
+            terapeuta={deletingTerapeuta}
+            open={!!deletingTerapeuta}
+            onClose={() => setDeletingTerapeuta(null)}
+            onSuccess={handleDeleteSuccess}
           />
-        )} */}
+        )}
+
+        {editingTerapeuta && (
+          <EditarTerapeutaModal
+            terapeuta={editingTerapeuta}
+            open={!!editingTerapeuta}
+            onClose={() => setEditingTerapeuta(null)}
+            onSuccess={handleEditSuccess}
+          />
+        )}
       </main>
     </div>
   );
