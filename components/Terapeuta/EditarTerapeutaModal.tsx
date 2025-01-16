@@ -22,6 +22,7 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "store/store";
 import { updateTerapeuta } from "store/terapeutasSlice";
 import { toast } from "sonner";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface EditarTerapeutaModalProps {
   terapeuta: Terapeuta;
@@ -104,6 +105,9 @@ export function EditarTerapeutaModal({
           <Dialog.Title className="text-xl font-medium text-azul mb-4">
             Editar Terapeuta
           </Dialog.Title>
+          <Dialog.Description>
+            <VisuallyHidden>Editar dados do terapeuta</VisuallyHidden>
+          </Dialog.Description>
 
           <form
             onSubmit={handleSubmit(handleUpdateTerapeuta)}
