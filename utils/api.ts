@@ -2,7 +2,11 @@ import axios from "axios";
 
 // Criar uma instância personalizada do axios com baseURL definida
 export const axiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1",
+  // Use a URL atual do site como base para as requisições
+  baseURL:
+    typeof window !== "undefined"
+      ? "/api/v1" // No cliente, use caminho relativo
+      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1", // No servidor, use URL completa
 });
 
 // Configurar interceptores, se necessário
