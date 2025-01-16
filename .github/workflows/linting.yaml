@@ -8,27 +8,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-
       - run: npm ci
-
       - run: npm run lint:prettier:check
+
   eslint:
     name: Eslint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-
       - run: npm ci
-
       - run: npm run lint:eslint:check
+
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
@@ -39,7 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-
       - run: npm ci
-
-      - run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+      - run: |
+          first_commit=59523661a3637002c1c7f1f5964bbcf35e60b3b6
+          last_commit=$(git rev-parse HEAD)
+          npx commitlint --from $first_commit --to $last_commit --verbose

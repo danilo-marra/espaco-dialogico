@@ -5,6 +5,7 @@ import type { AppDispatch } from "store/store";
 import { deleteTerapeuta } from "store/terapeutasSlice";
 import type { Terapeuta } from "tipos";
 import { toast } from "sonner";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface DeletarTerapeutaModalProps {
   terapeuta: Terapeuta;
@@ -46,7 +47,9 @@ export function DeletarTerapeutaModal({
           <Dialog.Title className="text-xl font-medium mb-4">
             Confirmar Exclusão
           </Dialog.Title>
-
+          <Dialog.Description>
+            <VisuallyHidden>Editar dados do terapeuta</VisuallyHidden>
+          </Dialog.Description>
           <p className="mb-6">
             Tem certeza que deseja excluir o terapeuta {terapeuta.nomeTerapeuta}
             ? Esta ação não pode ser desfeita.
