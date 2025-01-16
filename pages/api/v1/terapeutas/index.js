@@ -1,6 +1,5 @@
 import { IncomingForm } from "formidable";
-import fs from "fs";
-import path from "path";
+import { uploadToCloudinary } from "utils/cloudnary-config";
 import database from "infra/database.js";
 
 function formatField(value) {
@@ -45,19 +44,12 @@ async function terapeutasHandler(req, res) {
       res.status(500).json({ error: "Internal Server Error" });
     }
   } else if (req.method === "POST") {
-    const form = new IncomingForm({
-      uploadDir: path.join(process.cwd(), "/public/uploads"),
-      keepExtensions: true,
-      maxFileSize: 5 * 1024 * 1024, // Limite de 5MB
-      multiples: false, // Certifique-se de que apenas um arquivo é aceito
-    });
+    const form = new IncomingForm();
 
     // eslint-disable-next-line no-undef
     await new Promise((resolve, reject) => {
       form.parse(req, async (err, fields, files) => {
         if (err) {
-          console.error("Formidable Error:", err.message);
-          res.status(500).json({ error: "Internal Server Error" });
           return reject(err);
         }
 
@@ -94,26 +86,17 @@ async function terapeutasHandler(req, res) {
         }
 
         // Processar arquivo de foto
-        let fotoPath = null;
+        let fotoUrl = null;
         if (files.foto) {
-          const file = Array.isArray(files.foto) ? files.foto[0] : files.foto; // Garantir que é um único arquivo
-          const fileExtension = path.extname(file.originalFilename);
-          const allowedExtensions = [".jpg", ".jpeg", ".png", ".gif"];
-          if (!allowedExtensions.includes(fileExtension.toLowerCase())) {
-            res.status(400).json({ error: "Tipo de arquivo não permitido." });
-            return reject(new Error("Tipo de arquivo não permitido"));
-          }
-
-          const newFilename = `${Date.now()}-${file.originalFilename}`;
-          const newPath = path.join(form.uploadDir, newFilename);
-
+          const file = Array.isArray(files.foto) ? files.foto[0] : files.foto;
           try {
-            fs.renameSync(file.filepath, newPath);
-            fotoPath = `/uploads/${newFilename}`;
-          } catch (fileError) {
-            console.error("File Move Error:", fileError.message);
-            res.status(500).json({ error: "Erro ao salvar a foto." });
-            return reject(fileError);
+            console.log("Uploading file:", file);
+            fotoUrl = await uploadToCloudinary(file);
+            console.log("Upload successful, URL:", fotoUrl);
+          } catch (error) {
+            console.error("Cloudinary Upload Error:", error);
+            res.status(500).json({ error: "Error uploading image" });
+            return reject(error);
           }
         }
 
@@ -133,7 +116,7 @@ async function terapeutasHandler(req, res) {
             `,
             values: [
               formattedFields.nomeTerapeuta,
-              fotoPath,
+              fotoUrl,
               formattedFields.telefoneTerapeuta,
               formattedFields.emailTerapeuta,
               formattedFields.enderecoTerapeuta,
