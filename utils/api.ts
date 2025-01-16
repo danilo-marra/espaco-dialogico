@@ -1,0 +1,29 @@
+import axios from "axios";
+
+// Criar uma instância personalizada do axios com baseURL definida
+export const axiosInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1",
+});
+
+// Configurar interceptores, se necessário
+axiosInstance.interceptors.request.use(
+  (config) => {
+    // Adicionar token de autenticação, se necessário
+    const token = localStorage.getItem("token");
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Tratar erros de resposta globalmente
+    return Promise.reject(error);
+  },
+);
+
+export default axiosInstance;
