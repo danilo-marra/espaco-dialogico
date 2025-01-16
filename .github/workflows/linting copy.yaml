@@ -8,23 +8,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-      - run: npm ci
-      - run: npm run lint:prettier:check
 
+      - run: npm ci
+
+      - run: npm run lint:prettier:check
   eslint:
     name: Eslint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-      - run: npm ci
-      - run: npm run lint:eslint:check
 
+      - run: npm ci
+
+      - run: npm run lint:eslint:check
   commitlint:
     name: commitlint
     runs-on: ubuntu-latest
@@ -35,10 +39,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
+
       - run: npm ci
-      - name: Get commit range
-        run: |
-          echo "FIRST_COMMIT=$(git rev-parse ${{ github.event.pull_request.base.sha }})" >> $GITHUB_ENV
-          echo "LAST_COMMIT=$(git rev-parse ${{ github.event.pull_request.head.sha }})" >> $GITHUB_ENV
-      - name: Lint commits
-        run: npx commitlint --from ${{ env.FIRST_COMMIT }}~1 --to ${{ env.LAST_COMMIT }} --verbose
+
+      - run: npx commitlint --from 40f6bb436d1f6bcb2e6f27e40a54307b96653a25 --to HEAD --verbose
