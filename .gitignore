@@ -2,3 +2,5 @@
 node_modules
 .husky/_
 .vscode/settings.json
+.env.local
+.env.development
