@@ -6,6 +6,20 @@ jobs:
   jest:
     name: Jest Ubuntu
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.0-alpine3.18
+        env:
+          POSTGRES_USER: local_user
+          POSTGRES_PASSWORD: local_password
+          POSTGRES_DB: local_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U local_user"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -14,5 +28,10 @@ jobs:
           node-version: "20.17.0"
 
       - run: npm ci
+
+      - name: Run migrations
+        run: npm run migrations:up
+        env:
+          DATABASE_URL: postgres://local_user:local_password@localhost:5433/local_db
 
       - run: npm test
