@@ -4,7 +4,6 @@ import database from "infra/database.js";
 async function waitForAllServices() {
   await waitForWebServer();
   await waitForDatabase();
-  await waitForTerapeutas();
 
   async function waitForWebServer() {
     return retry(fetchStatusPage, {
@@ -14,6 +13,7 @@ async function waitForAllServices() {
 
     async function fetchStatusPage() {
       const response = await fetch("http://localhost:3000/api/v1/status");
+
       if (response.status !== 200) {
         throw Error();
       }
@@ -32,20 +32,6 @@ async function waitForAllServices() {
         await client.end();
       } catch (error) {
         throw Error();
-      }
-    }
-  }
-
-  async function waitForTerapeutas() {
-    return retry(fetchTerapeutasStatus, {
-      retries: 100,
-      maxTimeout: 1000,
-    });
-
-    async function fetchTerapeutasStatus() {
-      const response = await fetch("http://localhost:3000/api/v1/terapeutas");
-      if (response.status !== 200) {
-        throw new Error("Endpoint /api/v1/terapeutas não retornou status 200");
       }
     }
   }
