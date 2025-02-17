@@ -26,7 +26,7 @@ export function DeletarTerapeutaModal({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await dispatch(deleteTerapeuta(terapeuta.id)).unwrap();
+      await dispatch(deleteTerapeuta(terapeuta.idTerapeuta)).unwrap();
       toast.success(
         `Terapeuta ${terapeuta.nomeTerapeuta} excluído com sucesso.`,
       );

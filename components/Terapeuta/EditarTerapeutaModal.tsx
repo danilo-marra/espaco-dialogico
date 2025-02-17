@@ -51,17 +51,17 @@ export function EditarTerapeutaModal({
       telefoneTerapeuta: terapeuta.telefoneTerapeuta,
       emailTerapeuta: terapeuta.emailTerapeuta,
       enderecoTerapeuta: terapeuta.enderecoTerapeuta,
-      dtEntrada: new Date(terapeuta.dtEntrada),
-      chavePix: terapeuta.chavePix,
+      dtEntrada: new Date(terapeuta.dtEntradaTerapeuta),
+      chavePix: terapeuta.chavePixTerapeuta,
     },
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
 
   useEffect(() => {
-    if (terapeuta?.dtEntrada) {
+    if (terapeuta?.dtEntradaTerapeuta) {
       const formattedDate = format(
-        new Date(terapeuta.dtEntrada),
+        new Date(terapeuta.dtEntradaTerapeuta),
         "dd/MM/yyyy",
         {
           locale: ptBR,
@@ -76,7 +76,7 @@ export function EditarTerapeutaModal({
       const updatedTerapeuta = {
         ...terapeuta,
         ...data,
-        foto: terapeuta.foto,
+        foto: terapeuta.fotoTerapeuta,
       };
 
       await dispatch(
