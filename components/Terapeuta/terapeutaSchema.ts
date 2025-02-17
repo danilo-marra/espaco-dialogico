@@ -5,10 +5,10 @@ export const TerapeutaFormSchema = z.object({
   telefoneTerapeuta: z.string().min(13, "Telefone é obrigatório"),
   emailTerapeuta: z.string().email("Email inválido"),
   enderecoTerapeuta: z.string(),
-  dtEntrada: z.date({
+  dtEntradaTerapeuta: z.date({
     required_error: "Data é obrigatória",
   }),
-  chavePix: z.string(),
+  chavePixTerapeuta: z.string(),
 });
 
 export type TerapeutaFormInputs = z.infer<typeof TerapeutaFormSchema>;

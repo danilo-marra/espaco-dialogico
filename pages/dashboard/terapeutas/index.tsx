@@ -27,7 +27,7 @@ const filterTerapeutas = (
   return terapeutas.filter(
     (terapeuta) =>
       selectedTerapeuta === "Todos" ||
-      String(terapeuta.id) === String(selectedTerapeuta),
+      String(terapeuta.idTerapeuta) === String(selectedTerapeuta),
   );
 };
 
@@ -130,7 +130,10 @@ export default function Terapeutas() {
             >
               <option value="Todos">Todos</option>
               {terapeutas?.map((terapeuta) => (
-                <option key={terapeuta.id} value={String(terapeuta.id)}>
+                <option
+                  key={terapeuta.idTerapeuta}
+                  value={String(terapeuta.idTerapeuta)}
+                >
                   {terapeuta.nomeTerapeuta}
                 </option>
               ))}
@@ -175,12 +178,12 @@ export default function Terapeutas() {
               </thead>
               <tbody>
                 {paginatedTerapeutas.map((terapeuta) => (
-                  <tr key={terapeuta.id}>
+                  <tr key={terapeuta.idTerapeuta}>
                     <td className="p-4">{terapeuta.nomeTerapeuta}</td>
                     <td className="p-4">
-                      {typeof terapeuta.foto === "string" ? (
+                      {typeof terapeuta.fotoTerapeuta === "string" ? (
                         <Image
-                          src={terapeuta.foto}
+                          src={terapeuta.fotoTerapeuta}
                           alt={terapeuta.nomeTerapeuta}
                           className="w-10 h-10 rounded-full object-cover aspect-square"
                           width={40}
@@ -202,10 +205,12 @@ export default function Terapeutas() {
                       {terapeuta.enderecoTerapeuta}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {dateFormatter.format(new Date(terapeuta.dtEntrada))}
+                      {dateFormatter.format(
+                        new Date(terapeuta.dtEntradaTerapeuta),
+                      )}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {terapeuta.chavePix}
+                      {terapeuta.chavePixTerapeuta}
                     </td>
                     <td className="p-2 space-x-2">
                       <button

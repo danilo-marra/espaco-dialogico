@@ -25,8 +25,8 @@ export const addTerapeuta = createAsyncThunk<
       formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
       formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
       formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
-      formData.append("dtEntrada", terapeuta.dtEntrada.toISOString());
-      formData.append("chavePix", terapeuta.chavePix);
+      formData.append("dtEntrada", terapeuta.dtEntradaTerapeuta.toISOString());
+      formData.append("chavePix", terapeuta.chavePixTerapeuta);
 
       if (foto) {
         // Condicionalmente adiciona a foto
@@ -67,16 +67,16 @@ export const updateTerapeuta = createAsyncThunk<
       formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
       formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
       formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
-      formData.append("dtEntrada", terapeuta.dtEntrada.toISOString());
-      formData.append("chavePix", terapeuta.chavePix);
-      formData.append("id", terapeuta.id);
+      formData.append("dtEntrada", terapeuta.dtEntradaTerapeuta.toISOString());
+      formData.append("chavePix", terapeuta.chavePixTerapeuta);
+      formData.append("id", terapeuta.idTerapeuta);
 
       if (foto) {
         formData.append("foto", foto);
       }
 
       const response = await axiosInstance.put<Terapeuta>(
-        `/terapeutas/${terapeuta.id}`,
+        `/terapeutas/${terapeuta.idTerapeuta}`,
         formData,
       );
 
@@ -139,7 +139,9 @@ const terapeutasSlice = createSlice({
       updateTerapeuta.fulfilled,
       (state, action: PayloadAction<Terapeuta>) => {
         state.loading = false;
-        const index = state.data.findIndex((t) => t.id === action.payload.id);
+        const index = state.data.findIndex(
+          (t) => t.idTerapeuta === action.payload.idTerapeuta,
+        );
         if (index !== -1) {
           state.data[index] = action.payload;
         }
@@ -159,7 +161,7 @@ const terapeutasSlice = createSlice({
       deleteTerapeuta.fulfilled,
       (state, action: PayloadAction<string>) => {
         state.loading = false;
-        state.data = state.data.filter((t) => t.id !== action.payload);
+        state.data = state.data.filter((t) => t.idTerapeuta !== action.payload);
       },
     );
     builder.addCase(deleteTerapeuta.rejected, (state, action) => {

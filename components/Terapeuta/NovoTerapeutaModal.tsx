@@ -65,7 +65,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
       // Check if ID already exists in Redux store
       const existingTerapeutas = store.getState().terapeutas.data;
       const idExists = existingTerapeutas.some(
-        (terapeuta) => terapeuta.id === id,
+        (terapeuta) => terapeuta.idTerapeuta === id,
       );
 
       if (idExists) {
@@ -75,13 +75,13 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
       }
 
       const novoTerapeuta = {
-        id,
+        idTerapeuta: id,
         nomeTerapeuta: data.nomeTerapeuta,
         telefoneTerapeuta: data.telefoneTerapeuta,
         emailTerapeuta: data.emailTerapeuta,
         enderecoTerapeuta: data.enderecoTerapeuta,
-        dtEntrada: data.dtEntrada,
-        chavePix: data.chavePix,
+        dtEntradaTerapeuta: data.dtEntradaTerapeuta,
+        chavePixTerapeuta: data.chavePixTerapeuta,
         foto: selectedFile ? URL.createObjectURL(selectedFile) : "",
       };
 
@@ -178,7 +178,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
 
             <Controller
               control={control}
-              name="dtEntrada"
+              name="dtEntradaTerapeuta"
               render={({ field }) => (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -277,15 +277,17 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
               )}
             />
 
-            {errors.dtEntrada && (
-              <p className="text-red-500">{errors.dtEntrada.message}</p>
+            {errors.dtEntradaTerapeuta && (
+              <p className="text-red-500">
+                {errors.dtEntradaTerapeuta.message}
+              </p>
             )}
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
               id="chavePix"
               placeholder="Chave PIX"
-              {...register("chavePix")}
+              {...register("chavePixTerapeuta")}
             />
           </div>
           <div className="mt-6 flex justify-end">
