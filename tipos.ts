@@ -1,12 +1,12 @@
 export interface Terapeuta {
-  id: string;
+  idTerapeuta: string;
   nomeTerapeuta: string;
+  fotoTerapeuta?: string | null; // Torna 'foto' opcional
   telefoneTerapeuta: string;
   emailTerapeuta: string;
   enderecoTerapeuta: string;
-  dtEntrada: Date;
-  chavePix: string;
-  foto?: string | null; // Torna 'foto' opcional
+  dtEntradaTerapeuta: Date;
+  chavePixTerapeuta: string;
 }
 
 export interface Paciente {

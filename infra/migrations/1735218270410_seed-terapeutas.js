@@ -5,15 +5,17 @@ exports.shorthands = undefined;
 exports.up = async function (pgm) {
   pgm.sql(`
     INSERT INTO terapeutas (
+      "idTerapeuta",
       "nomeTerapeuta",
-      "foto",
+      "fotoTerapeuta",
       "telefoneTerapeuta",
       "emailTerapeuta",
       "enderecoTerapeuta",
-      "dtEntrada",
-      "chavePix"
+      "dtEntradaTerapeuta",
+      "chavePixTerapeuta"
     ) VALUES 
     (
+      uuid_generate_v4(),
       'Maria Silva',
       'https://github.com/maria-silva.png',
       '(31) 99999-9999',
@@ -23,6 +25,7 @@ exports.up = async function (pgm) {
       'maria.silva@banco.com.br'
     ),
     (
+      uuid_generate_v4(),
       'João Santos',
       'https://github.com/joao-santos.png',
       '(31) 98888-8888',
@@ -32,6 +35,7 @@ exports.up = async function (pgm) {
       'joao.santos@banco.com.br'
     ),
     (
+      uuid_generate_v4(),
       'Ana Oliveira',
       'https://github.com/ana-oliveira.png',
       '(31) 97777-7777',
