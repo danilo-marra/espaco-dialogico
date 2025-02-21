@@ -1,9 +1,9 @@
 import retry from "async-retry";
 import database from "infra/database.js";
+import migrator from "models/migrator.js";
 
 async function waitForAllServices() {
   await waitForWebServer();
-  await waitForDatabase();
 
   async function waitForWebServer() {
     return retry(fetchStatusPage, {
@@ -19,31 +19,20 @@ async function waitForAllServices() {
       }
     }
   }
-
-  async function waitForDatabase() {
-    return retry(checkDatabaseConnection, {
-      retries: 100,
-      maxTimeout: 1000,
-    });
-
-    async function checkDatabaseConnection() {
-      try {
-        const client = await database.getNewClient();
-        await client.end();
-      } catch (error) {
-        throw Error();
-      }
-    }
-  }
 }
 
 async function clearDatabase() {
   await database.query("drop schema public cascade; create schema public;");
 }
 
+async function runPendingMigrations() {
+  await migrator.runPendingMigrations();
+}
+
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
+  runPendingMigrations,
 };
 
 export default orchestrator;
