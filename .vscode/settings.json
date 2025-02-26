@@ -12,4 +12,5 @@
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "dbcode.connections": [],
 }

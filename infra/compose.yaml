@@ -1,3 +1,4 @@
+name: espaco_dialogico
 services:
   espaco_dialogico:
     container_name: espaco_dialogico
