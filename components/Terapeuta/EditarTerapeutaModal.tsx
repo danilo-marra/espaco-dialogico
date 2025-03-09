@@ -51,17 +51,17 @@ export function EditarTerapeutaModal({
       telefoneTerapeuta: terapeuta.telefoneTerapeuta,
       emailTerapeuta: terapeuta.emailTerapeuta,
       enderecoTerapeuta: terapeuta.enderecoTerapeuta,
-      dtEntrada: new Date(terapeuta.dtEntradaTerapeuta),
-      chavePix: terapeuta.chavePixTerapeuta,
+      dt_entrada: new Date(terapeuta.dt_entradaTerapeuta),
+      chave_pix: terapeuta.chave_pixTerapeuta,
     },
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
 
   useEffect(() => {
-    if (terapeuta?.dtEntradaTerapeuta) {
+    if (terapeuta?.dt_entradaTerapeuta) {
       const formattedDate = format(
-        new Date(terapeuta.dtEntradaTerapeuta),
+        new Date(terapeuta.dt_entradaTerapeuta),
         "dd/MM/yyyy",
         {
           locale: ptBR,
@@ -171,7 +171,7 @@ export function EditarTerapeutaModal({
 
               <Controller
                 control={control}
-                name="dtEntrada"
+                name="dt_entrada"
                 render={({ field }) => (
                   <Popover>
                     <PopoverTrigger asChild>
@@ -179,7 +179,7 @@ export function EditarTerapeutaModal({
                         <input
                           type="text"
                           className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                          id="dtEntrada"
+                          id="dt_entrada"
                           placeholder="Data de entrada (dd/MM/yyyy)"
                           value={inputValue}
                           onChange={(e) => {
@@ -270,15 +270,15 @@ export function EditarTerapeutaModal({
                 )}
               />
 
-              {errors.dtEntrada && (
-                <p className="text-red-500">{errors.dtEntrada.message}</p>
+              {errors.dt_entrada && (
+                <p className="text-red-500">{errors.dt_entrada.message}</p>
               )}
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="chavePix"
+                id="chave_pix"
                 placeholder="Chave PIX"
-                {...register("chavePix")}
+                {...register("chave_pix")}
               />
             </div>
 

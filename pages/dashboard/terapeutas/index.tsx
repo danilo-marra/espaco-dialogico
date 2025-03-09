@@ -206,11 +206,11 @@ export default function Terapeutas() {
                     </td>
                     <td className="p-4 hidden lg:table-cell">
                       {dateFormatter.format(
-                        new Date(terapeuta.dtEntradaTerapeuta),
+                        new Date(terapeuta.dt_entradaTerapeuta),
                       )}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {terapeuta.chavePixTerapeuta}
+                      {terapeuta.chave_pixTerapeuta}
                     </td>
                     <td className="p-2 space-x-2">
                       <button

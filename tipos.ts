@@ -5,8 +5,8 @@ export interface Terapeuta {
   telefoneTerapeuta: string;
   emailTerapeuta: string;
   enderecoTerapeuta: string;
-  dtEntradaTerapeuta: Date;
-  chavePixTerapeuta: string;
+  dt_entradaTerapeuta: Date;
+  chave_pixTerapeuta: string;
 }
 
 export interface Paciente {
@@ -20,5 +20,5 @@ export interface Paciente {
   cpfResponsavel: string;
   enderecoResponsavel: string;
   origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | undefined;
-  dtEntradaPaciente: Date;
+  dt_entradaPaciente: Date;
 }
