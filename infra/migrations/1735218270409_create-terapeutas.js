@@ -10,11 +10,11 @@ exports.up = (pgm) => {
     telefone: { type: "varchar(20)", notNull: true },
     email: { type: "varchar(255)", notNull: true, unique: true },
     endereco: { type: "varchar(255)", notNull: true },
-    dtEntrada: {
+    dt_entrada: {
       type: "date",
       notNull: true,
     },
-    chavePix: { type: "varchar(255)", notNull: true },
+    chave_pix: { type: "varchar(255)", notNull: true },
     created_at: {
       type: "timestamptz",
       default: pgm.func("now()"),
