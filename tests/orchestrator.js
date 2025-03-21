@@ -2,6 +2,8 @@ import retry from "async-retry";
 import database from "infra/database.js";
 import migrator from "models/migrator.js";
 
+const PORT = process.env.PORT || 3003;
+
 async function waitForAllServices() {
   await waitForWebServer();
 
@@ -12,7 +14,7 @@ async function waitForAllServices() {
     });
 
     async function fetchStatusPage() {
-      const response = await fetch("http://localhost:3000/api/v1/status");
+      const response = await fetch(`http://localhost:${PORT}/api/v1/status`);
 
       if (response.status !== 200) {
         throw Error();

@@ -6,7 +6,7 @@ export const axiosInstance = axios.create({
   baseURL:
     typeof window !== "undefined"
       ? "/api/v1" // No cliente, use caminho relativo
-      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1", // No servidor, use URL completa
+      : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3003/api/v1", // No servidor, use URL completa
 });
 
 // Configurar interceptores, se necessário
