@@ -17,12 +17,14 @@ exports.up = (pgm) => {
     chave_pix: { type: "varchar(255)", notNull: true },
     created_at: {
       type: "timestamptz",
-      default: pgm.func("now()"),
+      notNull: true,
+      default: pgm.func("timezone('utc', now())"),
     },
 
     updated_at: {
       type: "timestamptz",
-      default: pgm.func("now()"),
+      notNull: true,
+      default: pgm.func("timezone('utc', now())"),
     },
   });
 };
