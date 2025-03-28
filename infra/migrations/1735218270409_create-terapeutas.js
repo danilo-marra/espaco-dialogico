@@ -11,7 +11,7 @@ exports.up = (pgm) => {
     email: { type: "varchar(255)", notNull: true, unique: true },
     endereco: { type: "varchar(255)", notNull: true },
     dt_entrada: {
-      type: "date",
+      type: "timestamptz",
       notNull: true,
     },
     chave_pix: { type: "varchar(255)", notNull: true },
