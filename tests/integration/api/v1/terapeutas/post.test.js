@@ -47,6 +47,7 @@ describe("POST /api/v1/terapeutas", () => {
       expect(Date.parse(responseBody.created_at)).not.toBeNaN();
       expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
     });
+
     test("With duplicated 'email'", async () => {
       const response1 = await fetch("http://localhost:3000/api/v1/terapeutas", {
         method: "POST",
@@ -75,7 +76,7 @@ describe("POST /api/v1/terapeutas", () => {
           nome: "Juliana Barbosa2",
           foto: "aZhskasiypsq.png",
           telefone: "61992095674",
-          email: "Duplicado@gmail.com",
+          email: "duplicado@gmail.com",
           endereco: "shces 301 bloco c apt 202",
           dt_entrada: "2025-02-22T03:00:00.000Z",
           chave_pix: "pix871",
@@ -91,11 +92,6 @@ describe("POST /api/v1/terapeutas", () => {
         action: "Utilize outro email para realizar o cadastro.",
         status_code: 400,
       });
-      // 409 - conflict
-      // 422 - unprocessable entity
-      // 404 - not found
-      // 401 - unauthorized
-      // 403 - forbidden
     });
   });
 });
