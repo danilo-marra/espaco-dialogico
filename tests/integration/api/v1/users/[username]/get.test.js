@@ -10,7 +10,7 @@ beforeAll(async () => {
 describe("GET /api/v1/[username]", () => {
   describe("Anonymous user", () => {
     test("With exact case match'", async () => {
-      const response1 = await fetch("http://localhost:3003/api/v1/users", {
+      const response1 = await fetch("http://localhost:3000/api/v1/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,7 +25,7 @@ describe("GET /api/v1/[username]", () => {
       expect(response1.status).toBe(201); // created
 
       const response2 = await fetch(
-        "http://localhost:3003/api/v1/users/MesmoCase",
+        "http://localhost:3000/api/v1/users/MesmoCase",
       );
 
       expect(response2.status).toBe(200); // ok
@@ -46,7 +46,7 @@ describe("GET /api/v1/[username]", () => {
       expect(Date.parse(response2Body.updated_at)).not.toBeNaN();
     });
     test("With case mismatch", async () => {
-      const response1 = await fetch("http://localhost:3003/api/v1/users", {
+      const response1 = await fetch("http://localhost:3000/api/v1/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +61,7 @@ describe("GET /api/v1/[username]", () => {
       expect(response1.status).toBe(201); // created
 
       const response2 = await fetch(
-        "http://localhost:3003/api/v1/users/casediferente",
+        "http://localhost:3000/api/v1/users/casediferente",
       );
 
       expect(response2.status).toBe(200); // ok
@@ -83,7 +83,7 @@ describe("GET /api/v1/[username]", () => {
     });
     test("With username notfound", async () => {
       const response = await fetch(
-        "http://localhost:3003/api/v1/users/UsuarioInexistente",
+        "http://localhost:3000/api/v1/users/UsuarioInexistente",
       );
 
       expect(response.status).toBe(404); // not found

@@ -10,7 +10,7 @@ beforeAll(async () => {
 describe("POST /api/v1/terapeutas", () => {
   describe("Anonymous user", () => {
     test("With unique and valid data", async () => {
-      const response = await fetch("http://localhost:3003/api/v1/terapeutas", {
+      const response = await fetch("http://localhost:3000/api/v1/terapeutas", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,7 +48,7 @@ describe("POST /api/v1/terapeutas", () => {
       expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
     });
     test("With duplicated 'email'", async () => {
-      const response1 = await fetch("http://localhost:3003/api/v1/terapeutas", {
+      const response1 = await fetch("http://localhost:3000/api/v1/terapeutas", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,7 +66,7 @@ describe("POST /api/v1/terapeutas", () => {
 
       expect(response1.status).toBe(201); // created
 
-      const response2 = await fetch("http://localhost:3003/api/v1/terapeutas", {
+      const response2 = await fetch("http://localhost:3000/api/v1/terapeutas", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
