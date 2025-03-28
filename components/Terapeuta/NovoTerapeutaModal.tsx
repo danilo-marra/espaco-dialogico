@@ -80,8 +80,8 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
         telefoneTerapeuta: data.telefoneTerapeuta,
         emailTerapeuta: data.emailTerapeuta,
         enderecoTerapeuta: data.enderecoTerapeuta,
-        dtEntradaTerapeuta: data.dtEntradaTerapeuta,
-        chavePixTerapeuta: data.chavePixTerapeuta,
+        dt_entradaTerapeuta: data.dt_entradaTerapeuta,
+        chave_pixTerapeuta: data.chave_pixTerapeuta,
         foto: selectedFile ? URL.createObjectURL(selectedFile) : "",
       };
 
@@ -178,7 +178,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
 
             <Controller
               control={control}
-              name="dtEntradaTerapeuta"
+              name="dt_entradaTerapeuta"
               render={({ field }) => (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -186,7 +186,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
                       <input
                         type="text"
                         className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                        id="dtEntrada"
+                        id="dt_entrada"
                         placeholder="Data de entrada (dd/MM/yyyy)"
                         value={inputValue}
                         onChange={(e) => {
@@ -277,17 +277,17 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
               )}
             />
 
-            {errors.dtEntradaTerapeuta && (
+            {errors.dt_entradaTerapeuta && (
               <p className="text-red-500">
-                {errors.dtEntradaTerapeuta.message}
+                {errors.dt_entradaTerapeuta.message}
               </p>
             )}
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="chavePix"
+              id="chave_pix"
               placeholder="Chave PIX"
-              {...register("chavePixTerapeuta")}
+              {...register("chave_pixTerapeuta")}
             />
           </div>
           <div className="mt-6 flex justify-end">

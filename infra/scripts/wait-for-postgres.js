@@ -7,7 +7,7 @@ function checkPostgres(retries = 10, delay = 5000) {
   }
 
   exec(
-    "docker exec postgres-dev pg_isready --host localhost",
+    "docker exec espaco_dialogico pg_isready --host localhost",
     (error, stdout) => {
       if (stdout.search("accepting connections") === -1) {
         console.log(

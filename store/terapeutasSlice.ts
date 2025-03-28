@@ -25,8 +25,11 @@ export const addTerapeuta = createAsyncThunk<
       formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
       formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
       formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
-      formData.append("dtEntrada", terapeuta.dtEntradaTerapeuta.toISOString());
-      formData.append("chavePix", terapeuta.chavePixTerapeuta);
+      formData.append(
+        "dt_entrada",
+        terapeuta.dt_entradaTerapeuta.toISOString(),
+      );
+      formData.append("chave_pix", terapeuta.chave_pixTerapeuta);
 
       if (foto) {
         // Condicionalmente adiciona a foto
@@ -67,8 +70,11 @@ export const updateTerapeuta = createAsyncThunk<
       formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
       formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
       formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
-      formData.append("dtEntrada", terapeuta.dtEntradaTerapeuta.toISOString());
-      formData.append("chavePix", terapeuta.chavePixTerapeuta);
+      formData.append(
+        "dt_entrada",
+        terapeuta.dt_entradaTerapeuta.toISOString(),
+      );
+      formData.append("chave_pix", terapeuta.chave_pixTerapeuta);
       formData.append("id", terapeuta.idTerapeuta);
 
       if (foto) {
