@@ -97,3 +97,12 @@ export class MethodNotAllowedError extends Error {
     };
   }
 }
+
+export class TerapeutaError extends ValidationError {
+  constructor(message) {
+    super({
+      message,
+      action: "Verifique os dados do terapeuta e tente novamente.",
+    });
+  }
+}

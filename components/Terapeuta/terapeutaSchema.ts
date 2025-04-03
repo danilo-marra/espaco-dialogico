@@ -1,14 +1,14 @@
 import { z } from "zod";
 
 export const TerapeutaFormSchema = z.object({
-  nomeTerapeuta: z.string().min(1, "Nome do terapeuta é obrigatório"),
-  telefoneTerapeuta: z.string().min(13, "Telefone é obrigatório"),
-  emailTerapeuta: z.string().email("Email inválido"),
-  enderecoTerapeuta: z.string(),
-  dt_entradaTerapeuta: z.date({
+  nome: z.string().min(1, "Nome do terapeuta é obrigatório"),
+  telefone: z.string().min(13, "Telefone é obrigatório"),
+  email: z.string().email("Email inválido"),
+  endereco: z.string(),
+  dt_entrada: z.date({
     required_error: "Data é obrigatória",
   }),
-  chave_pixTerapeuta: z.string(),
+  chave_pix: z.string(),
 });
 
 export type TerapeutaFormInputs = z.infer<typeof TerapeutaFormSchema>;

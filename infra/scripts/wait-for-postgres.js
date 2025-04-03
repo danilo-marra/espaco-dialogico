@@ -1,25 +1,51 @@
-const { exec } = require("node:child_process");
+const { Pool } = require("pg");
+const dotenv = require("dotenv");
+const path = require("path");
 
-function checkPostgres(retries = 10, delay = 5000) {
-  if (retries === 0) {
-    console.error("\n🔴 Postgres is not ready after multiple attempts.\n");
-    process.exit(1);
+// Carregando variáveis de ambiente
+const envPath = path.resolve(process.cwd(), ".env.development");
+dotenv.config({ path: envPath });
+
+async function waitForPostgres() {
+  const pool = new Pool({
+    host: process.env.POSTGRES_HOST,
+    port: process.env.POSTGRES_PORT,
+    user: process.env.POSTGRES_USER,
+    database: process.env.POSTGRES_DB,
+    password: process.env.POSTGRES_PASSWORD,
+    connectionTimeoutMillis: 2000,
+  });
+
+  console.log("\n\n🔄 Esperando PostgreSQL ficar disponível...");
+
+  let attempts = 0;
+  const maxAttempts = 15;
+  const delay = 2000;
+
+  while (attempts < maxAttempts) {
+    try {
+      attempts++;
+      const client = await pool.connect();
+
+      // Testar uma operação real no banco
+      await client.query("SELECT 1");
+
+      console.log("\n✅ PostgreSQL está pronto e operacional!\n");
+      client.release();
+      await pool.end();
+      return;
+    } catch (error) {
+      console.log(
+        `⏳ Tentativa ${attempts}/${maxAttempts}: PostgreSQL ainda não está pronto. Aguardando...`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
 
-  exec(
-    "docker exec espaco_dialogico pg_isready --host localhost",
-    (error, stdout) => {
-      if (stdout.search("accepting connections") === -1) {
-        console.log(
-          `Attempt ${11 - retries}: Postgres is not ready, retrying in ${delay / 1000} seconds...`,
-        );
-        setTimeout(() => checkPostgres(retries - 1, delay), delay);
-      } else {
-        console.log("\n🟢 Postgres is ready for connections!\n");
-      }
-    },
+  console.error(
+    "\n❌ Falha ao conectar ao PostgreSQL após várias tentativas.\n",
   );
+  process.exit(1);
 }
 
-console.log("\n\n🔴 Waiting for Postgres to be ready...");
-checkPostgres();
+waitForPostgres();

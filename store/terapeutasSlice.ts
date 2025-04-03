@@ -11,50 +11,73 @@ const initialState: TerapeutasState = {
   error: null,
 };
 
+// Constante para o endpoint base
+const API_ENDPOINT = "/terapeutas";
+
 // Thunk para adicionar terapeuta com upload de arquivo
 export const addTerapeuta = createAsyncThunk<
   Terapeuta,
-  { terapeuta: Omit<Terapeuta, "id">; foto?: File }, // Torna 'foto' opcional
+  { terapeuta: Omit<Terapeuta, "id">; foto?: File },
   { rejectValue: string }
 >(
   "terapeutas/addTerapeuta",
   async ({ terapeuta, foto }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      formData.append("nomeTerapeuta", terapeuta.nomeTerapeuta);
-      formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
-      formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
-      formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
+
+      // Adicionar campos do terapeuta
+      formData.append("nome", terapeuta.nome);
+      formData.append("telefone", terapeuta.telefone);
+      formData.append("email", terapeuta.email);
+      formData.append("endereco", terapeuta.endereco);
       formData.append(
         "dt_entrada",
-        terapeuta.dt_entradaTerapeuta.toISOString(),
+        typeof terapeuta.dt_entrada === "string"
+          ? terapeuta.dt_entrada
+          : terapeuta.dt_entrada.toISOString(),
       );
-      formData.append("chave_pix", terapeuta.chave_pixTerapeuta);
+      formData.append("chave_pix", terapeuta.chave_pix);
 
+      // Adicionar foto se existir
       if (foto) {
-        // Condicionalmente adiciona a foto
         formData.append("foto", foto);
       }
 
-      // Log das entradas do FormData
-      // for (let pair of formData.entries()) {
-      //   console.log(`${pair[0]}: ${pair[1]}`);
-      // }
+      console.log("Enviando formData:", Object.fromEntries(formData));
 
-      const response = await axiosInstance.post<Terapeuta>(
-        "/terapeutas",
-        formData,
-      );
+      const response = await axiosInstance.post(API_ENDPOINT, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Erro ao adicionar terapeuta:", error);
       if (isAxiosError(error)) {
         return rejectWithValue(error.response?.data?.error || error.message);
       }
-      return rejectWithValue("Erro desconhecido");
+      return rejectWithValue("Erro desconhecido ao adicionar terapeuta");
     }
   },
 );
+
+// Thunk para buscar todos os terapeutas
+export const fetchTerapeutas = createAsyncThunk<
+  Terapeuta[],
+  void,
+  { rejectValue: string }
+>("terapeutas/fetchTerapeutas", async (_, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get<Terapeuta[]>(API_ENDPOINT);
+    return response.data;
+  } catch (error: any) {
+    if (isAxiosError(error)) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+    return rejectWithValue("Erro desconhecido");
+  }
+});
 
 // Thunk para editar terapeuta
 export const updateTerapeuta = createAsyncThunk<
@@ -66,24 +89,30 @@ export const updateTerapeuta = createAsyncThunk<
   async ({ terapeuta, foto }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      formData.append("nomeTerapeuta", terapeuta.nomeTerapeuta);
-      formData.append("telefoneTerapeuta", terapeuta.telefoneTerapeuta);
-      formData.append("emailTerapeuta", terapeuta.emailTerapeuta);
-      formData.append("enderecoTerapeuta", terapeuta.enderecoTerapeuta);
+      formData.append("nome", terapeuta.nome);
+      formData.append("telefone", terapeuta.telefone);
+      formData.append("email", terapeuta.email);
+      formData.append("endereco", terapeuta.endereco);
       formData.append(
         "dt_entrada",
-        terapeuta.dt_entradaTerapeuta.toISOString(),
+        typeof terapeuta.dt_entrada === "string"
+          ? terapeuta.dt_entrada
+          : new Date(terapeuta.dt_entrada).toISOString(),
       );
-      formData.append("chave_pix", terapeuta.chave_pixTerapeuta);
-      formData.append("id", terapeuta.idTerapeuta);
+      formData.append("chave_pix", terapeuta.chave_pix);
 
       if (foto) {
         formData.append("foto", foto);
       }
 
       const response = await axiosInstance.put<Terapeuta>(
-        `/terapeutas/${terapeuta.idTerapeuta}`,
+        `${API_ENDPOINT}/${terapeuta.id}`,
         formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
       );
 
       return response.data;
@@ -103,7 +132,7 @@ export const deleteTerapeuta = createAsyncThunk<
   { rejectValue: string }
 >("terapeutas/deleteTerapeuta", async (id, { rejectWithValue }) => {
   try {
-    await axiosInstance.delete(`/terapeutas/${id}`);
+    await axiosInstance.delete(`${API_ENDPOINT}/${id}`);
     return id;
   } catch (error) {
     if (isAxiosError(error)) {
@@ -119,6 +148,23 @@ const terapeutasSlice = createSlice({
   initialState,
   reducers: {},
   extraReducers: (builder) => {
+    // Fetch Terapeutas
+    builder.addCase(fetchTerapeutas.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      fetchTerapeutas.fulfilled,
+      (state, action: PayloadAction<Terapeuta[]>) => {
+        state.loading = false;
+        state.data = action.payload;
+      },
+    );
+    builder.addCase(fetchTerapeutas.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Erro ao buscar terapeutas";
+    });
+
     // Add Terapeuta
     builder.addCase(addTerapeuta.pending, (state) => {
       state.loading = true;
@@ -145,9 +191,7 @@ const terapeutasSlice = createSlice({
       updateTerapeuta.fulfilled,
       (state, action: PayloadAction<Terapeuta>) => {
         state.loading = false;
-        const index = state.data.findIndex(
-          (t) => t.idTerapeuta === action.payload.idTerapeuta,
-        );
+        const index = state.data.findIndex((t) => t.id === action.payload.id);
         if (index !== -1) {
           state.data[index] = action.payload;
         }
@@ -167,7 +211,7 @@ const terapeutasSlice = createSlice({
       deleteTerapeuta.fulfilled,
       (state, action: PayloadAction<string>) => {
         state.loading = false;
-        state.data = state.data.filter((t) => t.idTerapeuta !== action.payload);
+        state.data = state.data.filter((t) => t.id !== action.payload);
       },
     );
     builder.addCase(deleteTerapeuta.rejected, (state, action) => {

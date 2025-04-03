@@ -17,7 +17,7 @@ describe("POST /api/v1/terapeutas", () => {
         },
         body: JSON.stringify({
           nome: "Juliana Barbosa",
-          foto: "aZhskasiypsq.png",
+          foto: null,
           telefone: "61992095674",
           email: "julianabarbosa.psi@gmail.com",
           endereco: "shces 301 bloco c apt 202",
@@ -33,7 +33,7 @@ describe("POST /api/v1/terapeutas", () => {
       expect(responseBody).toEqual({
         id: responseBody.id,
         nome: "Juliana Barbosa",
-        foto: "aZhskasiypsq.png",
+        foto: null,
         telefone: "61992095674",
         email: "julianabarbosa.psi@gmail.com",
         endereco: "shces 301 bloco c apt 202",
@@ -56,7 +56,7 @@ describe("POST /api/v1/terapeutas", () => {
         },
         body: JSON.stringify({
           nome: "Juliana Barbosa1",
-          foto: "aZhskasiypsq.png",
+          foto: null,
           telefone: "61992095674",
           email: "duplicado@gmail.com",
           endereco: "shces 301 bloco c apt 202",
@@ -74,7 +74,7 @@ describe("POST /api/v1/terapeutas", () => {
         },
         body: JSON.stringify({
           nome: "Juliana Barbosa2",
-          foto: "aZhskasiypsq.png",
+          foto: null,
           telefone: "61992095674",
           email: "duplicado@gmail.com",
           endereco: "shces 301 bloco c apt 202",

@@ -47,21 +47,21 @@ export function EditarTerapeutaModal({
   } = useForm({
     resolver: zodResolver(TerapeutaFormSchema),
     defaultValues: {
-      nomeTerapeuta: terapeuta.nomeTerapeuta,
-      telefoneTerapeuta: terapeuta.telefoneTerapeuta,
-      emailTerapeuta: terapeuta.emailTerapeuta,
-      enderecoTerapeuta: terapeuta.enderecoTerapeuta,
-      dt_entrada: new Date(terapeuta.dt_entradaTerapeuta),
-      chave_pix: terapeuta.chave_pixTerapeuta,
+      nome: terapeuta.nome,
+      telefone: terapeuta.telefone,
+      email: terapeuta.email,
+      endereco: terapeuta.endereco,
+      dt_entrada: new Date(terapeuta.dt_entrada),
+      chave_pix: terapeuta.chave_pix,
     },
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
 
   useEffect(() => {
-    if (terapeuta?.dt_entradaTerapeuta) {
+    if (terapeuta?.dt_entrada) {
       const formattedDate = format(
-        new Date(terapeuta.dt_entradaTerapeuta),
+        new Date(terapeuta.dt_entrada),
         "dd/MM/yyyy",
         {
           locale: ptBR,
@@ -76,7 +76,7 @@ export function EditarTerapeutaModal({
       const updatedTerapeuta = {
         ...terapeuta,
         ...data,
-        foto: terapeuta.fotoTerapeuta,
+        foto: terapeuta.foto,
       };
 
       await dispatch(
@@ -85,9 +85,7 @@ export function EditarTerapeutaModal({
           foto: selectedFile || undefined,
         }),
       ).unwrap();
-      toast.success(
-        `Terapeuta ${terapeuta.nomeTerapeuta} atualizado com sucesso.`,
-      );
+      toast.success(`Terapeuta ${terapeuta.nome} atualizado com sucesso.`);
       reset();
       setSelectedFile(null);
       onSuccess?.();
@@ -120,12 +118,12 @@ export function EditarTerapeutaModal({
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="nomeTerapeuta"
+                id="nome"
                 placeholder="Nome do terapeuta"
-                {...register("nomeTerapeuta")}
+                {...register("nome")}
               />
-              {errors.nomeTerapeuta && (
-                <p className="text-red-500">{errors.nomeTerapeuta.message}</p>
+              {errors.nome && (
+                <p className="text-red-500">{errors.nome.message}</p>
               )}
               <input
                 type="file"
@@ -137,36 +135,34 @@ export function EditarTerapeutaModal({
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="telefoneTerapeuta"
+                id="telefone"
                 placeholder="Telefone do terapeuta"
-                {...register("telefoneTerapeuta", {
+                {...register("telefone", {
                   onChange: (e) => {
                     const masked = maskPhone(e.target.value);
                     e.target.value = masked;
                   },
                 })}
               />
-              {errors.telefoneTerapeuta && (
-                <p className="text-red-500">
-                  {errors.telefoneTerapeuta.message}
-                </p>
+              {errors.telefone && (
+                <p className="text-red-500">{errors.telefone.message}</p>
               )}
               <input
                 type="email"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="emailTerapeuta"
+                id="email"
                 placeholder="Email do terapeuta"
-                {...register("emailTerapeuta")}
+                {...register("email")}
               />
-              {errors.emailTerapeuta && (
-                <p className="text-red-500">{errors.emailTerapeuta.message}</p>
+              {errors.email && (
+                <p className="text-red-500">{errors.email.message}</p>
               )}
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="enderecoTerapeuta"
+                id="endereco"
                 placeholder="Endereço do terapeuta"
-                {...register("enderecoTerapeuta")}
+                {...register("endereco")}
               />
 
               <Controller
