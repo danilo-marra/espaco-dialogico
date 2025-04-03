@@ -35,8 +35,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20.17.0"
-      - run: npm ci
-      - run: |
-          first_commit=59523661a3637002c1c7f1f5964bbcf35e60b3b6
-          last_commit=$(git rev-parse HEAD)
-          npx commitlint --from $first_commit --to $last_commit --verbose
+      - name: Install dependencies
+        run: npm ci
+      - name: Copy commitlint config
+        run: cp .commitlintrc.js commitlint.config.js
+      - name: Lint commits
+        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose

@@ -24,7 +24,9 @@ export default router.handler(controller.errorHandlers);
 
 async function postHandler(req, res) {
   // Log para debug
-  console.log("Received body:", req.body);
+  if (process.env.NODE_ENV === "development") {
+    console.log("Received body:", req.body);
+  }
 
   // Configurar formidable para análise de formulários multipart
   const form = formidable({
