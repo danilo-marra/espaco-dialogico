@@ -1,1 +1,2 @@
 src/components/
+tests/frontend/**/*.test.js

@@ -11,6 +11,12 @@ const createJestConfig = nextJest({
 const jestConfig = createJestConfig({
   moduleDirectories: ["node_modules", "<rootDir>"],
   testTimeout: 60000,
+  setupFiles: ["<rootDir>/tests/setup.js"],
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: [
+    "@testing-library/jest-dom",
+    "<rootDir>/tests/mocks/jestSetup.js",
+  ],
 });
 
 module.exports = jestConfig;

@@ -23,6 +23,7 @@ import type { AppDispatch } from "store/store";
 import { updateTerapeuta } from "store/terapeutasSlice";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { handleTerapeutaError } from "infra/errors";
 
 interface EditarTerapeutaModalProps {
   terapeuta: Terapeuta;
@@ -91,7 +92,7 @@ export function EditarTerapeutaModal({
       onSuccess?.();
       onClose();
     } catch (error) {
-      toast.error("Erro ao atualizar terapeuta.");
+      toast.error(handleTerapeutaError(error));
     }
   };
 

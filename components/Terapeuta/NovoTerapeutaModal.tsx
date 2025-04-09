@@ -88,7 +88,9 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
         await dispatch(
           addTerapeuta({ terapeuta: novoTerapeuta, foto: selectedFile }),
         ).unwrap();
-        toast.success("Terapeuta cadastrado com sucesso!");
+        toast.success(
+          `Terapeuta ${novoTerapeuta.nome} cadastrado com sucesso!`,
+        );
         reset();
         setSelectedFile(null);
         onSuccess?.();
