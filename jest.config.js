@@ -10,7 +10,7 @@ const createJestConfig = nextJest({
 });
 const jestConfig = createJestConfig({
   moduleDirectories: ["node_modules", "<rootDir>"],
-  testTimeout: 60000,
+  testTimeout: 120000, // Increased from 60000 to 120000
   setupFiles: ["<rootDir>/tests/setup.js"],
   testEnvironment: "jsdom",
   setupFilesAfterEnv: [

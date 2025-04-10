@@ -8,8 +8,8 @@
     "dev:safe": "npm run services:up && npm run services:wait:database && npm run migrations:up && cross-env NEXT_MANUAL_START=true node infra/scripts/start-next-dev.js",
     "db:validate": "node infra/scripts/validate-db.js",
     "test:frontend": "jest tests/frontend --env=jsdom",
-    "test:all": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test concurrently -n next,jest -k \"next dev -p 3003\" \"wait-on --timeout 10000 --interval 1000 http://localhost:3003/api/v1/status && jest --runInBand --verbose --forceExit\"",
-    "test": "npm run services:up && concurrently -n next,jest --hide next -k -s command-jest \"next dev\" \"jest --runInBand --verbose\"",
+    "test:all": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test concurrently -k -s first \"next dev\" \"wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit\"",
+    "test": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test concurrently -k -s first \"next dev\" \"wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit\"",
     "neodev": "node ./handle-dev-services.js",
     "posttest": "npm run services:stop",
     "test:watch": "jest --watchAll --runInBand --verbose",
@@ -87,8 +87,10 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/async-retry": "^1.4.9",
     "@types/formidable": "^3.4.5",
     "@types/multer": "^1.4.12",
+    "@types/node-fetch": "^2.6.12",
     "@types/react": "19.0.1",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
     "@typescript-eslint/parser": "^8.20.0",
@@ -107,10 +109,12 @@
     "jest-transform-stub": "^2.0.0",
     "lint-staged": "15.2.11",
     "msw": "^1.3.2",
+    "node-fetch": "^2.7.0",
     "postcss": "^8.4.49",
     "prettier": "3.4.2",
     "secretlint": "9.0.0",
-    "tailwindcss": "^3.4.16"
+    "tailwindcss": "^3.4.16",
+    "wait-on": "^8.0.3"
   },
   "config": {
     "commitizen": {

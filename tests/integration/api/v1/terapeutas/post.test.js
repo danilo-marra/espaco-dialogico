@@ -1,6 +1,9 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
 
+// Use environment variables for port configuration
+const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
@@ -10,21 +13,24 @@ beforeAll(async () => {
 describe("POST /api/v1/terapeutas", () => {
   describe("Anonymous user", () => {
     test("With unique and valid data", async () => {
-      const response = await fetch("http://localhost:3000/api/v1/terapeutas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `http://localhost:${port}/api/v1/terapeutas`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nome: "Juliana Barbosa",
+            foto: null,
+            telefone: "61992095674",
+            email: "julianabarbosa.psi@gmail.com",
+            endereco: "shces 301 bloco c apt 202",
+            dt_entrada: "2025-02-22T03:00:00.000Z",
+            chave_pix: "pix871",
+          }),
         },
-        body: JSON.stringify({
-          nome: "Juliana Barbosa",
-          foto: null,
-          telefone: "61992095674",
-          email: "julianabarbosa.psi@gmail.com",
-          endereco: "shces 301 bloco c apt 202",
-          dt_entrada: "2025-02-22T03:00:00.000Z",
-          chave_pix: "pix871",
-        }),
-      });
+      );
 
       expect(response.status).toBe(201); // created
 
@@ -49,39 +55,45 @@ describe("POST /api/v1/terapeutas", () => {
     });
 
     test("With duplicated 'email'", async () => {
-      const response1 = await fetch("http://localhost:3000/api/v1/terapeutas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response1 = await fetch(
+        `http://localhost:${port}/api/v1/terapeutas`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nome: "Juliana Barbosa1",
+            foto: null,
+            telefone: "61992095674",
+            email: "duplicado@gmail.com",
+            endereco: "shces 301 bloco c apt 202",
+            dt_entrada: "2025-02-22T03:00:00.000Z",
+            chave_pix: "pix871",
+          }),
         },
-        body: JSON.stringify({
-          nome: "Juliana Barbosa1",
-          foto: null,
-          telefone: "61992095674",
-          email: "duplicado@gmail.com",
-          endereco: "shces 301 bloco c apt 202",
-          dt_entrada: "2025-02-22T03:00:00.000Z",
-          chave_pix: "pix871",
-        }),
-      });
+      );
 
       expect(response1.status).toBe(201); // created
 
-      const response2 = await fetch("http://localhost:3000/api/v1/terapeutas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response2 = await fetch(
+        `http://localhost:${port}/api/v1/terapeutas`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            nome: "Juliana Barbosa2",
+            foto: null,
+            telefone: "61992095674",
+            email: "duplicado@gmail.com",
+            endereco: "shces 301 bloco c apt 202",
+            dt_entrada: "2025-02-22T03:00:00.000Z",
+            chave_pix: "pix871",
+          }),
         },
-        body: JSON.stringify({
-          nome: "Juliana Barbosa2",
-          foto: null,
-          telefone: "61992095674",
-          email: "duplicado@gmail.com",
-          endereco: "shces 301 bloco c apt 202",
-          dt_entrada: "2025-02-22T03:00:00.000Z",
-          chave_pix: "pix871",
-        }),
-      });
+      );
 
       expect(response2.status).toBe(400); // bad request
 

@@ -1,3 +1,16 @@
+// Add polyfill for TextEncoder/TextDecoder for Node.js environment in Jest
+if (typeof TextEncoder === "undefined") {
+  const { TextEncoder, TextDecoder } = require("util");
+  global.TextEncoder = TextEncoder;
+  global.TextDecoder = TextDecoder;
+}
+
+// Add fetch polyfill for Node.js environment
+import fetch from "node-fetch";
+if (!global.fetch) {
+  global.fetch = fetch;
+}
+
 // Silencia os warnings do React no ambiente de teste
 const originalError = console.error;
 console.error = (...args) => {
