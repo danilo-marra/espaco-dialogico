@@ -5,12 +5,14 @@ import {
   List,
   Money,
   Person,
+  SignOut,
   UsersThree,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const Menu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
@@ -26,6 +28,18 @@ const Menu = () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
   }, [router.events]);
+
+  const handleLogout = () => {
+    // Remover dados de autenticação do localStorage
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+
+    // Notificar o usuário
+    toast.success("Logout realizado com sucesso");
+
+    // Redirecionar para a página de login
+    router.push("/login");
+  };
 
   return (
     <div>
@@ -81,6 +95,10 @@ const Menu = () => {
             <Link href="/dashboard/terapeutas">Terapeutas</Link>
           </li>
           <hr />
+          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2 mt-12">
+            <SignOut size={24} />
+            <button onClick={handleLogout}>Sair</button>
+          </li>
         </ul>
       </aside>
     </div>

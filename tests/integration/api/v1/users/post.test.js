@@ -29,14 +29,17 @@ describe("POST /api/v1/users", () => {
 
       const responseBody = await response.json();
 
+      // A senha não deve ser retornada na resposta
       expect(responseBody).toEqual({
         id: responseBody.id,
         username: "john_doe",
         email: "contato@john_doe.com",
-        password: "senha123",
         created_at: responseBody.created_at,
         updated_at: responseBody.updated_at,
       });
+
+      // A resposta não deve incluir a senha
+      expect(responseBody.password).toBeUndefined();
 
       expect(uuidVersion(responseBody.id)).toBe(4);
       expect(Date.parse(responseBody.created_at)).not.toBeNaN();

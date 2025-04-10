@@ -1,5 +1,6 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
+import { hashPassword } from "../utils/auth.js";
 
 async function getAll() {
   const results = await database.query({
@@ -51,8 +52,19 @@ async function create(userInputValues) {
   await validateUniqueEmail(userInputValues.email);
   await validateUniqueUsername(userInputValues.username);
 
-  const newUser = await runInsertQuery(userInputValues);
-  return newUser;
+  // Hash da senha antes de salvar
+  const hashedPassword = await hashPassword(userInputValues.password);
+  const userWithHashedPassword = {
+    ...userInputValues,
+    password: hashedPassword,
+  };
+
+  const newUser = await runInsertQuery(userWithHashedPassword);
+
+  // Não retorne a senha no resultado
+  const userWithoutPassword = { ...newUser };
+  delete userWithoutPassword.password;
+  return userWithoutPassword;
 
   async function validateUniqueEmail(email) {
     const results = await database.query({
@@ -205,6 +217,14 @@ async function update(username, updateData) {
   }
 
   async function runUpdateQuery(username, updateData) {
+    // Verificar se existem campos para atualizar
+    if (!updateData || Object.keys(updateData).length === 0) {
+      throw new ValidationError({
+        message: "Nenhum campo fornecido para atualização.",
+        action: "Forneça pelo menos um campo para atualizar o usuário.",
+      });
+    }
+
     // Construir a query dinamicamente com base nos campos fornecidos
     let setClause = "";
     const values = [];
@@ -217,6 +237,14 @@ async function update(username, updateData) {
         paramIndex++;
       }
     });
+
+    // Verificar novamente após filtrar valores undefined
+    if (!setClause) {
+      throw new ValidationError({
+        message: "Nenhum campo válido fornecido para atualização.",
+        action: "Forneça pelo menos um campo válido para atualizar o usuário.",
+      });
+    }
 
     values.push(username);
 

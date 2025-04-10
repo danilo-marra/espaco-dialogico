@@ -18,7 +18,9 @@ async function getHandler(request, response) {
     return response.status(404).json({ error: "Usuário não encontrado" });
   }
 
-  return response.status(200).json(userFound);
+  const userWithoutPassword = { ...userFound };
+  delete userWithoutPassword.password;
+  return response.status(200).json(userWithoutPassword);
 }
 
 async function putHandler(request, response) {

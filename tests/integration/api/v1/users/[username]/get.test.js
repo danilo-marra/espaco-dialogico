@@ -35,14 +35,17 @@ describe("GET /api/v1/[username]", () => {
 
       const response2Body = await response2.json();
 
+      // Verificar que o usuário é retornado sem a senha
       expect(response2Body).toEqual({
         id: response2Body.id,
         username: "MesmoCase",
         email: "mesmo.case@john_doe.com",
-        password: "senha123",
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });
+
+      // Verificar explicitamente que a senha não está presente
+      expect(response2Body.password).toBeUndefined();
 
       expect(uuidVersion(response2Body.id)).toBe(4);
       expect(Date.parse(response2Body.created_at)).not.toBeNaN();
@@ -71,14 +74,17 @@ describe("GET /api/v1/[username]", () => {
 
       const response2Body = await response2.json();
 
+      // Verificar que o usuário é retornado sem a senha
       expect(response2Body).toEqual({
         id: response2Body.id,
         username: "CaseDiferente",
         email: "case.diferente@john_doe.com",
-        password: "senha123",
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });
+
+      // Verificar explicitamente que a senha não está presente
+      expect(response2Body.password).toBeUndefined();
 
       expect(uuidVersion(response2Body.id)).toBe(4);
       expect(Date.parse(response2Body.created_at)).not.toBeNaN();
