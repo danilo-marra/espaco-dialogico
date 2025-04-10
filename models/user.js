@@ -1,5 +1,7 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
+import bcrypt from "bcrypt";
+import speakeasy from "speakeasy";
 
 async function findOneByUsername(username) {
   const userFound = await runSelectQuery(username);
@@ -35,6 +37,9 @@ async function findOneByUsername(username) {
 async function create(userInputValues) {
   await validateUniqueEmail(userInputValues.email);
   await validateUniqueUsername(userInputValues.username);
+
+  const hashedPassword = await bcrypt.hash(userInputValues.password, 10);
+  userInputValues.password = hashedPassword;
 
   const newUser = await runInsertQuery(userInputValues);
   return newUser;
@@ -101,9 +106,58 @@ async function create(userInputValues) {
     return results.rows[0];
   }
 }
+
+async function generateMfaSecret(userId) {
+  const secret = speakeasy.generateSecret({ length: 20 });
+  await database.query({
+    text: `
+    UPDATE
+      users
+    SET
+      mfa_secret = $1,
+      is_mfa_enabled = true
+    WHERE
+      id = $2
+    ;`,
+    values: [secret.base32, userId],
+  });
+
+  return secret.otpauth_url;
+}
+
+async function verifyMfaToken(userId, token) {
+  const results = await database.query({
+    text: `
+    SELECT
+      mfa_secret
+    FROM
+      users
+    WHERE
+      id = $1
+    ;`,
+    values: [userId],
+  });
+
+  if (results.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Usuário não encontrado.",
+      action: "Verifique se o userId informado está correto.",
+    });
+  }
+
+  const { mfa_secret } = results.rows[0];
+  return speakeasy.totp.verify({
+    secret: mfa_secret,
+    encoding: "base32",
+    token,
+  });
+}
+
 const user = {
   create,
   findOneByUsername,
+  generateMfaSecret,
+  verifyMfaToken,
 };
 
 export default user;

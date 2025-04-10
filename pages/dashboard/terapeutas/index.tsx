@@ -15,7 +15,10 @@ import { NovoTerapeutaModal } from "components/Terapeuta/NovoTerapeutaModal";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import Head from "next/head";
 import Image from "next/image";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import { useSelector } from "react-redux";
+import { RootState } from "store/store";
 import type { Terapeuta } from "tipos";
 import { dateFormatter } from "utils/formatter";
 
@@ -112,6 +115,15 @@ export default function Terapeutas() {
       </div>
     );
   }
+
+  const router = useRouter();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
 
   return (
     <div className="flex min-h-screen">

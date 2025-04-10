@@ -28,6 +28,19 @@ exports.up = (pgm) => {
       notNull: true,
     },
 
+    // Column to store the MFA secret
+    mfa_secret: {
+      type: "varchar(32)",
+      notNull: false,
+    },
+
+    // Column to indicate if MFA is enabled
+    is_mfa_enabled: {
+      type: "boolean",
+      notNull: true,
+      default: false,
+    },
+
     // Always use timestamptz for timestamps (https://justatheory.com/2012/04/postgres-use-timestamptz/).
     created_at: {
       type: "timestamptz",
