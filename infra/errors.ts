@@ -49,7 +49,7 @@ export class TerapeutaError extends ValidationError {
 }
 
 // Função para tratamento de erros de Terapeuta no frontend
-export function handleTerapeutaError(error: unknown): string {
+export function handleTerapeutaError(error: any): string {
   if (error instanceof TerapeutaError) {
     return `${error.message} ${error.action}`;
   }

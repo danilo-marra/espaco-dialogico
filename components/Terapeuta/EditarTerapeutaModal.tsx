@@ -222,11 +222,16 @@ export function EditarTerapeutaModal({
                         mode="single"
                         selected={field.value}
                         onSelect={(date) => {
-                          const formattedDate = format(date, "dd/MM/yyyy", {
-                            locale: ptBR,
-                          });
-                          setInputValue(formattedDate);
-                          field.onChange(date);
+                          if (date && isValid(date)) {
+                            const formattedDate = format(date, "dd/MM/yyyy", {
+                              locale: ptBR,
+                            });
+                            setInputValue(formattedDate);
+                            field.onChange(date);
+                          } else {
+                            setInputValue("");
+                            field.onChange(null);
+                          }
                         }}
                         disabled={(date) =>
                           date > new Date() || date < new Date("1900-01-01")
