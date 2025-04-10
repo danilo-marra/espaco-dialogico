@@ -26,10 +26,8 @@ export function DeletarTerapeutaModal({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await dispatch(deleteTerapeuta(terapeuta.idTerapeuta)).unwrap();
-      toast.success(
-        `Terapeuta ${terapeuta.nomeTerapeuta} excluído com sucesso.`,
-      );
+      await dispatch(deleteTerapeuta(terapeuta.id)).unwrap();
+      toast.success(`Terapeuta ${terapeuta.nome} excluído com sucesso.`);
       onSuccess?.();
       onClose();
     } catch (error) {
@@ -51,8 +49,8 @@ export function DeletarTerapeutaModal({
             <VisuallyHidden>Editar dados do terapeuta</VisuallyHidden>
           </Dialog.Description>
           <p className="mb-6">
-            Tem certeza que deseja excluir o terapeuta {terapeuta.nomeTerapeuta}
-            ? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir o terapeuta {terapeuta.nome}? Esta
+            ação não pode ser desfeita.
           </p>
 
           <div className="flex justify-end gap-4">

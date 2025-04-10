@@ -10,10 +10,7 @@ import { useDispatch } from "react-redux";
 import { store, type AppDispatch } from "store/store";
 import { addTerapeuta } from "store/terapeutasSlice";
 import { isValidUUID } from "utils/validation";
-import {
-  handleTerapeutaError,
-  TerapeutaError,
-} from "components/Terapeuta/errorHandling";
+import { TerapeutaError, handleTerapeutaError } from "infra/errors";
 
 import { format, isValid, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -65,7 +62,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
       // Check if ID already exists in Redux store
       const existingTerapeutas = store.getState().terapeutas.data;
       const idExists = existingTerapeutas.some(
-        (terapeuta) => terapeuta.idTerapeuta === id,
+        (terapeuta) => terapeuta.id === id,
       );
 
       if (idExists) {
@@ -75,13 +72,13 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
       }
 
       const novoTerapeuta = {
-        idTerapeuta: id,
-        nomeTerapeuta: data.nomeTerapeuta,
-        telefoneTerapeuta: data.telefoneTerapeuta,
-        emailTerapeuta: data.emailTerapeuta,
-        enderecoTerapeuta: data.enderecoTerapeuta,
-        dt_entradaTerapeuta: data.dt_entradaTerapeuta,
-        chave_pixTerapeuta: data.chave_pixTerapeuta,
+        id: id, // era idTerapeuta
+        nome: data.nome, // era nomeTerapeuta
+        telefone: data.telefone, // era telefoneTerapeuta
+        email: data.email, // era emailTerapeuta
+        endereco: data.endereco, // era enderecoTerapeuta
+        dt_entrada: data.dt_entrada, // era dt_entradaTerapeuta
+        chave_pix: data.chave_pix, // era chave_pixTerapeuta
         foto: selectedFile ? URL.createObjectURL(selectedFile) : "",
       };
 
@@ -91,7 +88,9 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
         await dispatch(
           addTerapeuta({ terapeuta: novoTerapeuta, foto: selectedFile }),
         ).unwrap();
-        toast.success("Terapeuta cadastrado com sucesso!");
+        toast.success(
+          `Terapeuta ${novoTerapeuta.nome} cadastrado com sucesso!`,
+        );
         reset();
         setSelectedFile(null);
         onSuccess?.();
@@ -129,12 +128,12 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="nomeTerapeuta"
+              id="nome"
               placeholder="Nome do terapeuta"
-              {...register("nomeTerapeuta")}
+              {...register("nome")}
             />
-            {errors.nomeTerapeuta && (
-              <p className="text-red-500">{errors.nomeTerapeuta.message}</p>
+            {errors.nome && (
+              <p className="text-red-500">{errors.nome.message}</p>
             )}
             <input
               type="file"
@@ -146,39 +145,39 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="telefoneTerapeuta"
+              id="telefone"
               placeholder="Telefone do terapeuta"
-              {...register("telefoneTerapeuta", {
+              {...register("telefone", {
                 onChange: (e) => {
                   const masked = maskPhone(e.target.value);
                   e.target.value = masked;
                 },
               })}
             />
-            {errors.telefoneTerapeuta && (
-              <p className="text-red-500">{errors.telefoneTerapeuta.message}</p>
+            {errors.telefone && (
+              <p className="text-red-500">{errors.telefone.message}</p>
             )}
             <input
               type="email"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="emailTerapeuta"
+              id="email"
               placeholder="Email do terapeuta"
-              {...register("emailTerapeuta")}
+              {...register("email")}
             />
-            {errors.emailTerapeuta && (
-              <p className="text-red-500">{errors.emailTerapeuta.message}</p>
+            {errors.email && (
+              <p className="text-red-500">{errors.email.message}</p>
             )}
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="enderecoTerapeuta"
+              id="endereco"
               placeholder="Endereço do terapeuta"
-              {...register("enderecoTerapeuta")}
+              {...register("endereco")}
             />
 
             <Controller
               control={control}
-              name="dt_entradaTerapeuta"
+              name="dt_entrada"
               render={({ field }) => (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -277,17 +276,15 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
               )}
             />
 
-            {errors.dt_entradaTerapeuta && (
-              <p className="text-red-500">
-                {errors.dt_entradaTerapeuta.message}
-              </p>
+            {errors.dt_entrada && (
+              <p className="text-red-500">{errors.dt_entrada.message}</p>
             )}
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
               id="chave_pix"
               placeholder="Chave PIX"
-              {...register("chave_pixTerapeuta")}
+              {...register("chave_pix")}
             />
           </div>
           <div className="mt-6 flex justify-end">

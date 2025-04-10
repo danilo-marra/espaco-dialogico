@@ -1,6 +1,9 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
 
+// Use environment variables for port configuration
+const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
@@ -10,7 +13,7 @@ beforeAll(async () => {
 describe("GET /api/v1/[username]", () => {
   describe("Anonymous user", () => {
     test("With exact case match'", async () => {
-      const response1 = await fetch("http://localhost:3000/api/v1/users", {
+      const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -25,7 +28,7 @@ describe("GET /api/v1/[username]", () => {
       expect(response1.status).toBe(201); // created
 
       const response2 = await fetch(
-        "http://localhost:3000/api/v1/users/MesmoCase",
+        `http://localhost:${port}/api/v1/users/MesmoCase`,
       );
 
       expect(response2.status).toBe(200); // ok
@@ -46,7 +49,7 @@ describe("GET /api/v1/[username]", () => {
       expect(Date.parse(response2Body.updated_at)).not.toBeNaN();
     });
     test("With case mismatch", async () => {
-      const response1 = await fetch("http://localhost:3000/api/v1/users", {
+      const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,7 +64,7 @@ describe("GET /api/v1/[username]", () => {
       expect(response1.status).toBe(201); // created
 
       const response2 = await fetch(
-        "http://localhost:3000/api/v1/users/casediferente",
+        `http://localhost:${port}/api/v1/users/casediferente`,
       );
 
       expect(response2.status).toBe(200); // ok
@@ -83,13 +86,12 @@ describe("GET /api/v1/[username]", () => {
     });
     test("With username notfound", async () => {
       const response = await fetch(
-        "http://localhost:3000/api/v1/users/UsuarioInexistente",
+        `http://localhost:${port}/api/v1/users/UsuarioInexistente`,
       );
 
       expect(response.status).toBe(404); // not found
 
       const responseBody = await response.json();
-
       expect(responseBody).toEqual({
         name: "NotFoundError",
         message: "Usuário não encontrado.",

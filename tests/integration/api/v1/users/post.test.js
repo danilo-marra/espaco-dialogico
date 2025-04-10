@@ -1,6 +1,9 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
 
+// Use environment variables for port configuration
+const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
@@ -10,7 +13,7 @@ beforeAll(async () => {
 describe("POST /api/v1/users", () => {
   describe("Anonymous user", () => {
     test("With unique and valid data", async () => {
-      const response = await fetch("http://localhost:3000/api/v1/users", {
+      const response = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +43,7 @@ describe("POST /api/v1/users", () => {
       expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
     });
     test("With duplicated 'email'", async () => {
-      const response1 = await fetch("http://localhost:3000/api/v1/users", {
+      const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,7 +57,7 @@ describe("POST /api/v1/users", () => {
 
       expect(response1.status).toBe(201); // created
 
-      const response2 = await fetch("http://localhost:3000/api/v1/users", {
+      const response2 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +85,7 @@ describe("POST /api/v1/users", () => {
       // 403 - forbidden
     });
     test("With duplicated 'username'", async () => {
-      const response1 = await fetch("http://localhost:3000/api/v1/users", {
+      const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -96,7 +99,7 @@ describe("POST /api/v1/users", () => {
 
       expect(response1.status).toBe(201); // created
 
-      const response2 = await fetch("http://localhost:3000/api/v1/users", {
+      const response2 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

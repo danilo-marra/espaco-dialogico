@@ -3,6 +3,7 @@ import {
   Plus,
   TrashSimple,
   User,
+  UserCircle,
   Users,
   UsersThree,
 } from "@phosphor-icons/react";
@@ -27,7 +28,7 @@ const filterTerapeutas = (
   return terapeutas.filter(
     (terapeuta) =>
       selectedTerapeuta === "Todos" ||
-      String(terapeuta.idTerapeuta) === String(selectedTerapeuta),
+      String(terapeuta.id) === String(selectedTerapeuta),
   );
 };
 
@@ -91,6 +92,27 @@ export default function Terapeutas() {
     setCurrentPage(1);
   };
 
+  function renderFoto(fotoUrl) {
+    if (fotoUrl) {
+      return (
+        <Image
+          src={fotoUrl}
+          alt="Foto do terapeuta"
+          width={75}
+          height={75}
+          className="rounded-full object-cover"
+        />
+      );
+    }
+
+    // Fallback para quando não há foto
+    return (
+      <div className="w-[75px] h-[75px] bg-gray-200 rounded-full flex items-center justify-center">
+        <UserCircle size={60} weight="thin" className="text-gray-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       <Head>
@@ -130,11 +152,8 @@ export default function Terapeutas() {
             >
               <option value="Todos">Todos</option>
               {terapeutas?.map((terapeuta) => (
-                <option
-                  key={terapeuta.idTerapeuta}
-                  value={String(terapeuta.idTerapeuta)}
-                >
-                  {terapeuta.nomeTerapeuta}
+                <option key={terapeuta.id} value={String(terapeuta.id)}>
+                  {terapeuta.nome}
                 </option>
               ))}
             </select>
@@ -178,39 +197,23 @@ export default function Terapeutas() {
               </thead>
               <tbody>
                 {paginatedTerapeutas.map((terapeuta) => (
-                  <tr key={terapeuta.idTerapeuta}>
-                    <td className="p-4">{terapeuta.nomeTerapeuta}</td>
-                    <td className="p-4">
-                      {typeof terapeuta.fotoTerapeuta === "string" ? (
-                        <Image
-                          src={terapeuta.fotoTerapeuta}
-                          alt={terapeuta.nomeTerapeuta}
-                          className="w-10 h-10 rounded-full object-cover aspect-square"
-                          width={40}
-                          height={40}
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <User size={24} className="text-white" />
-                        </div>
-                      )}
+                  <tr key={terapeuta.id}>
+                    <td className="p-4">{terapeuta.nome}</td>
+                    <td className="p-4">{renderFoto(terapeuta.foto)}</td>
+                    <td className="p-4 hidden md:table-cell">
+                      {terapeuta.telefone}
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      {terapeuta.telefoneTerapeuta}
-                    </td>
-                    <td className="p-4 hidden md:table-cell">
-                      {terapeuta.emailTerapeuta}
+                      {terapeuta.email}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {terapeuta.enderecoTerapeuta}
+                      {terapeuta.endereco}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {dateFormatter.format(
-                        new Date(terapeuta.dt_entradaTerapeuta),
-                      )}
+                      {dateFormatter.format(new Date(terapeuta.dt_entrada))}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {terapeuta.chave_pixTerapeuta}
+                      {terapeuta.chave_pix}
                     </td>
                     <td className="p-2 space-x-2">
                       <button
