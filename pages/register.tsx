@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import Head from "next/head";
@@ -10,13 +10,21 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const { code } = router.query;
+    if (code && typeof code === "string") {
+      setInviteCode(code);
+    }
+  }, [router.query]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!username || !email || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword || !inviteCode) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
@@ -34,7 +42,12 @@ export default function Register() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, email, password }),
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          inviteCode,
+        }),
       });
 
       const data = await response.json();
@@ -72,11 +85,31 @@ export default function Register() {
         <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-azul">
           Crie sua conta
         </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Para se registrar, você precisa de um código de convite válido
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleRegister}>
+            <div>
+              <label
+                htmlFor="inviteCode"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Código de Convite
+              </label>
+              <input
+                id="inviteCode"
+                name="inviteCode"
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="username"
