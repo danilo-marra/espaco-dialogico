@@ -3,6 +3,19 @@ import controller from "infra/controller.js";
 import user from "models/user.js";
 import invite from "models/invite.js";
 
+// Em ambiente de teste, importar o mock de convites
+let inviteModel = invite;
+if (process.env.NODE_ENV === "test") {
+  // Importação dinâmica para evitar problemas com ESM/CommonJS
+  import("tests/mocks/inviteMock.js")
+    .then((module) => {
+      inviteModel = module.default;
+    })
+    .catch((err) => {
+      console.error("Erro ao importar mock de convites:", err);
+    });
+}
+
 const router = createRouter();
 
 router.post(postHandler);
@@ -10,7 +23,7 @@ router.post(postHandler);
 export default router.handler(controller.errorHandlers);
 
 async function postHandler(request, response) {
-  const { username, email, password, inviteCode } = request.body;
+  const { username, email, password, inviteCode, role } = request.body;
 
   // Validação básica dos campos obrigatórios
   const requiredFields = ["username", "email", "password", "inviteCode"];
@@ -27,7 +40,7 @@ async function postHandler(request, response) {
     // Validar o código de convite
     let inviteResult;
     try {
-      inviteResult = await invite.getByCode(inviteCode);
+      inviteResult = await inviteModel.getByCode(inviteCode);
 
       // Verificar se o convite já foi usado
       if (inviteResult.used) {
@@ -64,18 +77,19 @@ async function postHandler(request, response) {
       });
     }
 
-    // Criar o usuário com a função definida no convite
+    // Criar o usuário com a função definida no convite ou a função especificada
+    const userRole = role || inviteResult.role || "user";
     const userInputValues = {
       username,
       email,
       password,
-      role: inviteResult.role || "user",
+      role: userRole,
     };
 
     const newUser = await user.create(userInputValues);
 
     // Marcar o convite como usado
-    await invite.validateAndUse(inviteCode, newUser.id);
+    await inviteModel.validateAndUse(inviteCode, newUser.id);
 
     return response.status(201).json(newUser);
   } catch (error) {

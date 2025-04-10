@@ -109,6 +109,10 @@ async function create(userInputValues) {
   }
 
   async function runInsertQuery(userInputValues) {
+    // Incluir o role com o valor padrão "user" se não for especificado
+    const role = userInputValues.role || "user";
+
+    // Verificar se a coluna 'name' existe na tabela
     const tableInfoResults = await database.query({
       text: `
       SELECT column_name 
@@ -121,7 +125,26 @@ async function create(userInputValues) {
       const results = await database.query({
         text: `
         INSERT INTO
-          users (username, email, password, name)
+          users (username, email, password, name, role)
+        VALUES
+          ($1, $2, $3, $4, $5)
+        RETURNING
+          *
+        ;`,
+        values: [
+          userInputValues.username,
+          userInputValues.email,
+          userInputValues.password,
+          userInputValues.name || "",
+          role,
+        ],
+      });
+      return results.rows[0];
+    } else {
+      const results = await database.query({
+        text: `
+        INSERT INTO
+          users (username, email, password, role)
         VALUES
           ($1, $2, $3, $4)
         RETURNING
@@ -131,24 +154,7 @@ async function create(userInputValues) {
           userInputValues.username,
           userInputValues.email,
           userInputValues.password,
-          userInputValues.name || "",
-        ],
-      });
-      return results.rows[0];
-    } else {
-      const results = await database.query({
-        text: `
-        INSERT INTO
-          users (username, email, password)
-        VALUES
-          ($1, $2, $3)
-        RETURNING
-          *
-        ;`,
-        values: [
-          userInputValues.username,
-          userInputValues.email,
-          userInputValues.password,
+          role,
         ],
       });
       return results.rows[0];

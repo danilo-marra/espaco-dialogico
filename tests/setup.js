@@ -1,3 +1,8 @@
+// Definir ambiente como teste
+process.env.NODE_ENV = "test";
+
+// Qualquer outro código de setup necessário para os testes
+
 // Add polyfill for TextEncoder/TextDecoder for Node.js environment in Jest
 if (typeof TextEncoder === "undefined") {
   const { TextEncoder, TextDecoder } = require("util");

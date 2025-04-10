@@ -1,7 +1,26 @@
 import orchestrator from "tests/orchestrator.js";
+import database from "infra/database.js";
 
 // Use environment variables for port configuration
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+
+// Função auxiliar para criar um convite diretamente no banco de dados
+async function createInvite(email = null, role = "user") {
+  const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
+
+  const result = await database.query({
+    text: `
+      INSERT INTO invites (code, email, role, expires_at)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `,
+    values: [code, email, role, expiresAt],
+  });
+
+  return result.rows[0];
+}
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
@@ -11,22 +30,64 @@ beforeAll(async () => {
 
 describe("POST /api/v1/auth/login", () => {
   describe("Autenticação de usuário", () => {
-    // Primeiro criamos um usuário para testar a autenticação
+    // Criamos os convites e usuários para testar a autenticação
+    let userInvite, adminInvite;
+
     beforeEach(async () => {
-      await fetch(`http://localhost:${port}/api/v1/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // Criar convites reais no banco de dados
+      userInvite = await createInvite(null, "user");
+      adminInvite = await createInvite(null, "admin");
+
+      // Criar usuário comum para teste
+      const userResponse = await fetch(
+        `http://localhost:${port}/api/v1/users`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: "usuario_teste",
+            email: "usuario.teste@exemplo.com",
+            password: "Senha@123",
+            inviteCode: userInvite.code,
+          }),
         },
-        body: JSON.stringify({
-          username: "usuario_teste",
-          email: "usuario.teste@exemplo.com",
-          password: "Senha@123",
-        }),
-      });
+      );
+
+      if (userResponse.status !== 201) {
+        console.error(
+          "Falha ao criar usuário de teste:",
+          await userResponse.json(),
+        );
+      }
+
+      // Criar usuário admin para teste
+      const adminResponse = await fetch(
+        `http://localhost:${port}/api/v1/users`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: "admin_teste",
+            email: "admin.teste@exemplo.com",
+            password: "Senha@123",
+            inviteCode: adminInvite.code,
+          }),
+        },
+      );
+
+      if (adminResponse.status !== 201) {
+        console.error(
+          "Falha ao criar usuário admin:",
+          await adminResponse.json(),
+        );
+      }
     });
 
-    test("Login com credenciais válidas", async () => {
+    test("Login com credenciais válidas - usuário normal", async () => {
       const response = await fetch(
         `http://localhost:${port}/api/v1/auth/login`,
         {
@@ -53,6 +114,7 @@ describe("POST /api/v1/auth/login", () => {
       expect(responseBody.user).toHaveProperty("id");
       expect(responseBody.user.username).toBe("usuario_teste");
       expect(responseBody.user.email).toBe("usuario.teste@exemplo.com");
+      expect(responseBody.user.role).toBe("user");
 
       // A senha não deve estar presente nos dados do usuário
       expect(responseBody.user).not.toHaveProperty("password");
@@ -60,6 +122,32 @@ describe("POST /api/v1/auth/login", () => {
       // O token JWT deve ser uma string não vazia
       expect(typeof responseBody.token).toBe("string");
       expect(responseBody.token.length).toBeGreaterThan(0);
+    });
+
+    test("Login com credenciais válidas - usuário administrador", async () => {
+      const response = await fetch(
+        `http://localhost:${port}/api/v1/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: "admin_teste",
+            password: "Senha@123",
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200); // OK
+
+      const responseBody = await response.json();
+
+      // Verificar role de administrador
+      expect(responseBody.user.role).toBe("admin");
+      expect(responseBody.user.username).toBe("admin_teste");
+      expect(responseBody.user.email).toBe("admin.teste@exemplo.com");
+      expect(responseBody.user).not.toHaveProperty("password");
     });
 
     test("Login com usuário inexistente", async () => {
