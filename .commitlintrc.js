@@ -3,7 +3,7 @@ module.exports = {
   rules: {
     "body-max-line-length": [1, "always", 100],
     "footer-max-line-length": [1, "always", 100],
-    "header-max-length": [2, "always", 72], // Example rule adjustment
+    "header-max-length": [2, "always", 100], // Example rule adjustment
     // Add or adjust other rules as needed
   },
   ignores: [
