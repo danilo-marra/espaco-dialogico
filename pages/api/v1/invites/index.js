@@ -5,9 +5,10 @@ import authMiddleware from "utils/authMiddleware.js";
 
 const router = createRouter();
 
-// Apenas usuários autenticados podem obter e criar convites
-router.get(authMiddleware(getHandler));
-router.post(authMiddleware(postHandler));
+// Aplicar o middleware de autenticação a todas as rotas
+router.use(authMiddleware);
+router.get(getHandler);
+router.post(postHandler);
 
 export default router.handler(controller.errorHandlers);
 

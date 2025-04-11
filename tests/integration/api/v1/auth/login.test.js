@@ -96,7 +96,7 @@ describe("POST /api/v1/auth/login", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: "usuario_teste",
+            email: "usuario.teste@exemplo.com",
             password: "Senha@123",
           }),
         },
@@ -133,7 +133,7 @@ describe("POST /api/v1/auth/login", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: "admin_teste",
+            email: "admin.teste@exemplo.com",
             password: "Senha@123",
           }),
         },
@@ -150,7 +150,7 @@ describe("POST /api/v1/auth/login", () => {
       expect(responseBody.user).not.toHaveProperty("password");
     });
 
-    test("Login com usuário inexistente", async () => {
+    test("Login com email inexistente", async () => {
       const response = await fetch(
         `http://localhost:${port}/api/v1/auth/login`,
         {
@@ -159,7 +159,7 @@ describe("POST /api/v1/auth/login", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: "usuario_inexistente",
+            email: "inexistente@exemplo.com",
             password: "Senha@123",
           }),
         },
@@ -182,7 +182,7 @@ describe("POST /api/v1/auth/login", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: "usuario_teste",
+            email: "usuario.teste@exemplo.com",
             password: "senha_incorreta",
           }),
         },
@@ -205,7 +205,7 @@ describe("POST /api/v1/auth/login", () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: "usuario_teste",
+            email: "usuario.teste@exemplo.com",
             // senha não informada
           }),
         },
@@ -215,7 +215,7 @@ describe("POST /api/v1/auth/login", () => {
 
       const responseBody = await response.json();
       expect(responseBody).toEqual({
-        error: "Username e senha são obrigatórios",
+        error: "Email e senha são obrigatórios",
       });
     });
   });

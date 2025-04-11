@@ -6,7 +6,8 @@ import authMiddleware from "utils/authMiddleware.js";
 const router = createRouter();
 
 // Apenas usuários autenticados podem deletar convites
-router.delete(authMiddleware(deleteHandler));
+router.use(authMiddleware);
+router.delete(deleteHandler);
 
 export default router.handler(controller.errorHandlers);
 

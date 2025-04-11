@@ -1,42 +1,98 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
+import { toast } from "sonner";
 
-export interface User {
-  id: string;
+interface User {
+  id: number;
   username: string;
   email: string;
-  role: "admin" | "user";
+  role: string;
+  name?: string;
 }
 
-export default function useAuth(redirectTo = "/login") {
-  const [isLoading, setIsLoading] = useState(true);
+interface AuthHook {
+  user: User | null;
+  loading: boolean;
+  login: (_email: string, _password: string) => Promise<void>;
+  logout: () => void;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+}
+
+const useAuth = (): AuthHook => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Carrega o usuário do localStorage na inicialização
   useEffect(() => {
-    // Verificar se está no cliente
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("authToken");
-      const storedUser = localStorage.getItem("user");
-
-      if (!token || !storedUser) {
-        // Não autenticado, redirecionar
-        router.push(redirectTo);
-        return;
-      }
-
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
       try {
-        // Armazenar dados do usuário no estado
         setUser(JSON.parse(storedUser));
-      } catch (e) {
-        // Em caso de erro ao analisar o JSON, redirecionar
-        router.push(redirectTo);
-        return;
+      } catch (error) {
+        console.error("Erro ao carregar usuário:", error);
       }
     }
+    setLoading(false);
+  }, []);
 
-    setIsLoading(false);
-  }, [redirectTo, router]);
+  // Função de login
+  const login = useCallback(
+    async (loginEmail: string, loginPassword: string) => {
+      setLoading(true);
+      try {
+        const response = await fetch("/api/v1/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        });
 
-  return { user, isLoading };
-}
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Erro ao fazer login");
+        }
+
+        // Salvar token e usuário no localStorage
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // Atualizar estado com dados do usuário
+        setUser(data.user);
+
+        toast.success("Login realizado com sucesso!");
+        router.push("/dashboard");
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Erro ao fazer login",
+        );
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router],
+  );
+
+  // Função de logout
+  const logout = useCallback(() => {
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+    setUser(null);
+    router.push("/login");
+  }, [router]);
+
+  return {
+    user,
+    loading,
+    login,
+    logout,
+    isAuthenticated: !!user,
+    isAdmin: user?.role === "admin",
+  };
+};
+
+export default useAuth;
