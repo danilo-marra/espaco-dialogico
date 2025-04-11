@@ -13,6 +13,13 @@ router.delete(deleteHandler);
 
 export default router.handler(controller.errorHandlers);
 
+// Função para validar se uma string é um UUID válido
+function isValidUUID(str) {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 async function putHandler(request, response) {
   try {
     // 1. Verificação de permissões
@@ -24,7 +31,7 @@ async function putHandler(request, response) {
     }
 
     // 2. Extrair dados da requisição
-    const userId = parseInt(request.query.userId, 10);
+    const userId = request.query.userId;
     const { email, newUsername, password, role } = request.body;
 
     // 3. Verificar se tem campos para atualizar
@@ -49,9 +56,16 @@ async function putHandler(request, response) {
       updateData.password = await hashPassword(password);
     }
 
-    // 5. Tentar encontrar o usuário (apenas para verificar se existe)
+    // 5. Verificar se o userId é um UUID válido ou um username
+    let userFound;
     try {
-      await user.findById(userId);
+      if (isValidUUID(userId)) {
+        // Se for um UUID válido, usa findById
+        userFound = await user.findById(userId);
+      } else {
+        // Se não for um UUID, assume que é um username
+        userFound = await user.findOneByUsername(userId);
+      }
     } catch (error) {
       if (error.name === "NotFoundError") {
         return response.status(400).json(error);
@@ -59,9 +73,9 @@ async function putHandler(request, response) {
       throw error;
     }
 
-    // 6. Atualizar o usuário
+    // 6. Atualizar o usuário usando o username encontrado
     try {
-      const updatedUser = await user.update(userId, updateData);
+      const updatedUser = await user.update(userFound.username, updateData);
       const { password: _, ...userWithoutPassword } = updatedUser;
 
       return response.status(200).json({
@@ -90,7 +104,7 @@ async function putHandler(request, response) {
 
 async function deleteHandler(request, response) {
   const loggedUser = request.user;
-  const { userId } = request.query;
+  const userId = request.query.userId;
 
   // Verificar se o usuário é administrador
   if (loggedUser.role !== "admin") {
@@ -100,11 +114,16 @@ async function deleteHandler(request, response) {
   }
 
   try {
-    // Buscar usuário pelo ID antes de excluir
+    // Verificar se o userId é um UUID válido ou um username
     let targetUser;
-
     try {
-      targetUser = await user.findById(parseInt(userId));
+      if (isValidUUID(userId)) {
+        // Se for um UUID válido, usa findById
+        targetUser = await user.findById(userId);
+      } else {
+        // Se não for um UUID, assume que é um username
+        targetUser = await user.findOneByUsername(userId);
+      }
     } catch (error) {
       if (error.name === "NotFoundError") {
         return response.status(404).json(error);
@@ -121,7 +140,7 @@ async function deleteHandler(request, response) {
       });
     }
 
-    await user.delete(parseInt(userId));
+    await user.delete(targetUser.username);
 
     return response.status(200).json({
       message: "Usuário excluído com sucesso",

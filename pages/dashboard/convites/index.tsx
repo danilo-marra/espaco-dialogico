@@ -272,7 +272,7 @@ export default function ConvitesPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase text-start">
                       Ações
                     </th>
                   </tr>
@@ -334,8 +334,8 @@ export default function ConvitesPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end space-x-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                        <div className="flex justify-start space-x-2">
                           {!invite.used &&
                             new Date(invite.expires_at) >= new Date() && (
                               <button
