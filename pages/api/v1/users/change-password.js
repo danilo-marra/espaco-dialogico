@@ -39,7 +39,7 @@ async function postHandler(request, response) {
     // Buscar usuário atual para verificar a senha
     let userFound;
     try {
-      userFound = await user.findOneByUsername(loggedUser.username);
+      userFound = await user.findOneByEmail(loggedUser.email);
     } catch (error) {
       console.error("Erro ao buscar usuário:", error);
       return response.status(404).json({

@@ -3,10 +3,10 @@ import useAuth from "../../hooks/useAuth";
 import { useRouter } from "next/router";
 
 export default function Dashboard() {
-  const { isLoading } = useAuth();
+  const { loading } = useAuth();
   const router = useRouter();
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">

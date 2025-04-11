@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 
-interface User {
+export interface User {
   id: number;
   username: string;
   email: string;
