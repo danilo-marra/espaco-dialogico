@@ -7,7 +7,6 @@ import Image from "next/image";
 
 export default function Register() {
   const [username, setUsername] = useState("");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,7 +24,7 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !email || !password || !confirmPassword || !inviteCode) {
+    if (!email || !password || !confirmPassword || !inviteCode) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
@@ -139,28 +138,10 @@ export default function Register() {
 
             <div>
               <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Nome Completo
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                placeholder="Seu nome completo"
-              />
-            </div>
-
-            <div>
-              <label
                 htmlFor="username"
                 className="block text-sm font-medium text-gray-700"
               >
-                Nome de usuário
+                Nome
               </label>
               <input
                 id="username"

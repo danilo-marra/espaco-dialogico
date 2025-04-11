@@ -3,6 +3,9 @@ dotenv.config({
   path: ".env.development",
 });
 
+// Definir variável de ambiente para controlar a verbosidade dos logs
+process.env.TEST_VERBOSE = process.env.TEST_VERBOSE || "false";
+
 const nextJest = require("next/jest");
 
 const createJestConfig = nextJest({
@@ -17,6 +20,9 @@ const jestConfig = createJestConfig({
     "@testing-library/jest-dom",
     "<rootDir>/tests/mocks/jestSetup.js",
   ],
+  // Configurações para reduzir a verbosidade dos logs
+  verbose: false,
+  silent: process.env.TEST_VERBOSE !== "true",
 });
 
 module.exports = jestConfig;
