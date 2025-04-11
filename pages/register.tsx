@@ -75,14 +75,17 @@ export default function Register() {
         <title>Registro - Espaço Dialógico</title>
       </Head>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Image
-          src="/img/logo2.png"
-          alt="Logo Espaço Dialógico"
-          width={250}
-          height={250}
-          priority
-        />
-        <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-azul">
+        <div className="flex justify-center items-center">
+          <Image
+            src="/img/logov2.png"
+            alt="Logo Espaço Dialógico"
+            width={220}
+            height={120}
+            priority
+            className="my-4"
+          />
+        </div>
+        <h2 className="text-center text-2xl font-bold tracking-tight text-azul">
           Crie sua conta
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">

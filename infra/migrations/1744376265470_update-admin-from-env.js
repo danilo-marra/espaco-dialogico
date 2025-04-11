@@ -6,6 +6,14 @@ const bcryptjs = require("bcryptjs");
 exports.shorthands = undefined;
 
 /**
+ * Atualiza ou cria o usuário administrador utilizando variáveis de ambiente.
+ * Com a nova implementação de login, os usuários autenticam-se usando email em vez de username.
+ *
+ * Variáveis de ambiente necessárias:
+ * - ADMIN_USERNAME: Nome de usuário do administrador (ainda necessário para o banco de dados)
+ * - ADMIN_EMAIL: Email do administrador (usado para login)
+ * - ADMIN_PASSWORD: Senha do administrador
+ *
  * @param pgm {import('node-pg-migrate').MigrationBuilder}
  * @returns {Promise<void> | void}
  */
@@ -33,7 +41,7 @@ exports.up = async (pgm) => {
     );
 
     // Então insere o novo usuário admin
-    console.log(`Criando novo usuário admin: ${adminUsername}`);
+    console.log(`Criando novo usuário admin: ${adminUsername} (${adminEmail})`);
     pgm.sql(`
       INSERT INTO users (username, email, password, role)
       VALUES ('${adminUsername}', '${adminEmail}', '${hashedPassword}', 'admin');
@@ -41,7 +49,7 @@ exports.up = async (pgm) => {
 
     console.log("Usuário administrador atualizado com sucesso:");
     console.log(`- Username: ${adminUsername}`);
-    console.log(`- Email: ${adminEmail}`);
+    console.log(`- Email: ${adminEmail} (usado para login)`);
     console.log("- Role: admin");
   } else {
     console.log(

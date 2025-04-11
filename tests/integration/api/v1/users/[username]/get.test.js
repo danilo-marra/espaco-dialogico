@@ -58,14 +58,14 @@ describe("GET /api/v1/users/[username]", () => {
       console.error("Falha ao criar usuário:", await createUserResponse.json());
     }
 
-    // Fazer login para obter token de autenticação - sem verificações aqui
+    // Fazer login para obter token de autenticação - agora usando email em vez de username
     const loginResponse = await fetch(
       `http://localhost:${port}/api/v1/auth/login`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "testadmin",
+          email: "admin@example.com", // Alterado de username para email
           password: "Senha@123",
         }),
       },

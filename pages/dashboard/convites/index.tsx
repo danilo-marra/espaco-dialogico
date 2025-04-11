@@ -21,7 +21,7 @@ interface Invite {
 }
 
 export default function ConvitesPage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoadingInvites, setIsLoadingInvites] = useState(true);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
@@ -57,10 +57,10 @@ export default function ConvitesPage() {
 
   // Carregar convites ao montar o componente
   useEffect(() => {
-    if (user && !isLoading) {
+    if (user && !loading) {
       fetchInvites();
     }
-  }, [user, isLoading]);
+  }, [user, loading]);
 
   // Se não for admin, redirecionar para o dashboard
   if (user && user.role !== "admin") {
@@ -152,7 +152,7 @@ export default function ConvitesPage() {
     );
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">

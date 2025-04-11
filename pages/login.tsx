@@ -5,7 +5,7 @@ import Head from "next/head";
 import Image from "next/image";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!username || !password) {
+    if (!email || !password) {
       toast.error("Por favor, preencha todos os campos");
       return;
     }
@@ -26,7 +26,7 @@ export default function Login() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -56,14 +56,17 @@ export default function Login() {
         <title>Login - Espaço Dialógico</title>
       </Head>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Image
-          src="/img/logo2.png"
-          alt="Logo Espaço Dialógico"
-          width={250}
-          height={250}
-          priority
-        />
-        <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-azul">
+        <div className="flex justify-center items-center">
+          <Image
+            src="/img/logov2.png"
+            alt="Logo Espaço Dialógico"
+            width={220}
+            height={120}
+            priority
+            className="my-4"
+          />
+        </div>
+        <h2 className="text-center text-2xl font-bold tracking-tight text-azul">
           Acesse sua conta
         </h2>
       </div>
@@ -73,17 +76,17 @@ export default function Login() {
           <form className="space-y-6" onSubmit={handleLogin}>
             <div>
               <label
-                htmlFor="username"
+                htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
-                Nome de usuário
+                E-mail
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
               />
             </div>

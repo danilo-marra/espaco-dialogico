@@ -8,6 +8,7 @@ import {
   SignOut,
   UsersThree,
   EnvelopeSimple,
+  User,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -75,8 +76,8 @@ const Menu = () => {
         <Image
           src="/img/logo2.png"
           alt="Logo Espaço Dialógico"
-          width={250}
-          height={250}
+          width={220}
+          height={120}
           priority
         />
         <span className="block mb-8 text-2xl font-bold">Espaço Dialógico</span>
@@ -118,9 +119,19 @@ const Menu = () => {
                 <Link href="/dashboard/convites">Convites</Link>
               </li>
               <hr />
+              <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
+                <User size={24} />
+                <Link href="/dashboard/usuarios">Usuários</Link>
+              </li>
+              <hr />
             </>
           )}
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2 mt-12">
+          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
+            <Person size={24} />
+            <Link href="/dashboard/perfil">Meu Perfil</Link>
+          </li>
+          <hr />
+          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2 mt-6">
             <SignOut size={24} />
             <button onClick={handleLogout}>Sair</button>
           </li>

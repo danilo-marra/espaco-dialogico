@@ -13,6 +13,15 @@
       "jsx": true
     }
   },
+  "rules": {
+    "no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ]
+  },
   "plugins": ["@typescript-eslint"],
   "ignorePatterns": ["src/components/ui/**/*", "styles/globals.css"]
 }

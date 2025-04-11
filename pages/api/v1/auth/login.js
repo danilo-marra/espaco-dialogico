@@ -10,18 +10,18 @@ router.post(postHandler);
 export default router.handler(controller.errorHandlers);
 
 async function postHandler(request, response) {
-  const { username, password } = request.body;
+  const { email, password } = request.body;
 
   // Validação básica dos campos obrigatórios
-  if (!username || !password) {
+  if (!email || !password) {
     return response.status(400).json({
-      error: "Username e senha são obrigatórios",
+      error: "Email e senha são obrigatórios",
     });
   }
 
   try {
-    // Buscar usuário pelo username
-    const userFound = await user.findOneByUsername(username).catch(() => null);
+    // Buscar usuário pelo email
+    const userFound = await user.findOneByEmail(email).catch(() => null);
 
     if (!userFound) {
       return response.status(401).json({
