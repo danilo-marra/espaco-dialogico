@@ -5,11 +5,21 @@ import migrator from "models/migrator.js";
 // Importar node-fetch para ambientes onde fetch não está disponível nativamente
 import fetch from "node-fetch";
 
+// Controle para logs verbosos (pode ser controlado por uma variável de ambiente)
+const VERBOSE = process.env.TEST_VERBOSE === "true";
+
+// Função auxiliar para log condicional
+function conditionalLog(message) {
+  if (VERBOSE) {
+    console.log(message);
+  }
+}
+
 async function waitForAllServices() {
-  console.log("🔄 Aguardando todos os serviços ficarem disponíveis...");
+  conditionalLog("🔄 Aguardando todos os serviços ficarem disponíveis...");
   try {
     await waitForWebServer();
-    console.log("✅ Todos os serviços estão prontos!");
+    conditionalLog("✅ Todos os serviços estão prontos!");
   } catch (error) {
     console.error(`❌ Falha ao aguardar os serviços: ${error.message}`);
     throw error;
@@ -17,7 +27,7 @@ async function waitForAllServices() {
 
   async function waitForWebServer() {
     const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
-    console.log(`🔍 Verificando servidor web na porta ${port}...`);
+    conditionalLog(`🔍 Verificando servidor web na porta ${port}...`);
 
     return retry(fetchStatusPage, {
       retries: 50,
@@ -25,7 +35,7 @@ async function waitForAllServices() {
       maxTimeout: 3000,
       factor: 1.5,
       onRetry: (error, attempt) => {
-        console.log(
+        conditionalLog(
           `⏱️ Tentativa ${attempt}: Aguardando servidor na porta ${port}... (${error.message})`,
         );
       },
@@ -37,7 +47,7 @@ async function waitForAllServices() {
       const hostname = "localhost";
       const url = `http://${hostname}:${port}/api/v1/status`;
 
-      console.log(`🔄 Tentando conectar a ${url}`);
+      conditionalLog(`🔄 Tentando conectar a ${url}`);
 
       let response;
       try {
@@ -53,16 +63,18 @@ async function waitForAllServices() {
         );
       }
 
-      console.log(`✅ Conectado com sucesso ao servidor web na porta ${port}`);
+      conditionalLog(
+        `✅ Conectado com sucesso ao servidor web na porta ${port}`,
+      );
     }
   }
 }
 
 async function clearDatabase() {
-  console.log("🗑️ Limpando banco de dados...");
+  conditionalLog("🗑️ Limpando banco de dados...");
   try {
     await database.query("drop schema public cascade; create schema public;");
-    console.log("✅ Banco de dados limpo com sucesso");
+    conditionalLog("✅ Banco de dados limpo com sucesso");
   } catch (error) {
     console.error(`❌ Erro ao limpar banco de dados: ${error.message}`);
     throw error;
@@ -70,10 +82,22 @@ async function clearDatabase() {
 }
 
 async function runPendingMigrations() {
-  console.log("🔄 Executando migrações pendentes...");
+  conditionalLog("🔄 Executando migrações pendentes...");
   try {
+    // Substituir o console.log padrão temporariamente para suprimir logs das migrações
+    const originalConsoleLog = console.log;
+
+    // Se não estiver em modo verbose, silencia os logs padrão das migrações
+    if (!VERBOSE) {
+      console.log = function () {};
+    }
+
     await migrator.runPendingMigrations();
-    console.log("✅ Migrações aplicadas com sucesso");
+
+    // Restaurar o console.log original
+    console.log = originalConsoleLog;
+
+    conditionalLog("✅ Migrações aplicadas com sucesso");
   } catch (error) {
     console.error(`❌ Erro ao aplicar migrações: ${error.message}`);
     throw error;
