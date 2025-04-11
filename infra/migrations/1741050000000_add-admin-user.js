@@ -1,6 +1,16 @@
+// AVISO: Este arquivo contém credenciais obsoletas e não deve ser usado.
+// As novas credenciais são definidas através de variáveis de ambiente
+// e aplicadas pela migração 1744376265470_update-admin-from-env.js
 const bcryptjs = require("bcryptjs");
 
 exports.up = async (pgm) => {
+  // Essa migração não será mais executada automaticamente em produção
+  // Todas as credenciais serão gerenciadas pela migração update-admin-from-env
+  console.log(
+    "AVISO: Usando migração obsoleta. Considere usar a migração update-admin-from-env.",
+  );
+
+  // Código mantido por compatibilidade histórica
   // Gerar hash da senha do administrador
   const saltRounds = 10;
   const adminPassword = "adminSecurePassword123"; // Defina uma senha segura

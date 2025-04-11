@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "npm run services:up && npm run services:wait:database && npm run migrations:up && next dev",
     "dev:safe": "npm run services:up && npm run services:wait:database && npm run migrations:up && cross-env NEXT_MANUAL_START=true node infra/scripts/start-next-dev.js",
+    "build": "next build",
+    "postbuild": "node -e \"if(process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') require('./infra/scripts/run-migrations.js')\"",
     "db:validate": "node infra/scripts/validate-db.js",
     "test:frontend": "jest tests/frontend --env=jsdom",
     "test:all": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test concurrently -k -s first \"next dev\" \"wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit\"",
