@@ -34,6 +34,9 @@ const Header = () => {
     return null;
   }
 
+  // Prioriza o nome do usuário, se disponível
+  const displayName = user?.name || user?.username || "Usuário";
+
   return (
     <header
       data-testid="header-component"
@@ -42,15 +45,12 @@ const Header = () => {
       <div>
         <p className="text-xl hidden md:block">
           Bem vindo,
-          <span className="font-bold text-2xl">
-            {" "}
-            {user?.username || "Usuário"}
-          </span>
+          <span className="font-bold text-2xl"> {displayName}</span>
         </p>
       </div>
       <div className="profile flex items-center space-x-4">
         <div className="flex flex-col items-end">
-          <span className="font-semibold">{user?.username || "Usuário"}</span>
+          <span className="font-semibold">{displayName}</span>
           <span className="text-sm text-gray-500">
             {user?.email || "email@exemplo.com"}
           </span>

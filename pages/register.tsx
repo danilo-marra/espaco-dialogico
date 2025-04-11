@@ -7,6 +7,7 @@ import Image from "next/image";
 
 export default function Register() {
   const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,8 +25,8 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!username || !email || !password || !confirmPassword || !inviteCode) {
-      toast.error("Por favor, preencha todos os campos");
+    if (!name || !email || !password || !confirmPassword || !inviteCode) {
+      toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
 
@@ -44,6 +45,7 @@ export default function Register() {
         },
         body: JSON.stringify({
           username,
+          name,
           email,
           password,
           inviteCode,
@@ -101,7 +103,7 @@ export default function Register() {
                 htmlFor="inviteCode"
                 className="block text-sm font-medium text-gray-700"
               >
-                Código de Convite
+                Código de Convite <span className="text-red-500">*</span>
               </label>
               <input
                 id="inviteCode"
@@ -110,6 +112,46 @@ export default function Register() {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Você usará o email para fazer login no sistema
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Nome Completo
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                placeholder="Seu nome completo"
               />
             </div>
 
@@ -132,27 +174,10 @@ export default function Register() {
 
             <div>
               <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              />
-            </div>
-
-            <div>
-              <label
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
-                Senha
+                Senha <span className="text-red-500">*</span>
               </label>
               <input
                 id="password"
@@ -161,6 +186,7 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
               />
             </div>
 
@@ -169,7 +195,7 @@ export default function Register() {
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-gray-700"
               >
-                Confirme a senha
+                Confirme a senha <span className="text-red-500">*</span>
               </label>
               <input
                 id="confirmPassword"
@@ -178,6 +204,7 @@ export default function Register() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
               />
             </div>
 
