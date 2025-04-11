@@ -79,7 +79,7 @@ export default function Login() {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700"
               >
-                E-mail
+                E-mail <span className="text-red-500">*</span>
               </label>
               <input
                 id="email"
@@ -88,6 +88,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
               />
             </div>
 
@@ -96,7 +97,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
-                Senha
+                Senha <span className="text-red-500">*</span>
               </label>
               <input
                 id="password"
@@ -105,6 +106,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
               />
             </div>
 

@@ -180,7 +180,7 @@ export default function ConvitesPage() {
           <form onSubmit={handleCreateInvite} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email (opcional)
+                Email <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
@@ -188,7 +188,8 @@ export default function ConvitesPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4"
-                placeholder="Deixe em branco para qualquer email"
+                placeholder="Digite o email do convidado"
+                required
               />
             </div>
 
