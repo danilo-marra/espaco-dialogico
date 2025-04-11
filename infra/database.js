@@ -1,6 +1,6 @@
-import { Client } from "pg";
-import dotenv from "dotenv";
-import { ServiceError } from "./errors.js";
+const { Client } = require("pg");
+const dotenv = require("dotenv");
+const { ServiceError } = require("./errors.js");
 
 // Load environment variables from .env.development
 dotenv.config({ path: ".env.development" });
@@ -41,7 +41,7 @@ const database = {
   getNewClient,
 };
 
-export default database;
+module.exports = database;
 
 function getSSLValues() {
   if (process.env.POSTGRES_CA) {

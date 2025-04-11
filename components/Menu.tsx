@@ -5,15 +5,19 @@ import {
   List,
   Money,
   Person,
+  SignOut,
   UsersThree,
+  EnvelopeSimple,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const Menu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,10 +26,34 @@ const Menu = () => {
     };
 
     router.events.on("routeChangeComplete", handleRouteChange);
+
+    // Recuperar o papel do usuário do localStorage
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setUserRole(user.role || "user");
+      }
+    } catch (error) {
+      console.error("Erro ao recuperar dados do usuário:", error);
+    }
+
     return () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
   }, [router.events]);
+
+  const handleLogout = () => {
+    // Remover dados de autenticação do localStorage
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
+
+    // Notificar o usuário
+    toast.success("Logout realizado com sucesso");
+
+    // Redirecionar para a página de login
+    router.push("/login");
+  };
 
   return (
     <div>
@@ -40,7 +68,9 @@ const Menu = () => {
       </button>
       <aside
         data-testid="menu-component"
-        className={`fixed md:static h-full w-64 bg-azul text-white p-6 transform ${isMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 transition-transform duration-300 ease-in-out z-20`}
+        className={`fixed md:static h-full w-64 bg-azul text-white p-6 transform ${
+          isMenuOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 transition-transform duration-300 ease-in-out z-20`}
       >
         <Image
           src="/img/logo2.png"
@@ -81,6 +111,19 @@ const Menu = () => {
             <Link href="/dashboard/terapeutas">Terapeutas</Link>
           </li>
           <hr />
+          {userRole === "admin" && (
+            <>
+              <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
+                <EnvelopeSimple size={24} />
+                <Link href="/dashboard/convites">Convites</Link>
+              </li>
+              <hr />
+            </>
+          )}
+          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2 mt-12">
+            <SignOut size={24} />
+            <button onClick={handleLogout}>Sair</button>
+          </li>
         </ul>
       </aside>
     </div>

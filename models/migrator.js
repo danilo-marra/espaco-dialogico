@@ -1,12 +1,12 @@
-import migrationRunner from "node-pg-migrate";
-import { resolve } from "node:path";
-import database from "infra/database.js";
+const migrate = require("node-pg-migrate").default;
+const { resolve } = require("node:path");
+const database = require("../infra/database.js");
 
 const defaultMigrationOptions = {
-  dryRun: true,
+  dryRun: false, // Alterado para false para permitir que migrações reais sejam executadas
   dir: resolve("infra", "migrations"),
   direction: "up",
-  log: () => {},
+  log: () => console.log, // Adicionado console.log para melhor visibilidade
   migrationsTable: "pgmigrations",
 };
 
@@ -15,8 +15,9 @@ async function listPendingMigrations() {
 
   try {
     dbClient = await database.getNewClient();
-    const pendingMigrations = await migrationRunner({
+    const pendingMigrations = await migrate({
       ...defaultMigrationOptions,
+      dryRun: true, // Para listagem, mantemos dryRun como true
       dbClient,
     });
     return pendingMigrations;
@@ -30,10 +31,10 @@ async function runPendingMigrations() {
 
   try {
     dbClient = await database.getNewClient();
-    const migratedMigrations = await migrationRunner({
+    const migratedMigrations = await migrate({
       ...defaultMigrationOptions,
       dbClient,
-      dryRun: false,
+      // dryRun já é false por padrão agora
     });
 
     return migratedMigrations;
@@ -42,9 +43,28 @@ async function runPendingMigrations() {
   }
 }
 
+// Adiciona nova função para forçar a execução de uma migração específica
+async function runSpecificMigration(migrationName) {
+  let dbClient;
+
+  try {
+    dbClient = await database.getNewClient();
+    const result = await migrate({
+      ...defaultMigrationOptions,
+      dbClient,
+      migrations: [migrationName],
+    });
+
+    return result;
+  } finally {
+    await dbClient?.end();
+  }
+}
+
 const migrator = {
   listPendingMigrations,
   runPendingMigrations,
+  runSpecificMigration, // Exporta a nova função
 };
 
-export default migrator;
+module.exports = migrator;
