@@ -2,7 +2,6 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import paciente from "models/paciente.js";
 import { formidable } from "formidable";
-import { uploadToCloudinary } from "utils/cloudinary-config";
 
 // Configuração para desativar o bodyParser padrão do Next.js para uploads
 export const config = {
@@ -41,33 +40,49 @@ async function postHandler(request, response) {
 
   try {
     // Parsing com a API atual
-    const [fields, files] = await new Promise((resolve, reject) => {
+    const [fields] = await new Promise((resolve, reject) => {
       form.parse(request, (err, fields, files) => {
         if (err) reject(err);
         resolve([fields, files]);
       });
     });
 
-    // Preparar objeto paciente para inserção
+    console.log("Campos recebidos do formulário:", fields);
+
+    // Preparar objeto paciente para inserção com os campos corretos
     const pacienteData = {
       nome: getFormValue(fields.nome),
-      telefone: getFormValue(fields.telefone),
-      email: getFormValue(fields.email),
-      endereco: getFormValue(fields.endereco),
-      data_nascimento: getFormValue(fields.data_nascimento),
-      observacoes: getFormValue(fields.observacoes),
+      dt_nascimento: getFormValue(fields.dt_nascimento),
+      terapeuta_id: getFormValue(fields.terapeuta_id),
+      nome_responsavel: getFormValue(fields.nome_responsavel),
+      telefone_responsavel: getFormValue(fields.telefone_responsavel),
+      email_responsavel: getFormValue(fields.email_responsavel),
+      cpf_responsavel: getFormValue(fields.cpf_responsavel),
+      endereco_responsavel: getFormValue(fields.endereco_responsavel),
+      origem: getFormValue(fields.origem),
+      dt_entrada: getFormValue(fields.dt_entrada),
     };
 
-    // Upload da foto para o Cloudinary, se existir
-    if (files.foto && Array.isArray(files.foto) && files.foto.length > 0) {
-      try {
-        const fotoUrl = await uploadToCloudinary(files.foto[0]);
-        pacienteData.foto = fotoUrl;
-      } catch (error) {
-        console.error("Erro ao fazer upload para o Cloudinary:", error);
-        // Continua sem a foto se falhar o upload
+    // Validação dos campos obrigatórios
+    const requiredFields = [
+      "nome",
+      "dt_nascimento",
+      "terapeuta_id",
+      "nome_responsavel",
+      "telefone_responsavel",
+      "email_responsavel",
+      "cpf_responsavel",
+      "endereco_responsavel",
+      "origem",
+    ];
+
+    for (const field of requiredFields) {
+      if (!pacienteData[field]) {
+        throw new Error(`Campo obrigatório não preenchido: ${field}`);
       }
     }
+
+    console.log("Dados do paciente formatados para inserção:", pacienteData);
 
     // Criar paciente no banco de dados
     const novoPaciente = await paciente.create(pacienteData);

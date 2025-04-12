@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import Pagination from "components/Pagination";
+import { NovoPacienteModal } from "components/Paciente/NovoPacienteModal";
 import { useFetchPacientes } from "hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import Head from "next/head";
@@ -38,6 +39,7 @@ export default function Pacientes() {
   const [deletingPaciente, setDeletingPaciente] = useState<Paciente | null>(
     null,
   );
+  const [isNewPacienteOpen, setIsNewPacienteOpen] = useState(false);
 
   const handleEditPaciente = (paciente: Paciente) => {
     setEditingPaciente(paciente);
@@ -110,7 +112,10 @@ export default function Pacientes() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Pacientes</h1>
-          <Dialog.Root>
+          <Dialog.Root
+            open={isNewPacienteOpen}
+            onOpenChange={setIsNewPacienteOpen}
+          >
             <Dialog.Trigger asChild>
               <button
                 type="button"
@@ -120,28 +125,10 @@ export default function Pacientes() {
                 Novo Paciente
               </button>
             </Dialog.Trigger>
-            <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 bg-black/60" />
-              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full bg-white p-6 rounded-lg shadow-lg">
-                <Dialog.Title className="text-xl font-bold mb-4">
-                  Novo Paciente
-                </Dialog.Title>
-                <p className="mb-4">
-                  Os componentes de modal para pacientes precisam ser
-                  implementados corretamente nos arquivos de componentes.
-                </p>
-                <div className="flex justify-end">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-                    >
-                      Fechar
-                    </button>
-                  </Dialog.Close>
-                </div>
-              </Dialog.Content>
-            </Dialog.Portal>
+            <NovoPacienteModal
+              onSuccess={() => mutate()}
+              onClose={() => setIsNewPacienteOpen(false)}
+            />
           </Dialog.Root>
         </div>
 

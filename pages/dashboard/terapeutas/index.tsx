@@ -42,6 +42,7 @@ export default function Terapeutas() {
   const [deletingTerapeuta, setDeletingTerapeuta] = useState<Terapeuta | null>(
     null,
   );
+  const [isNewTerapeutaOpen, setIsNewTerapeutaOpen] = useState(false);
 
   const handleEditTerapeuta = (terapeuta: Terapeuta) => {
     setEditingTerapeuta(terapeuta);
@@ -122,7 +123,10 @@ export default function Terapeutas() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Terapeutas</h1>
-          <Dialog.Root>
+          <Dialog.Root
+            open={isNewTerapeutaOpen}
+            onOpenChange={setIsNewTerapeutaOpen}
+          >
             <Dialog.Trigger asChild>
               <button
                 type="button"
@@ -132,7 +136,10 @@ export default function Terapeutas() {
                 Novo Terapeuta
               </button>
             </Dialog.Trigger>
-            <NovoTerapeutaModal onSuccess={() => mutate()} />
+            <NovoTerapeutaModal
+              onSuccess={() => mutate()}
+              onClose={() => setIsNewTerapeutaOpen(false)}
+            />
           </Dialog.Root>
         </div>
 
