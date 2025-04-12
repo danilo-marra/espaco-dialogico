@@ -1,31 +1,36 @@
 import { z } from "zod";
 
+// Define o schema do formulário
 export const PacienteFormSchema = z.object({
-  nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres"),
+  nome: z.string().min(3, { message: "O nome é obrigatório" }),
   dt_nascimento: z.date({
-    required_error: "Data de nascimento é obrigatória",
-    invalid_type_error: "Data inválida",
+    required_error: "A data de nascimento é obrigatória",
+    invalid_type_error: "Data de nascimento inválida",
   }),
-  terapeuta_id: z.string({
-    required_error: "Terapeuta é obrigatório",
+  terapeuta_id: z.string().min(1, {
+    message: "Terapeuta responsável é obrigatório",
   }),
   nome_responsavel: z
     .string()
-    .min(3, "O nome do responsável deve ter pelo menos 3 caracteres"),
-  telefone_responsavel: z
-    .string()
-    .min(14, "Telefone inválido. Formato: (00) 00000-0000")
-    .max(15, "Telefone inválido"),
-  email_responsavel: z.string().email("E-mail inválido"),
-  cpf_responsavel: z.string().min(11, "CPF inválido"),
-  endereco_responsavel: z.string().min(5, "Endereço inválido"),
-  origem: z.enum(["Indicação", "Instagram", "Busca no Google", "Outros"], {
-    required_error: "Origem é obrigatória",
+    .min(3, { message: "O nome do responsável é obrigatório" }),
+  telefone_responsavel: z.string().min(14, {
+    message: "Telefone inválido - formato esperado: (00) 00000-0000",
   }),
+  email_responsavel: z.string().email({
+    message: "Formato de email inválido",
+  }),
+  cpf_responsavel: z.string().min(14, {
+    message: "CPF inválido - formato esperado: 000.000.000-00",
+  }),
+  endereco_responsavel: z.string().min(5, {
+    message: "O endereço do responsável é obrigatório",
+  }),
+  origem: z.string().min(1, { message: "Origem é obrigatória" }),
   dt_entrada: z.date({
-    required_error: "Data de entrada é obrigatória",
-    invalid_type_error: "Data inválida",
+    required_error: "A data de entrada é obrigatória",
+    invalid_type_error: "Data de entrada inválida",
   }),
 });
 
+// Tipo para o formulário de entrada na tabela de pacientes, sem campos automáticos de ID ou timestamps
 export type PacienteFormInputsWithoutFoto = z.infer<typeof PacienteFormSchema>;

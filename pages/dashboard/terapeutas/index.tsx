@@ -12,6 +12,7 @@ import Pagination from "components/Pagination";
 import { DeletarTerapeutaModal } from "components/Terapeuta/DeletarTerapeutaModal";
 import { EditarTerapeutaModal } from "components/Terapeuta/EditarTerapeutaModal";
 import { NovoTerapeutaModal } from "components/Terapeuta/NovoTerapeutaModal";
+import { useFetchPacientes } from "hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import Head from "next/head";
 import Image from "next/image";
@@ -25,11 +26,24 @@ const filterTerapeutas = (
   terapeutas: Terapeuta[],
   selectedTerapeuta: string,
 ): Terapeuta[] => {
-  return terapeutas.filter(
-    (terapeuta) =>
-      selectedTerapeuta === "Todos" ||
-      String(terapeuta.id) === String(selectedTerapeuta),
-  );
+  // Primeiro ordenamos os terapeutas (do mais recente para o mais antigo)
+  return terapeutas
+    .slice() // Cria uma cópia do array para não modificar o original
+    .sort((a, b) => {
+      // Ordenando por ID decrescente (assumindo que IDs mais altos são mais recentes)
+      if (typeof a.id === "number" && typeof b.id === "number") {
+        return b.id - a.id;
+      }
+      // Alternativa: ordenar por data de entrada
+      const dateA = new Date(a.dt_entrada || 0).getTime();
+      const dateB = new Date(b.dt_entrada || 0).getTime();
+      return dateB - dateA;
+    })
+    .filter(
+      (terapeuta) =>
+        selectedTerapeuta === "Todos" ||
+        String(terapeuta.id) === String(selectedTerapeuta),
+    );
 };
 
 export default function Terapeutas() {
@@ -44,6 +58,7 @@ export default function Terapeutas() {
   );
   const [isNewTerapeutaOpen, setIsNewTerapeutaOpen] = useState(false);
 
+  const { pacientes } = useFetchPacientes();
   const handleEditTerapeuta = (terapeuta: Terapeuta) => {
     setEditingTerapeuta(terapeuta);
   };
@@ -174,7 +189,7 @@ export default function Terapeutas() {
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <Users size={24} />
             <span className="text-xl font-semibold">
-              {/* Total de Pacientes: {pacientes.length} */}
+              Total de Pacientes: {pacientes?.length || 0}
             </span>
           </div>
         </div>

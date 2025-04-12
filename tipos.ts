@@ -14,13 +14,16 @@ export interface Terapeuta {
 export interface Paciente {
   id: string;
   nome: string;
-  dtNascimento: Date;
-  terapeutaInfo: Terapeuta;
-  nomeResponsavel: string;
-  telefoneResponsavel: string;
-  emailResponsavel: string;
-  cpfResponsavel: string;
-  enderecoResponsavel: string;
-  origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | undefined;
-  dt_entrada: Date;
+  dt_nascimento: Date | string;
+  terapeuta_id: string;
+  terapeutaInfo?: Terapeuta;
+  nome_responsavel: string;
+  telefone_responsavel: string;
+  email_responsavel: string;
+  cpf_responsavel: string;
+  endereco_responsavel: string;
+  origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros";
+  dt_entrada: Date | string;
+  created_at?: string;
+  updated_at?: string;
 }

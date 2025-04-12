@@ -8,6 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import Pagination from "components/Pagination";
+import { DeletarPacienteModal } from "components/Paciente/DeletarPacienteModal";
 import { NovoPacienteModal } from "components/Paciente/NovoPacienteModal";
 import { useFetchPacientes } from "hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
@@ -15,19 +16,40 @@ import Head from "next/head";
 import React, { useMemo, useState } from "react";
 import type { Paciente } from "tipos";
 import { dateFormatter } from "utils/formatter";
+import { EditarPacienteModal } from "components/Paciente/EditarPacienteModal";
 
 const PACIENTES_PER_PAGE = 10;
 
 const filterPacientes = (
   pacientes: Paciente[],
   selectedTerapeuta: string,
+  searchQuery: string,
 ): Paciente[] => {
-  return pacientes.filter(
-    (paciente) =>
-      selectedTerapeuta === "Todos" ||
-      (paciente.terapeutaInfo &&
-        String(paciente.terapeutaInfo.id) === String(selectedTerapeuta)),
-  );
+  // Primeiro ordenamos os pacientes (do mais recente para o mais antigo)
+  return pacientes
+    .slice() // Cria uma cópia do array para não modificar o original
+    .sort((a, b) => {
+      // Ordenando por ID decrescente (assumindo que IDs mais altos são mais recentes)
+      if (typeof a.id === "number" && typeof b.id === "number") {
+        return b.id - a.id;
+      }
+      // Alternativa: ordenar por data de entrada
+      const dateA = new Date(a.dt_entrada || 0).getTime();
+      const dateB = new Date(b.dt_entrada || 0).getTime();
+      return dateB - dateA;
+    })
+    .filter((paciente) => {
+      const matchesTerapeuta =
+        selectedTerapeuta === "Todos" ||
+        (paciente.terapeutaInfo &&
+          String(paciente.terapeutaInfo.id) === String(selectedTerapeuta));
+
+      const matchesSearch =
+        searchQuery === "" ||
+        paciente.nome.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesTerapeuta && matchesSearch;
+    });
 };
 
 export default function Pacientes() {
@@ -35,6 +57,7 @@ export default function Pacientes() {
   const { terapeutas } = useFetchTerapeutas();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
+  const [searchQuery, setSearchQuery] = useState("");
   const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
   const [deletingPaciente, setDeletingPaciente] = useState<Paciente | null>(
     null,
@@ -59,6 +82,11 @@ export default function Pacientes() {
     setDeletingPaciente(null);
   };
 
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
   // Função para formatar data com segurança
   const formatSafeDate = (dateValue) => {
     if (!dateValue) return "Data não informada";
@@ -77,8 +105,11 @@ export default function Pacientes() {
 
   // Filtrar pacientes
   const filteredPacientes = useMemo(
-    () => (pacientes ? filterPacientes(pacientes, selectedTerapeuta) : []),
-    [pacientes, selectedTerapeuta],
+    () =>
+      pacientes
+        ? filterPacientes(pacientes, selectedTerapeuta, searchQuery)
+        : [],
+    [pacientes, selectedTerapeuta, searchQuery],
   );
 
   // Paginação
@@ -133,7 +164,17 @@ export default function Pacientes() {
         </div>
 
         {/* Filters and Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
+            <Users size={24} />
+            <input
+              className="text-xl w-full text-gray-800 focus:outline-none"
+              type="text"
+              placeholder="Buscar paciente"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <User size={24} />
             <label htmlFor="terapeutas" className="text-xl font-semibold">
@@ -200,16 +241,16 @@ export default function Pacientes() {
                       {paciente.terapeutaInfo?.nome || "Não atribuído"}
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      {formatSafeDate(paciente.dtNascimento)}
+                      {formatSafeDate(paciente.dt_nascimento)}
                     </td>
                     <td className="p-4 hidden md:table-cell">
-                      {paciente.nomeResponsavel}
+                      {paciente.nome_responsavel}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {paciente.telefoneResponsavel}
+                      {paciente.telefone_responsavel}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
-                      {paciente.emailResponsavel}
+                      {paciente.email_responsavel}
                     </td>
                     <td className="p-4 hidden lg:table-cell">
                       {paciente.origem}
@@ -249,77 +290,23 @@ export default function Pacientes() {
           onPageChange={setCurrentPage}
         />
 
-        {/* Modals de edição e exclusão */}
+        {/* Modals */}
         {editingPaciente && (
-          <Dialog.Root
+          <EditarPacienteModal
+            paciente={editingPaciente}
             open={!!editingPaciente}
-            onOpenChange={() => setEditingPaciente(null)}
-          >
-            <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 bg-black/60" />
-              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full bg-white p-6 rounded-lg shadow-lg">
-                <Dialog.Title className="text-xl font-bold mb-4">
-                  Editar Paciente
-                </Dialog.Title>
-                <p className="mb-4">
-                  Formulário para edição de pacientes. O componente
-                  EditarPacienteModal precisa ser implementado corretamente.
-                </p>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setEditingPaciente(null)}
-                    className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleEditSuccess();
-                    }}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                  >
-                    Salvar
-                  </button>
-                </div>
-              </Dialog.Content>
-            </Dialog.Portal>
-          </Dialog.Root>
+            onClose={() => setEditingPaciente(null)}
+            onSuccess={handleEditSuccess}
+          />
         )}
 
         {deletingPaciente && (
-          <Dialog.Root
+          <DeletarPacienteModal
+            paciente={deletingPaciente}
             open={!!deletingPaciente}
-            onOpenChange={() => setDeletingPaciente(null)}
-          >
-            <Dialog.Portal>
-              <Dialog.Overlay className="fixed inset-0 bg-black/60" />
-              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md w-full bg-white p-6 rounded-lg shadow-lg">
-                <Dialog.Title className="text-xl font-bold mb-4">
-                  Excluir Paciente
-                </Dialog.Title>
-                <p className="mb-4">
-                  Tem certeza que deseja excluir o paciente{" "}
-                  {deletingPaciente.nome}?
-                </p>
-                <div className="flex justify-end space-x-2">
-                  <button
-                    onClick={() => setDeletingPaciente(null)}
-                    className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDeleteSuccess();
-                    }}
-                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </Dialog.Content>
-            </Dialog.Portal>
-          </Dialog.Root>
+            onClose={() => setDeletingPaciente(null)}
+            onSuccess={handleDeleteSuccess}
+          />
         )}
       </main>
     </div>

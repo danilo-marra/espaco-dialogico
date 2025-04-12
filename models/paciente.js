@@ -68,39 +68,121 @@ async function create(pacienteInputValues) {
 }
 
 async function getAll() {
-  const results = await database.query({
+  const query = {
     text: `
-    SELECT
-      p.*,
-      t.nome as terapeuta_nome
-    FROM
-      pacientes p
-    LEFT JOIN
-      terapeutas t ON p.terapeuta_id = t.id
-    ;`,
-  });
+      SELECT 
+        p.*,
+        t.id as terapeuta_id,
+        t.nome as terapeuta_nome,
+        t.telefone as terapeuta_telefone,
+        t.email as terapeuta_email,
+        t.endereco as terapeuta_endereco,
+        t.dt_entrada as terapeuta_dt_entrada,
+        t.chave_pix as terapeuta_chave_pix,
+        t.foto as terapeuta_foto
+      FROM pacientes p
+      LEFT JOIN terapeutas t ON p.terapeuta_id = t.id
+      ORDER BY p.nome
+    `,
+  };
 
-  return results.rows;
+  const result = await database.query(query);
+
+  // Transformar os resultados para incluir o objeto terapeutaInfo
+  return result.rows.map((row) => {
+    const paciente = {
+      id: row.id,
+      nome: row.nome,
+      dt_nascimento: row.dt_nascimento,
+      terapeuta_id: row.terapeuta_id,
+      nome_responsavel: row.nome_responsavel,
+      telefone_responsavel: row.telefone_responsavel,
+      email_responsavel: row.email_responsavel,
+      cpf_responsavel: row.cpf_responsavel,
+      endereco_responsavel: row.endereco_responsavel,
+      origem: row.origem,
+      dt_entrada: row.dt_entrada,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+
+    // Adicionar informações do terapeuta apenas se existir
+    if (row.terapeuta_id) {
+      paciente.terapeutaInfo = {
+        id: row.terapeuta_id,
+        nome: row.terapeuta_nome,
+        telefone: row.terapeuta_telefone,
+        email: row.terapeuta_email,
+        endereco: row.terapeuta_endereco,
+        dt_entrada: row.terapeuta_dt_entrada,
+        chave_pix: row.terapeuta_chave_pix,
+        foto: row.terapeuta_foto,
+      };
+    }
+
+    return paciente;
+  });
 }
 
 // Recuperar paciente por ID
 async function getById(id) {
-  const queryObject = {
+  const query = {
     text: `
-      SELECT
+      SELECT 
         p.*,
-        t.nome as terapeuta_nome
-      FROM
-        pacientes p
-      LEFT JOIN
-        terapeutas t ON p.terapeuta_id = t.id
+        t.id as terapeuta_id,
+        t.nome as terapeuta_nome,
+        t.telefone as terapeuta_telefone,
+        t.email as terapeuta_email,
+        t.endereco as terapeuta_endereco,
+        t.dt_entrada as terapeuta_dt_entrada,
+        t.chave_pix as terapeuta_chave_pix,
+        t.foto as terapeuta_foto
+      FROM pacientes p
+      LEFT JOIN terapeutas t ON p.terapeuta_id = t.id
       WHERE p.id = $1
     `,
     values: [id],
   };
 
-  const result = await database.query(queryObject);
-  return result.rows[0] || null;
+  const result = await database.query(query);
+
+  if (result.rows.length === 0) {
+    return null;
+  }
+
+  const row = result.rows[0];
+  const paciente = {
+    id: row.id,
+    nome: row.nome,
+    dt_nascimento: row.dt_nascimento,
+    terapeuta_id: row.terapeuta_id,
+    nome_responsavel: row.nome_responsavel,
+    telefone_responsavel: row.telefone_responsavel,
+    email_responsavel: row.email_responsavel,
+    cpf_responsavel: row.cpf_responsavel,
+    endereco_responsavel: row.endereco_responsavel,
+    origem: row.origem,
+    dt_entrada: row.dt_entrada,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+
+  // Adicionar informações do terapeuta apenas se existir
+  if (row.terapeuta_id) {
+    paciente.terapeutaInfo = {
+      id: row.terapeuta_id,
+      nome: row.terapeuta_nome,
+      telefone: row.terapeuta_telefone,
+      email: row.terapeuta_email,
+      endereco: row.terapeuta_endereco,
+      dt_entrada: row.terapeuta_dt_entrada,
+      chave_pix: row.terapeuta_chave_pix,
+      foto: row.terapeuta_foto,
+    };
+  }
+
+  return paciente;
 }
 
 async function update(id, pacienteInputValues) {

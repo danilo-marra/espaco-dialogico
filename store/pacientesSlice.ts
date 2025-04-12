@@ -3,7 +3,7 @@ import type { PacientesState } from "./store";
 import type { Paciente } from "tipos";
 import axiosInstance from "utils/api";
 import { isAxiosError } from "axios";
-import { format } from "date-fns";
+import { format, isValid, parse } from "date-fns";
 
 // Estado inicial
 const initialState: PacientesState = {
@@ -21,54 +21,54 @@ const preparePacienteData = (data: any) => {
 
   console.log("Dados originais recebidos:", data);
 
-  // Verifica e formata dt_nascimento
-  if (formattedData.dt_nascimento instanceof Date) {
-    formattedData.dt_nascimento = format(
-      formattedData.dt_nascimento,
-      "yyyy-MM-dd",
-    );
-  } else if (
-    formattedData.dt_nascimento &&
-    typeof formattedData.dt_nascimento === "string"
-  ) {
-    // Se for uma string, tenta converter para data e depois para string no formato correto
+  // Função interna para garantir que qualquer formato de data seja convertido corretamente
+  const formatDateToYYYYMMDD = (dateValue: any): string => {
     try {
-      const date = new Date(formattedData.dt_nascimento);
-      formattedData.dt_nascimento = format(date, "yyyy-MM-dd");
-    } catch (error) {
-      console.error(
-        "Erro ao converter dt_nascimento de string para Date",
-        error,
-      );
-      // Em caso de erro, mantém o valor original
-    }
-  } else {
-    console.error("ERRO: dt_nascimento está vazio ou inválido");
-    throw new Error("Data de nascimento é obrigatória");
-  }
+      // Caso 1: Se já for um objeto Date válido
+      if (dateValue instanceof Date && isValid(dateValue)) {
+        return format(dateValue, "yyyy-MM-dd");
+      }
 
-  // Verifica e formata dt_entrada
-  if (formattedData.dt_entrada instanceof Date) {
-    formattedData.dt_entrada = format(formattedData.dt_entrada, "yyyy-MM-dd");
-  } else if (
-    formattedData.dt_entrada &&
-    typeof formattedData.dt_entrada === "string"
-  ) {
-    try {
-      const date = new Date(formattedData.dt_entrada);
-      formattedData.dt_entrada = format(date, "yyyy-MM-dd");
-    } catch (error) {
-      console.error("Erro ao converter dt_entrada de string para Date", error);
-      // Em caso de erro, usa a data atual
-      formattedData.dt_entrada = format(new Date(), "yyyy-MM-dd");
-    }
-  } else {
-    // Se a data de entrada não estiver definida, use a data atual
-    formattedData.dt_entrada = format(new Date(), "yyyy-MM-dd");
-    console.log("dt_entrada não definida, usando data atual");
-  }
+      // Caso 2: Se for uma string ISO (que pode vir do frontend ou já estar no formato ISO)
+      if (typeof dateValue === "string") {
+        // Primeiro tenta interpretar como uma data ISO
+        const parsedIsoDate = new Date(dateValue);
+        if (isValid(parsedIsoDate)) {
+          return format(parsedIsoDate, "yyyy-MM-dd");
+        }
 
-  // Verifica outros campos obrigatórios
+        // Tenta interpretar como dd/MM/yyyy (formato brasileiro)
+        try {
+          const parsedBrDate = parse(dateValue, "dd/MM/yyyy", new Date());
+          if (isValid(parsedBrDate)) {
+            return format(parsedBrDate, "yyyy-MM-dd");
+          }
+        } catch (e) {
+          console.warn("Falha ao interpretar como dd/MM/yyyy:", dateValue);
+        }
+      }
+
+      // Caso 3: Fallback para a data atual
+      console.warn(`Valor de data inválido (${dateValue}), usando data atual`);
+      return format(new Date(), "yyyy-MM-dd");
+    } catch (error) {
+      // Caso 4: Em caso de erro inesperado, usa data atual
+      console.error(`Erro ao processar data (${dateValue}):`, error);
+      return format(new Date(), "yyyy-MM-dd");
+    }
+  };
+
+  // Garante que dt_nascimento NUNCA será null
+  formattedData.dt_nascimento = formatDateToYYYYMMDD(
+    formattedData.dt_nascimento,
+  );
+  console.log("dt_nascimento formatado final:", formattedData.dt_nascimento);
+
+  // Garante que dt_entrada NUNCA será null
+  formattedData.dt_entrada = formatDateToYYYYMMDD(formattedData.dt_entrada);
+  console.log("dt_entrada formatado final:", formattedData.dt_entrada);
+
+  // Verifica outros campos obrigatórios e fornece valores padrão
   if (!formattedData.terapeuta_id) {
     console.error("ERRO: terapeuta_id está vazio ou inválido");
     throw new Error("Terapeuta responsável é obrigatório");
@@ -100,8 +100,8 @@ const preparePacienteData = (data: any) => {
   }
 
   if (!formattedData.origem) {
-    console.error("ERRO: origem está vazia ou inválida");
-    throw new Error("Origem é obrigatória");
+    console.warn("Origem não definida, usando 'Outros'");
+    formattedData.origem = "Outros";
   }
 
   console.log("Dados formatados para envio:", formattedData);
@@ -158,6 +158,8 @@ export const updatePaciente = createAsyncThunk<
     // Formatar os dados antes de enviar
     const formattedPaciente = preparePacienteData(paciente);
 
+    console.log(`Enviando PUT para ${API_ENDPOINT}/${id}:`, formattedPaciente);
+
     const response = await axiosInstance.put<Paciente>(
       `${API_ENDPOINT}/${id}`,
       formattedPaciente,
@@ -165,10 +167,11 @@ export const updatePaciente = createAsyncThunk<
 
     return response.data;
   } catch (error: any) {
+    console.error("Erro ao atualizar paciente:", error);
     if (isAxiosError(error)) {
       return rejectWithValue(error.response?.data?.error || error.message);
     }
-    return rejectWithValue("Erro desconhecido");
+    return rejectWithValue("Erro desconhecido ao atualizar paciente");
   }
 });
 
