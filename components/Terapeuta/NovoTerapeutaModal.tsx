@@ -29,9 +29,13 @@ import { toast } from "sonner";
 
 interface NovoTerapeutaModalProps {
   onSuccess?: () => void;
+  onClose: () => void;
 }
 
-export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
+export function NovoTerapeutaModal({
+  onSuccess,
+  onClose,
+}: NovoTerapeutaModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
@@ -94,6 +98,7 @@ export function NovoTerapeutaModal({ onSuccess }: NovoTerapeutaModalProps) {
         reset();
         setSelectedFile(null);
         onSuccess?.();
+        onClose();
       } catch (error) {
         toast.error(handleTerapeutaError(error));
       }

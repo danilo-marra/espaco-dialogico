@@ -1,26 +1,29 @@
 export interface Terapeuta {
-  id: string; // era id
-  nome: string; // era nome
-  foto?: string | null; // era foto
-  telefone: string; // era telefone
-  email: string; // era email
-  endereco: string; // era endereco
-  dt_entrada: Date | string; // era dt_entrada
-  chave_pix: string; // era chave_pix
-  created_at?: string; // novo
-  updated_at?: string; // novo
+  id: string;
+  nome: string;
+  foto?: string | null;
+  telefone: string;
+  email: string;
+  endereco: string;
+  dt_entrada: Date | string;
+  chave_pix: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Paciente {
   id: string;
-  nomePaciente: string;
-  dtNascimento: Date;
-  terapeutaInfo: Terapeuta;
-  nomeResponsavel: string;
-  telefoneResponsavel: string;
-  emailResponsavel: string;
-  cpfResponsavel: string;
-  enderecoResponsavel: string;
-  origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | undefined;
-  dt_entradaPaciente: Date;
+  nome: string;
+  dt_nascimento: Date | string;
+  terapeuta_id: string;
+  terapeutaInfo?: Terapeuta;
+  nome_responsavel: string;
+  telefone_responsavel: string;
+  email_responsavel: string;
+  cpf_responsavel: string;
+  endereco_responsavel: string;
+  origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros";
+  dt_entrada: Date | string;
+  created_at?: string;
+  updated_at?: string;
 }

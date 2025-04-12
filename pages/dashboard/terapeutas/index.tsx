@@ -12,6 +12,7 @@ import Pagination from "components/Pagination";
 import { DeletarTerapeutaModal } from "components/Terapeuta/DeletarTerapeutaModal";
 import { EditarTerapeutaModal } from "components/Terapeuta/EditarTerapeutaModal";
 import { NovoTerapeutaModal } from "components/Terapeuta/NovoTerapeutaModal";
+import { useFetchPacientes } from "hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import Head from "next/head";
 import Image from "next/image";
@@ -25,11 +26,24 @@ const filterTerapeutas = (
   terapeutas: Terapeuta[],
   selectedTerapeuta: string,
 ): Terapeuta[] => {
-  return terapeutas.filter(
-    (terapeuta) =>
-      selectedTerapeuta === "Todos" ||
-      String(terapeuta.id) === String(selectedTerapeuta),
-  );
+  // Primeiro ordenamos os terapeutas (do mais recente para o mais antigo)
+  return terapeutas
+    .slice() // Cria uma cópia do array para não modificar o original
+    .sort((a, b) => {
+      // Ordenando por ID decrescente (assumindo que IDs mais altos são mais recentes)
+      if (typeof a.id === "number" && typeof b.id === "number") {
+        return b.id - a.id;
+      }
+      // Alternativa: ordenar por data de entrada
+      const dateA = new Date(a.dt_entrada || 0).getTime();
+      const dateB = new Date(b.dt_entrada || 0).getTime();
+      return dateB - dateA;
+    })
+    .filter(
+      (terapeuta) =>
+        selectedTerapeuta === "Todos" ||
+        String(terapeuta.id) === String(selectedTerapeuta),
+    );
 };
 
 export default function Terapeutas() {
@@ -42,7 +56,9 @@ export default function Terapeutas() {
   const [deletingTerapeuta, setDeletingTerapeuta] = useState<Terapeuta | null>(
     null,
   );
+  const [isNewTerapeutaOpen, setIsNewTerapeutaOpen] = useState(false);
 
+  const { pacientes } = useFetchPacientes();
   const handleEditTerapeuta = (terapeuta: Terapeuta) => {
     setEditingTerapeuta(terapeuta);
   };
@@ -98,8 +114,8 @@ export default function Terapeutas() {
         <Image
           src={fotoUrl}
           alt="Foto do terapeuta"
-          width={75}
-          height={75}
+          width={50}
+          height={50}
           className="rounded-full object-cover"
         />
       );
@@ -107,7 +123,7 @@ export default function Terapeutas() {
 
     // Fallback para quando não há foto
     return (
-      <div className="w-[75px] h-[75px] bg-gray-200 rounded-full flex items-center justify-center">
+      <div className="w-[50px] h-[50px] bg-gray-200 rounded-full flex items-center justify-center">
         <UserCircle size={60} weight="thin" className="text-gray-400" />
       </div>
     );
@@ -122,7 +138,10 @@ export default function Terapeutas() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Terapeutas</h1>
-          <Dialog.Root>
+          <Dialog.Root
+            open={isNewTerapeutaOpen}
+            onOpenChange={setIsNewTerapeutaOpen}
+          >
             <Dialog.Trigger asChild>
               <button
                 type="button"
@@ -132,7 +151,10 @@ export default function Terapeutas() {
                 Novo Terapeuta
               </button>
             </Dialog.Trigger>
-            <NovoTerapeutaModal onSuccess={() => mutate()} />
+            <NovoTerapeutaModal
+              onSuccess={() => mutate()}
+              onClose={() => setIsNewTerapeutaOpen(false)}
+            />
           </Dialog.Root>
         </div>
 
@@ -167,7 +189,7 @@ export default function Terapeutas() {
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <Users size={24} />
             <span className="text-xl font-semibold">
-              {/* Total de Pacientes: {pacientes.length} */}
+              Total de Pacientes: {pacientes?.length || 0}
             </span>
           </div>
         </div>
