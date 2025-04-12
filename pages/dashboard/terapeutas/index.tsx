@@ -98,8 +98,8 @@ export default function Terapeutas() {
         <Image
           src={fotoUrl}
           alt="Foto do terapeuta"
-          width={75}
-          height={75}
+          width={50}
+          height={50}
           className="rounded-full object-cover"
         />
       );
@@ -107,7 +107,7 @@ export default function Terapeutas() {
 
     // Fallback para quando não há foto
     return (
-      <div className="w-[75px] h-[75px] bg-gray-200 rounded-full flex items-center justify-center">
+      <div className="w-[50px] h-[50px] bg-gray-200 rounded-full flex items-center justify-center">
         <UserCircle size={60} weight="thin" className="text-gray-400" />
       </div>
     );

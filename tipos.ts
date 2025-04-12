@@ -1,14 +1,14 @@
 export interface Terapeuta {
-  id: string; // era id
-  nome: string; // era nome
-  foto?: string | null; // era foto
-  telefone: string; // era telefone
-  email: string; // era email
-  endereco: string; // era endereco
-  dt_entrada: Date | string; // era dt_entrada
-  chave_pix: string; // era chave_pix
-  created_at?: string; // novo
-  updated_at?: string; // novo
+  id: string;
+  nome: string;
+  foto?: string | null;
+  telefone: string;
+  email: string;
+  endereco: string;
+  dt_entrada: Date | string;
+  chave_pix: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Paciente {
