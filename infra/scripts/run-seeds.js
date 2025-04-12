@@ -44,8 +44,7 @@ function runSeed(scriptName) {
 // Lista de scripts de seed disponíveis (com ordem de execução específica se necessário)
 const seedScripts = [
   "seed-terapeutas.js",
-  // Adicione novos scripts de seed aqui conforme você os cria:
-  // "seed-pacientes.js",
+  "seed-pacientes.js",
   // "seed-sessoes.js",
   // etc.
 ];
