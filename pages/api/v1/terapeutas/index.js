@@ -3,6 +3,7 @@ import controller from "infra/controller.js";
 import terapeuta from "models/terapeuta.js";
 import { formidable } from "formidable";
 import { uploadToCloudinary } from "utils/cloudinary-config";
+import authMiddleware from "utils/authMiddleware.js";
 
 // Configuração para desativar o bodyParser padrão do Next.js para uploads
 export const config = {
@@ -16,6 +17,9 @@ function getFormValue(field) {
 }
 
 const router = createRouter();
+
+// Aplicar middleware de autenticação para proteger as rotas
+router.use(authMiddleware);
 
 router.get(getHandler);
 router.post(postHandler);
