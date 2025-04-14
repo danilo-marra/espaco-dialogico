@@ -1,13 +1,9 @@
-import { configureStore } from "@reduxjs/toolkit";
-import type { Terapeuta, Paciente } from "tipos";
-import terapeutasReducer from "./terapeutasSlice";
+import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { TypedUseSelectorHook, useSelector } from "react-redux";
+import { Paciente, Sessao, Terapeuta } from "tipos";
 import pacientesReducer from "./pacientesSlice";
-
-export interface TerapeutasState {
-  data: Terapeuta[];
-  loading: boolean;
-  error: string | null;
-}
+import terapeutasReducer from "./terapeutasSlice";
+import sessoesReducer from "./sessoesSlice";
 
 export interface PacientesState {
   data: Paciente[];
@@ -15,17 +11,33 @@ export interface PacientesState {
   error: string | null;
 }
 
-interface RootState {
-  terapeutas: TerapeutasState;
-  pacientes: PacientesState;
+export interface TerapeutasState {
+  data: Terapeuta[];
+  loading: boolean;
+  error: string | null;
 }
 
-export const store = configureStore({
-  reducer: {
-    terapeutas: terapeutasReducer,
-    pacientes: pacientesReducer,
-  },
+export interface SessoesState {
+  data: Sessao[];
+  loading: boolean;
+  error: string | null;
+}
+
+// Combinar reducers
+const rootReducer = combineReducers({
+  pacientes: pacientesReducer,
+  terapeutas: terapeutasReducer,
+  sessoes: sessoesReducer,
 });
 
-export type { RootState };
+// Configurar store
+export const store = configureStore({
+  reducer: rootReducer,
+});
+
+// Types
+export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// Hooks customizados para Redux
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
