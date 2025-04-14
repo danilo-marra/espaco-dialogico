@@ -32,7 +32,7 @@ exports.up = (pgm) => {
     },
     status_sessao: {
       type: "varchar(50)",
-      default: "'Pagamento Pendente'",
+      default: "Pagamento Pendente",
       check: `status_sessao IN ('Pagamento Pendente', 'Pagamento Realizado', 'Nota Fiscal Emitida', 'Nota Fiscal Enviada')`,
     },
 
