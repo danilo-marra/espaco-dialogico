@@ -34,6 +34,7 @@ async function create(sessaoData) {
         paciente_id,
         tipo_sessao,
         valor_sessao,
+        valor_repasse,
         status_sessao,
         dt_sessao1,
         dt_sessao2,
@@ -42,7 +43,7 @@ async function create(sessaoData) {
         dt_sessao5,
         dt_sessao6
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `,
     values: [
@@ -50,6 +51,7 @@ async function create(sessaoData) {
       sessaoData.paciente_id,
       sessaoData.tipoSessao,
       sessaoData.valorSessao,
+      sessaoData.valorRepasse,
       sessaoData.statusSessao,
       sessaoData.dtSessao1,
       sessaoData.dtSessao2,
@@ -208,56 +210,55 @@ async function update(id, sessaoData) {
   await getById(id);
 
   // Preparar os campos a serem atualizados
-  const updateFields = {};
+  const fieldsToUpdate = [];
+  const values = [];
+  let paramCounter = 1;
 
-  if (sessaoData.tipoSessao !== undefined)
-    updateFields.tipo_sessao = sessaoData.tipoSessao;
-  if (sessaoData.valorSessao !== undefined)
-    updateFields.valor_sessao = sessaoData.valorSessao;
-  if (sessaoData.statusSessao !== undefined)
-    updateFields.status_sessao = sessaoData.statusSessao;
-  if (sessaoData.dtSessao1 !== undefined)
-    updateFields.dt_sessao1 = sessaoData.dtSessao1;
-  if (sessaoData.dtSessao2 !== undefined)
-    updateFields.dt_sessao2 = sessaoData.dtSessao2;
-  if (sessaoData.dtSessao3 !== undefined)
-    updateFields.dt_sessao3 = sessaoData.dtSessao3;
-  if (sessaoData.dtSessao4 !== undefined)
-    updateFields.dt_sessao4 = sessaoData.dtSessao4;
-  if (sessaoData.dtSessao5 !== undefined)
-    updateFields.dt_sessao5 = sessaoData.dtSessao5;
-  if (sessaoData.dtSessao6 !== undefined)
-    updateFields.dt_sessao6 = sessaoData.dtSessao6;
-
-  // Atualizar a data de modificação
-  updateFields.updated_at = new Date().toISOString();
-
-  // Verificar se há campos para atualizar
-  const fields = Object.keys(updateFields);
-  if (fields.length === 0) {
-    throw new ValidationError({
-      message: "Nenhum campo para atualizar",
-    });
+  // Função auxiliar para adicionar campos a serem atualizados
+  function addField(fieldName, value) {
+    if (value !== undefined) {
+      fieldsToUpdate.push(`${fieldName} = $${paramCounter}`);
+      values.push(value);
+      paramCounter++;
+    }
   }
 
-  // Construir a query de atualização
-  const setClause = fields
-    .map((field, index) => `${field} = $${index + 1}`)
-    .join(", ");
-  const values = [...Object.values(updateFields), id];
+  // Adicionar cada campo que precisa ser atualizado
+  addField("tipo_sessao", sessaoData.tipoSessao);
+  addField("valor_sessao", sessaoData.valorSessao);
+  addField("valor_repasse", sessaoData.valorRepasse);
+  addField("status_sessao", sessaoData.statusSessao);
+  addField("dt_sessao1", sessaoData.dtSessao1);
+  addField("dt_sessao2", sessaoData.dtSessao2);
+  addField("dt_sessao3", sessaoData.dtSessao3);
+  addField("dt_sessao4", sessaoData.dtSessao4);
+  addField("dt_sessao5", sessaoData.dtSessao5);
+  addField("dt_sessao6", sessaoData.dtSessao6);
 
-  // Executar a query de atualização
-  await database.query({
-    text: `
-      UPDATE sessoes
-      SET ${setClause}
-      WHERE id = $${fields.length + 1}
-    `,
+  // Se não houver campos para atualizar, retornar os dados atuais
+  if (fieldsToUpdate.length === 0) {
+    return await getById(id);
+  }
+
+  // Adicionar o id para a cláusula WHERE
+  values.push(id);
+
+  // Construir a query SQL
+  const sql = `
+    UPDATE sessoes
+    SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
+    WHERE id = $${paramCounter}
+    RETURNING *
+  `;
+
+  // Executar a query
+  const result = await database.query({
+    text: sql,
     values: values,
   });
 
-  // Retornar a sessão atualizada
-  return await getById(id);
+  // Retornar os dados atualizados
+  return formatSessaoResult(result.rows[0]);
 }
 
 async function remove(id) {
@@ -278,6 +279,7 @@ function formatSessaoResult(row) {
     id: row.id,
     tipoSessao: row.tipo_sessao,
     valorSessao: parseFloat(row.valor_sessao),
+    valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : undefined,
     statusSessao: row.status_sessao,
     dtSessao1: row.dt_sessao1,
     dtSessao2: row.dt_sessao2,
@@ -308,10 +310,10 @@ function formatSessaoResult(row) {
       nome_responsavel: row.paciente_nome_responsavel,
       telefone_responsavel: row.paciente_telefone_responsavel,
       email_responsavel: row.paciente_email_responsavel,
-      cpf_responsavel: row.paciente_cpf_responsavel,
-      endereco_responsavel: row.paciente_endereco_responsavel,
-      origem: row.paciente_origem,
-      dt_entrada: row.paciente_dt_entrada,
+      cpf_responsavel: row.cpf_responsavel,
+      endereco_responsavel: row.endereco_responsavel,
+      origem: row.origem,
+      dt_entrada: row.dt_entrada,
     },
   };
 }

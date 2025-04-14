@@ -11,6 +11,11 @@ export const useFetchPacientes = () => {
   const { data, error, isLoading, mutate } = useSWR<Paciente[]>(
     "/pacientes",
     fetcher,
+    {
+      revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
+      revalidateIfStale: false, // Não revalidar dados antigos automaticamente
+      dedupingInterval: 10000, // Deduplicar requisições similares em um intervalo de 10 segundos
+    },
   );
   return {
     pacientes: data,

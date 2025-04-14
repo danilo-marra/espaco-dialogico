@@ -35,6 +35,7 @@ async function putHandler(request, response) {
     const {
       tipoSessao,
       valorSessao,
+      valorRepasse,
       statusSessao,
       dtSessao1,
       dtSessao2,
@@ -48,6 +49,7 @@ async function putHandler(request, response) {
     const updatedSessao = await sessao.update(id, {
       tipoSessao,
       valorSessao,
+      valorRepasse,
       statusSessao,
       dtSessao1,
       dtSessao2,

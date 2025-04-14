@@ -30,20 +30,33 @@ export interface Paciente {
 
 export interface Sessao {
   id: string;
-  terapeutaInfo: Terapeuta;
-  pacienteInfo: Paciente;
+  terapeuta_id: string; // ID do terapeuta
+  paciente_id: string; // ID do paciente
+
+  // Informações relacionadas
+  terapeutaInfo?: Terapeuta; // Objeto completo do terapeuta (opcional para criar sessões)
+  pacienteInfo?: Paciente; // Objeto completo do paciente (opcional para criar sessões)
+
+  // Detalhes da sessão
+  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar";
+  valorSessao: number;
+  valorRepasse?: number; // Valor de repasse específico para esta sessão (opcional)
   statusSessao:
     | "Pagamento Pendente"
     | "Pagamento Realizado"
     | "Nota Fiscal Emitida"
     | "Nota Fiscal Enviada"
     | undefined;
-  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar";
-  valorSessao: number;
+
+  // Datas
   dtSessao1?: Date;
   dtSessao2?: Date;
   dtSessao3?: Date;
   dtSessao4?: Date;
   dtSessao5?: Date;
   dtSessao6?: Date;
+
+  // Datas de controle
+  created_at?: string;
+  updated_at?: string;
 }

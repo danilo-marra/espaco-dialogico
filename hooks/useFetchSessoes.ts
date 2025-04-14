@@ -1,15 +1,15 @@
 import useSWR from "swr";
-import type { Terapeuta } from "tipos";
+import type { Sessao } from "tipos";
 import axiosInstance from "utils/api";
 
-const fetcher = async (url: string): Promise<Terapeuta[]> => {
-  const response = await axiosInstance.get<Terapeuta[]>(url);
+const fetcher = async (url: string): Promise<Sessao[]> => {
+  const response = await axiosInstance.get<Sessao[]>(url);
   return response.data;
 };
 
-export const useFetchTerapeutas = () => {
-  const { data, error, isLoading, mutate } = useSWR<Terapeuta[]>(
-    "/terapeutas",
+export const useFetchSessoes = () => {
+  const { data, error, isLoading, mutate } = useSWR<Sessao[]>(
+    "/sessoes",
     fetcher,
     {
       revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
@@ -18,7 +18,7 @@ export const useFetchTerapeutas = () => {
     },
   );
   return {
-    terapeutas: data,
+    sessoes: data,
     isLoading,
     isError: error,
     mutate,
