@@ -1,9 +1,10 @@
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useSelector } from "react-redux";
-import { Paciente, Sessao, Terapeuta } from "tipos";
+import { Paciente, Sessao, Terapeuta, Agendamento } from "tipos";
 import pacientesReducer from "./pacientesSlice";
 import terapeutasReducer from "./terapeutasSlice";
 import sessoesReducer from "./sessoesSlice";
+import agendamentosReducer from "./agendamentosSlice";
 
 export interface PacientesState {
   data: Paciente[];
@@ -23,11 +24,18 @@ export interface SessoesState {
   error: string | null;
 }
 
+export interface AgendamentosState {
+  data: Agendamento[];
+  loading: boolean;
+  error: string | null;
+}
+
 // Combinar reducers
 const rootReducer = combineReducers({
   pacientes: pacientesReducer,
   terapeutas: terapeutasReducer,
   sessoes: sessoesReducer,
+  agendamentos: agendamentosReducer,
 });
 
 // Configurar store

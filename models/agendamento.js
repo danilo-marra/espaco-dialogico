@@ -1,5 +1,6 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
+import { format, addDays, parse, isAfter } from "date-fns";
 
 async function create(agendamentoData) {
   // Verificar se o terapeuta existe
@@ -219,6 +220,212 @@ async function getById(id) {
   return formatAgendamentoResult(result.rows[0]);
 }
 
+async function getAgendamentoByRecurrenceId(recurrenceId) {
+  const result = await database.query({
+    text: `
+      SELECT 
+        a.*,
+        t.nome as terapeuta_nome,
+        t.foto as terapeuta_foto,
+        t.telefone as terapeuta_telefone,
+        t.email as terapeuta_email,
+        t.endereco as terapeuta_endereco,
+        t.dt_entrada as terapeuta_dt_entrada,
+        t.chave_pix as terapeuta_chave_pix,
+        p.nome as paciente_nome,
+        p.dt_nascimento as paciente_dt_nascimento,
+        p.nome_responsavel as paciente_nome_responsavel,
+        p.telefone_responsavel as paciente_telefone_responsavel,
+        p.email_responsavel as paciente_email_responsavel,
+        p.cpf_responsavel as paciente_cpf_responsavel,
+        p.endereco_responsavel as paciente_endereco_responsavel,
+        p.origem as paciente_origem,
+        p.dt_entrada as paciente_dt_entrada
+      FROM 
+        agendamentos a
+      JOIN 
+        terapeutas t ON a.terapeuta_id = t.id
+      JOIN 
+        pacientes p ON a.paciente_id = p.id
+      WHERE 
+        a.recurrence_id = $1
+      ORDER BY 
+        a.data_agendamento ASC, a.horario_agendamento ASC
+    `,
+    values: [recurrenceId],
+  });
+
+  return result.rows.map(formatAgendamentoResult);
+}
+
+async function createRecurrentAgendamentos(agendamentos) {
+  // Verifica se há agendamentos para criar
+  if (!agendamentos || agendamentos.length === 0) {
+    return [];
+  }
+
+  // Array para armazenar os agendamentos criados
+  const createdAgendamentos = [];
+
+  // Criar cada agendamento individualmente
+  // Nota: Em uma implementação mais avançada, poderia usar uma transação
+  // e inserção em lote para melhor performance
+  for (const agendamento of agendamentos) {
+    try {
+      const createdAgendamento = await create(agendamento);
+      createdAgendamentos.push(createdAgendamento);
+    } catch (error) {
+      console.error(`Erro ao criar agendamento recorrente: ${error.message}`);
+      // Continue criando os outros agendamentos mesmo se um falhar
+    }
+  }
+
+  return createdAgendamentos;
+}
+
+async function createRecurrences({
+  recurrenceId,
+  agendamentoBase,
+  diasDaSemana,
+  dataFimRecorrencia,
+  periodicidade,
+}) {
+  // Array para armazenar todos os agendamentos criados
+  const createdAgendamentos = [];
+
+  // Converter as strings de data para objetos Date
+  const dataInicio = parse(
+    agendamentoBase.dataAgendamento,
+    "yyyy-MM-dd",
+    new Date(),
+  );
+  const dataFim = parse(dataFimRecorrencia, "yyyy-MM-dd", new Date());
+
+  // Mapear dias da semana para números (0 = domingo, 1 = segunda, ..., 6 = sábado)
+  const diasDaSemanaMap = {
+    Domingo: 0,
+    "Segunda-feira": 1,
+    "Terça-feira": 2,
+    "Quarta-feira": 3,
+    "Quinta-feira": 4,
+    "Sexta-feira": 5,
+    Sábado: 6,
+  };
+
+  // Converter dias da semana de string para números
+  const diasDaSemanaNumeros = diasDaSemana.map((dia) => diasDaSemanaMap[dia]);
+
+  // Determinar o intervalo entre agendamentos com base na periodicidade
+  let intervaloDias;
+  switch (periodicidade) {
+    case "Semanal":
+      intervaloDias = 7;
+      break;
+    case "Quinzenal":
+      intervaloDias = 14;
+      break;
+    default:
+      throw new ValidationError({
+        message: "Periodicidade não suportada",
+      });
+  }
+
+  // Criar datas para todos os agendamentos recorrentes
+  const dataAgendamentos = [];
+  let currentDate = new Date(dataInicio);
+
+  // Gerar todas as datas dentro do intervalo especificado
+  while (!isAfter(currentDate, dataFim)) {
+    // Verificar se o dia da semana atual está incluído nos dias selecionados
+    const diaDaSemana = currentDate.getDay(); // 0 = domingo, 1 = segunda, etc.
+
+    if (diasDaSemanaNumeros.includes(diaDaSemana)) {
+      dataAgendamentos.push(new Date(currentDate));
+    }
+
+    // Avançar para o próximo dia, respeitando a periodicidade
+    // Se for dia a dia, adiciona 1 dia; se for semanal ou quinzenal,
+    // adicionamos 7 ou 14 dias para cada ocorrência do mesmo dia da semana
+    if (
+      dataAgendamentos.length > 0 &&
+      dataAgendamentos[dataAgendamentos.length - 1].getTime() ===
+        currentDate.getTime()
+    ) {
+      // Adicionar o intervalo completo apenas quando encontramos um dia válido
+      currentDate = addDays(currentDate, intervaloDias);
+    } else {
+      // Caso contrário, avançar apenas um dia para verificar o próximo
+      currentDate = addDays(currentDate, 1);
+    }
+  }
+
+  // Criar um agendamento para cada data
+  for (const data of dataAgendamentos) {
+    const agendamento = {
+      ...agendamentoBase,
+      recurrenceId: recurrenceId,
+      dataAgendamento: format(data, "yyyy-MM-dd"),
+    };
+
+    try {
+      const novoAgendamento = await create(agendamento);
+      createdAgendamentos.push(novoAgendamento);
+    } catch (error) {
+      console.error(
+        `Erro ao criar agendamento para ${agendamento.dataAgendamento}: ${error.message}`,
+      );
+      // Continuar criando os próximos agendamentos mesmo se houver erro
+    }
+  }
+
+  return createdAgendamentos;
+}
+
+async function updateAllByRecurrenceId(recurrenceId, agendamentoData) {
+  // Verificar se existe algum agendamento com este ID de recorrência
+  const agendamentosRecorrentes =
+    await getAgendamentoByRecurrenceId(recurrenceId);
+
+  if (agendamentosRecorrentes.length === 0) {
+    throw new NotFoundError({
+      message: "Não foram encontrados agendamentos com este ID de recorrência",
+    });
+  }
+
+  // Array para armazenar os agendamentos atualizados
+  const updatedAgendamentos = [];
+
+  // Atualizar cada agendamento da recorrência individualmente
+  for (const agendamento of agendamentosRecorrentes) {
+    try {
+      // Preservar a data de agendamento original para cada item da recorrência
+      const agendamentoOriginalData = agendamento.dataAgendamento;
+
+      // Criar uma cópia dos dados de atualização para não afetar outros itens
+      const agendamentoUpdateData = { ...agendamentoData };
+
+      // Não alterar a data específica de cada agendamento da recorrência
+      // a menos que seja explicitamente solicitado
+      if (!agendamentoData.updateAllDates) {
+        agendamentoUpdateData.dataAgendamento = agendamentoOriginalData;
+      }
+
+      // Atualizar o agendamento
+      const updatedAgendamento = await update(
+        agendamento.id,
+        agendamentoUpdateData,
+      );
+      updatedAgendamentos.push(updatedAgendamento);
+    } catch (error) {
+      console.error(
+        `Erro ao atualizar agendamento ${agendamento.id} da recorrência: ${error.message}`,
+      );
+    }
+  }
+
+  return updatedAgendamentos;
+}
+
 async function update(id, agendamentoData) {
   // Verificar se o agendamento existe
   await getById(id);
@@ -287,6 +494,32 @@ async function remove(id) {
   return true;
 }
 
+async function removeAllByRecurrenceId(recurrenceId) {
+  // Primeiro, obter contagem dos agendamentos que serão excluídos
+  const countResult = await database.query({
+    text: "SELECT COUNT(*) FROM agendamentos WHERE recurrence_id = $1",
+    values: [recurrenceId],
+  });
+
+  const count = parseInt(countResult.rows[0].count, 10);
+
+  // Se não houver agendamentos com esse recurrenceId, lançar erro
+  if (count === 0) {
+    throw new NotFoundError({
+      message: `Nenhum agendamento encontrado com recurrence_id ${recurrenceId}`,
+    });
+  }
+
+  // Excluir todos os agendamentos com o mesmo recurrence_id
+  await database.query({
+    text: "DELETE FROM agendamentos WHERE recurrence_id = $1",
+    values: [recurrenceId],
+  });
+
+  // Retornar a contagem de registros excluídos
+  return { count };
+}
+
 function formatAgendamentoResult(row) {
   return {
     id: row.id,
@@ -339,6 +572,11 @@ const agendamento = {
   getFiltered,
   update,
   remove,
+  removeAllByRecurrenceId,
+  getAgendamentoByRecurrenceId,
+  createRecurrentAgendamentos,
+  createRecurrences,
+  updateAllByRecurrenceId,
 };
 
 export default agendamento;
