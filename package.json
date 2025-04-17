@@ -45,6 +45,7 @@
   "author": "Danilo Marra Rabelo",
   "license": "MIT",
   "dependencies": {
+    "@headlessui/react": "^2.2.1",
     "@hookform/resolvers": "^3.10.0",
     "@phosphor-icons/react": "^2.1.7",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -81,6 +82,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.54.2",
     "react-redux": "^9.2.0",
+    "react-toastify": "^11.0.5",
     "sonner": "^1.7.1",
     "swr": "2.2.5",
     "tailwind-merge": "^2.6.0",

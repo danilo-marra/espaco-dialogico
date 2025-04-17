@@ -82,58 +82,108 @@ const Menu = () => {
         />
         <span className="block mb-8 text-2xl font-bold">Espaço Dialógico</span>
         <ul className="menu space-y-4">
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <House weight="fill" size={24} />
-            <Link href="/dashboard">Home</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard"
+              className="flex items-center space-x-2 w-full"
+            >
+              <House weight="fill" size={24} />
+              <span>Home</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <CalendarBlank size={24} />
-            <Link href="/dashboard/agenda">Agenda</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/agenda"
+              className="flex items-center space-x-2 w-full"
+            >
+              <CalendarBlank size={24} />
+              <span>Agenda</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <Money size={24} />
-            <Link href="/dashboard/transacoes">Transações</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/transacoes"
+              className="flex items-center space-x-2 w-full"
+            >
+              <Money size={24} />
+              <span>Transações</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <Person size={24} />
-            <Link href="/dashboard/pacientes">Pacientes</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/pacientes"
+              className="flex items-center space-x-2 w-full"
+            >
+              <Person size={24} />
+              <span>Pacientes</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <CalendarCheck size={24} />
-            <Link href="/dashboard/sessoes">Sessões</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/sessoes"
+              className="flex items-center space-x-2 w-full"
+            >
+              <CalendarCheck size={24} />
+              <span>Sessões</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <UsersThree size={24} />
-            <Link href="/dashboard/terapeutas">Terapeutas</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/terapeutas"
+              className="flex items-center space-x-2 w-full"
+            >
+              <UsersThree size={24} />
+              <span>Terapeutas</span>
+            </Link>
           </li>
           <hr />
           {userRole === "admin" && (
             <>
-              <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-                <EnvelopeSimple size={24} />
-                <Link href="/dashboard/convites">Convites</Link>
+              <li className="hover:text-blue-300 cursor-pointer">
+                <Link
+                  href="/dashboard/convites"
+                  className="flex items-center space-x-2 w-full"
+                >
+                  <EnvelopeSimple size={24} />
+                  <span>Convites</span>
+                </Link>
               </li>
               <hr />
-              <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-                <User size={24} />
-                <Link href="/dashboard/usuarios">Usuários</Link>
+              <li className="hover:text-blue-300 cursor-pointer">
+                <Link
+                  href="/dashboard/usuarios"
+                  className="flex items-center space-x-2 w-full"
+                >
+                  <User size={24} />
+                  <span>Usuários</span>
+                </Link>
               </li>
               <hr />
             </>
           )}
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2">
-            <Person size={24} />
-            <Link href="/dashboard/perfil">Meu Perfil</Link>
+          <li className="hover:text-blue-300 cursor-pointer">
+            <Link
+              href="/dashboard/perfil"
+              className="flex items-center space-x-2 w-full"
+            >
+              <Person size={24} />
+              <span>Meu Perfil</span>
+            </Link>
           </li>
           <hr />
-          <li className="hover:text-blue-300 cursor-pointer flex items-center space-x-2 mt-6">
-            <SignOut size={24} />
-            <button onClick={handleLogout}>Sair</button>
+          <li className="hover:text-blue-300 cursor-pointer mt-6">
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 w-full"
+            >
+              <SignOut size={24} />
+              <span>Sair</span>
+            </button>
           </li>
         </ul>
       </aside>

@@ -60,3 +60,30 @@ export interface Sessao {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface Agendamento {
+  id: string;
+  paciente_id: string;
+  terapeuta_id: string;
+  recurrenceId?: string;
+  terapeutaInfo?: Terapeuta;
+  pacienteInfo?: Paciente;
+  dataAgendamento: Date | string;
+  horarioAgendamento: string;
+  localAgendamento: "Sala Verde" | "Sala Azul" | "Não Precisa de Sala";
+  modalidadeAgendamento: "Presencial" | "Online";
+  tipoAgendamento:
+    | "Sessão"
+    | "Orientação Parental"
+    | "Visita Escolar"
+    | "Supervisão"
+    | "Outros";
+  valorAgendamento: number;
+  statusAgendamento: "Confirmado" | "Remarcado" | "Cancelado";
+  observacoesAgendamento: string;
+
+  // Campos para recorrência
+  periodicidade?: "Não repetir" | "Semanal" | "Quinzenal";
+  diasDaSemana?: string[];
+  dataFimRecorrencia?: Date | string | null;
+}
