@@ -10,6 +10,8 @@ import {
   CaretRight,
   User,
   ChartPie,
+  MagnifyingGlass,
+  Info,
 } from "@phosphor-icons/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import Pagination from "components/Pagination";
@@ -24,6 +26,7 @@ import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { toast } from "sonner";
 import {
   format,
   addMonths,
@@ -78,6 +81,7 @@ const filterSessoes = (
   selectedStatus: string,
   selectedTipo: string,
   selectedMonth: Date,
+  searchPaciente: string = "",
 ): Sessao[] => {
   // Verificar se sessoes é um array válido
   if (!Array.isArray(sessoes)) {
@@ -112,6 +116,13 @@ const filterSessoes = (
       const matchesTipo =
         selectedTipo === "Todos" || sessao.tipoSessao === selectedTipo;
 
+      // Filtrar por paciente (se houver busca)
+      const matchesPacienteSearch =
+        searchPaciente === "" ||
+        sessao.pacienteInfo?.nome
+          .toLowerCase()
+          .includes(searchPaciente.toLowerCase());
+
       // Filtrar por mês selecionado (verificando todas as datas possíveis de sessão)
       let matchesMonth = false;
 
@@ -140,7 +151,13 @@ const filterSessoes = (
         }
       }
 
-      return matchesTerapeuta && matchesStatus && matchesTipo && matchesMonth;
+      return (
+        matchesTerapeuta &&
+        matchesStatus &&
+        matchesTipo &&
+        matchesMonth &&
+        matchesPacienteSearch
+      );
     });
 };
 
@@ -212,11 +229,6 @@ const calcularRepasse = (
   // Calcular anos na clínica
   const anosNaClinica = diferencaEmMilissegundos / umAnoEmMilissegundos;
 
-  // Para debugging
-  // console.log(
-  //   `Terapeuta: Data entrada ${dataEntrada.toISOString()}, Anos: ${anosNaClinica}, Percentual: ${anosNaClinica >= 1 ? "50%" : "45%"}`,
-  // );
-
   // Determinar percentual de repasse
   const percentualRepasse = anosNaClinica >= 1 ? 0.5 : 0.45;
 
@@ -232,6 +244,8 @@ export default function Sessoes() {
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [selectedTipo, setSelectedTipo] = useState("Todos");
+  const [searchPaciente, setSearchPaciente] = useState("");
+  const [showLegend, setShowLegend] = useState(false);
 
   const [editingSessao, setEditingSessao] = useState<Sessao | null>(null);
   const [deletingSessao, setDeletingSessao] = useState<Sessao | null>(null);
@@ -265,6 +279,7 @@ export default function Sessoes() {
             selectedStatus,
             selectedTipo,
             currentDate,
+            searchPaciente,
           )
         : [],
     [
@@ -274,6 +289,7 @@ export default function Sessoes() {
       selectedStatus,
       selectedTipo,
       currentDate,
+      searchPaciente,
     ],
   );
 
@@ -374,6 +390,7 @@ export default function Sessoes() {
     // Recarregar dados após edição
     mutate();
     setEditingSessao(null);
+    toast.success("Sessão atualizada com sucesso!");
   };
 
   const handleDeleteClick = (sessao: Sessao) => {
@@ -384,13 +401,31 @@ export default function Sessoes() {
     // Recarregar dados após exclusão
     mutate();
     setDeletingSessao(null);
+    toast.success("Sessão excluída com sucesso!");
   };
 
-  // Show loading state
-  if (isLoading) return <div>Carregando...</div>;
+  // Mostrar estado de carregamento
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-azul"></div>
+        <span className="ml-4 text-xl">Carregando sessões...</span>
+      </div>
+    );
 
-  // Show error state
-  if (isError) return <div>Erro ao carregar dados.</div>;
+  // Mostrar estado de erro
+  if (isError)
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <div className="text-red-500 text-xl mb-4">Erro ao carregar dados.</div>
+        <button
+          className="bg-azul text-white px-4 py-2 rounded hover:bg-sky-600"
+          onClick={() => mutate()}
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
 
   return (
     <div className="flex min-h-screen">
@@ -416,6 +451,7 @@ export default function Sessoes() {
                 onSuccess={() => {
                   mutate();
                   setIsNewSessaoOpen(false);
+                  toast.success("Sessão criada com sucesso!");
                 }}
                 onClose={() => setIsNewSessaoOpen(false)}
               />
@@ -424,7 +460,7 @@ export default function Sessoes() {
         </div>
 
         {/* Cards de resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <Receipt size={24} className="text-rosa" />
             <div>
@@ -471,16 +507,90 @@ export default function Sessoes() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <ChartPie size={24} className="text-green-600" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">Lucro Mensal</h3>
-              <span className="text-xl font-semibold">
-                R$ {lucroDaClinica.toFixed(2).replace(".", ",")}
-              </span>
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow justify-between">
+            <div className="flex items-center">
+              <ChartPie size={24} className="text-green-600 mr-2" />
+              <div>
+                <h3 className="text-xs uppercase text-gray-500">
+                  Lucro Mensal
+                </h3>
+                <span className="text-md font-semibold">
+                  R$ {lucroDaClinica.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
             </div>
+
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className="text-gray-500 hover:text-gray-700 ml-2"
+              aria-label="Mostrar legenda"
+              title="Mostrar legenda"
+            >
+              <Info size={20} />
+            </button>
           </div>
         </div>
+
+        {/* Legenda (mostrada apenas quando o botão é clicado) */}
+        {showLegend && (
+          <div className="bg-white p-4 rounded shadow mb-6">
+            <h3 className="font-medium mb-2">Legenda:</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <h4 className="text-sm font-medium">Status de Pagamento:</h4>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                  <span className="text-sm">Pagamento Pendente</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                  <span className="text-sm">Pagamento Realizado</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                  <span className="text-sm">Nota Fiscal Emitida</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                  <span className="text-sm">Nota Fiscal Enviada</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium">Tipos de Sessão:</h4>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
+                  <span className="text-sm">Anamnese</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-sm bg-green-500 mr-2"></div>
+                  <span className="text-sm">Atendimento</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-sm bg-amber-500 mr-2"></div>
+                  <span className="text-sm">Avaliação</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-sm bg-purple-500 mr-2"></div>
+                  <span className="text-sm">Visita Escolar</span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium">Dicas:</h4>
+                <div className="text-sm mt-1">
+                  • Clique no ícone de lápis para editar
+                </div>
+                <div className="text-sm mt-1">
+                  • Use filtros para encontrar sessões específicas
+                </div>
+                <div className="text-sm mt-1">
+                  • O repasse é calculado com base no tempo de casa do terapeuta
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Date Navigation */}
         <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4">
@@ -511,7 +621,7 @@ export default function Sessoes() {
                   aria-label="Select month and year"
                   className="hover:bg-gray-100 p-1 rounded-full transition-colors"
                 >
-                  <Calendar size={28} className="text-gray-500" />
+                  <Calendar size={20} />
                 </button>
               }
             />
@@ -527,7 +637,7 @@ export default function Sessoes() {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           {/* Filtro por Terapeuta */}
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
             <User size={24} className="text-gray-500" />
@@ -554,6 +664,28 @@ export default function Sessoes() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Busca por Paciente */}
+          <div className="flex items-center p-4 bg-white rounded shadow">
+            <MagnifyingGlass
+              size={24}
+              className="text-gray-500 mr-3 flex-shrink-0"
+            />
+            <label
+              htmlFor="searchPaciente"
+              className="text-md font-medium text-gray-700 mr-3"
+            >
+              Paciente:
+            </label>
+            <input
+              type="text"
+              id="searchPaciente"
+              className="w-full focus:outline-none"
+              placeholder="Buscar por nome"
+              value={searchPaciente}
+              onChange={(e) => setSearchPaciente(e.target.value)}
+            />
           </div>
 
           {/* Filtro por Status */}
@@ -593,7 +725,7 @@ export default function Sessoes() {
               htmlFor="tipo"
               className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
             >
-              Tipo de Agendamento
+              Tipo de Sessão
             </label>
             <select
               className="text-md w-full focus:outline-none"
@@ -615,9 +747,9 @@ export default function Sessoes() {
         </div>
 
         {/* Tabela de Sessões */}
-        <div className="w-full overflow-x-auto rounded-lg shadow bg-white">
-          <div className="min-w-full md:min-w-[1000px]">
-            <table className="w-full">
+        <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-rosa text-white">
                 <tr>
                   <th className="p-4 text-left">Terapeuta</th>
@@ -627,10 +759,10 @@ export default function Sessoes() {
                   <th className="p-4 text-left">Repasse</th>
                   <th className="p-4 text-left">Status</th>
                   <th className="p-4 text-left">Data</th>
-                  <th className="p-4 text-left">Ações</th>
+                  <th className="p-4 text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-200">
                 {paginatedSessoes.length > 0 ? (
                   paginatedSessoes.map((sessao) => {
                     // Encontrar todas as datas válidas e dentro do mês selecionado
@@ -660,8 +792,7 @@ export default function Sessoes() {
                         ? formatSafeDate(datasValidas[0])
                         : formatSafeDate(sessao.dtSessao1); // caso não tenha data no mês atual
 
-                    // Calcular o repasse e a porcentagem utilizando a função existente
-                    // Calcular o repasse e a porcentagem utilizando a função existente
+                    // Calcular o repasse e a porcentagem
                     let valorRepasse = obterValorRepasse(sessao);
                     let percentualRepasse = 0;
 
@@ -698,7 +829,7 @@ export default function Sessoes() {
                     }
 
                     return (
-                      <tr key={sessao.id} className="border-t border-gray-200">
+                      <tr key={sessao.id} className="hover:bg-gray-50">
                         <td className="p-4">
                           {sessao.terapeutaInfo?.nome || "Não atribuído"}
                         </td>
@@ -721,7 +852,7 @@ export default function Sessoes() {
                         </td>
                         <td className="p-4">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${
                               sessao.statusSessao === "Pagamento Pendente"
                                 ? "bg-yellow-100 text-yellow-700"
                                 : sessao.statusSessao === "Pagamento Realizado"
@@ -739,11 +870,11 @@ export default function Sessoes() {
                           </span>
                         </td>
                         <td className="p-4">{dataExibicao}</td>
-                        <td className="p-2 space-x-2">
+                        <td className="p-4 text-center space-x-2">
                           <button
                             type="button"
                             title="Editar Sessão"
-                            className="text-green-500 hover:text-green-700"
+                            className="text-green-500 hover:text-green-700 p-1 inline-flex"
                             onClick={() => handleEditSessao(sessao)}
                           >
                             <PencilSimple size={20} weight="bold" />
@@ -752,7 +883,7 @@ export default function Sessoes() {
                             type="button"
                             title="Excluir Sessão"
                             onClick={() => handleDeleteClick(sessao)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-red-500 hover:text-red-700 p-1 inline-flex"
                           >
                             <TrashSimple size={20} weight="bold" />
                           </button>
@@ -762,7 +893,7 @@ export default function Sessoes() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-4 text-center text-gray-500">
+                    <td colSpan={8} className="p-8 text-center text-gray-500">
                       Nenhuma sessão encontrada com os filtros aplicados
                     </td>
                   </tr>
