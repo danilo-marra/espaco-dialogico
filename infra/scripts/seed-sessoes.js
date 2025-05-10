@@ -1,10 +1,5 @@
 /**
- * Script para inserir dados de teste na tabela sessoes durante o ambiente de desenvolvimento
- *
- * Executar com: node infra/scripts/seed-sessoes.js
- *
- * Este script insere dados fictícios na tabela de sessões para facilitar o desenvolvimento
- * e testes da aplicação. Não deve ser usado em ambiente de produção.
+ * SEED OBSOLETO POIS A CRIAÇÃO DE SESSÕES É VINCULADA NO AGENDAMENTO
  */
 
 const database = require("../database.js");

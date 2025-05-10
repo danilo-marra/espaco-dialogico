@@ -30,31 +30,34 @@ export interface Paciente {
 
 export interface Sessao {
   id: string;
-  terapeuta_id: string; // ID do terapeuta
-  paciente_id: string; // ID do paciente
+  terapeuta_id: string;
+  paciente_id: string;
+  agendamento_id: string;
 
-  // Informações relacionadas
-  terapeutaInfo?: Terapeuta; // Objeto completo do terapeuta (opcional para criar sessões)
-  pacienteInfo?: Paciente; // Objeto completo do paciente (opcional para criar sessões)
+  // Informações relacionadas (opcionais)
+  terapeutaInfo?: Terapeuta;
+  pacienteInfo?: Paciente;
+  agendamentoInfo?: Agendamento;
 
-  // Detalhes da sessão
-  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar";
-  valorSessao: number;
-  valorRepasse?: number; // Valor de repasse específico para esta sessão (opcional)
+  // Campos mapeados do Agendamento
+  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar"; // Convertido de tipoAgendamento
+  valorSessao: number; // Valor copiado de valorAgendamento
+
+  // Campos específicos da sessão
+  valorRepasse?: number;
   statusSessao:
     | "Pagamento Pendente"
     | "Pagamento Realizado"
     | "Nota Fiscal Emitida"
-    | "Nota Fiscal Enviada"
-    | undefined;
+    | "Nota Fiscal Enviada";
 
-  // Datas
-  dtSessao1?: Date;
-  dtSessao2?: Date;
-  dtSessao3?: Date;
-  dtSessao4?: Date;
-  dtSessao5?: Date;
-  dtSessao6?: Date;
+  // Data da sessão (pode ser derivada de dataAgendamento)
+  dtSessao1: Date | string;
+  dtSessao2?: Date | string;
+  dtSessao3?: Date | string;
+  dtSessao4?: Date | string;
+  dtSessao5?: Date | string;
+  dtSessao6?: Date | string;
 
   // Datas de controle
   created_at?: string;

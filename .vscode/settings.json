@@ -12,6 +12,5 @@
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "dbcode.connections": [],
   "typescript.tsdk": "node_modules\\typescript\\lib",
 }

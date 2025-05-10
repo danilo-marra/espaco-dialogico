@@ -275,6 +275,19 @@ export function EditarAgendamentoModal({
             },
           }),
         ).unwrap();
+
+        // Atualizar a sessão correspondente (se existir)
+        try {
+          await axiosInstance.post("/sessoes/from-agendamento", {
+            agendamento_id: agendamentoToUse.id,
+          });
+        } catch (error) {
+          console.error(
+            "Erro ao atualizar sessão a partir do agendamento:",
+            error,
+          );
+          // Não interrompemos o fluxo se houver erro na atualização da sessão
+        }
       } else {
         // Atualizar apenas este agendamento específico
         await dispatch(
@@ -311,7 +324,7 @@ export function EditarAgendamentoModal({
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="bg-black/60 inset-0 fixed z-10" />
-        <Dialog.Content className="fixed z-10 w-full max-w-3xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white py-8 px-10 text-gray-900 shadow-lg rounded-lg">
+        <Dialog.Content className="fixed z-10 w-[95%] max-w-3xl top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white py-8 px-10 text-gray-900 shadow-lg rounded-lg max-h-[90vh] overflow-y-auto sm:px-4 sm:py-6 sm:max-h-[95vh]">
           <Dialog.Title className="text-2xl font-bold mb-4 text-center text-azul">
             Editar Agendamento
           </Dialog.Title>

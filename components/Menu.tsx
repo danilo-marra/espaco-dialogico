@@ -60,7 +60,7 @@ const Menu = () => {
     <div>
       <button
         type="button"
-        className={`fixed top-5 left-5 md:hidden focus:outline-none z-30 ${
+        className={`fixed top-5 left-5 md:hidden focus:outline-none z-40 ${
           isMenuOpen ? "text-white" : "text-gray-500"
         }`}
         onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -69,123 +69,131 @@ const Menu = () => {
       </button>
       <aside
         data-testid="menu-component"
-        className={`fixed md:static h-full w-64 bg-azul text-white p-6 transform ${
-          isMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition-transform duration-300 ease-in-out z-20`}
+        className={`fixed h-screen md:h-auto md:sticky top-0 w-64 bg-azul text-white flex flex-col z-30
+          ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0 transition-transform duration-300 ease-in-out`}
+        style={{ minHeight: "100vh" }}
       >
-        <Image
-          src="/img/logo2.png"
-          alt="Logo Espaço Dialógico"
-          width={220}
-          height={120}
-          priority
-        />
-        <span className="block mb-8 text-2xl font-bold">Espaço Dialógico</span>
-        <ul className="menu space-y-4">
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard"
-              className="flex items-center space-x-2 w-full"
-            >
-              <House weight="fill" size={24} />
-              <span>Home</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/agenda"
-              className="flex items-center space-x-2 w-full"
-            >
-              <CalendarBlank size={24} />
-              <span>Agenda</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/transacoes"
-              className="flex items-center space-x-2 w-full"
-            >
-              <Money size={24} />
-              <span>Transações</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/pacientes"
-              className="flex items-center space-x-2 w-full"
-            >
-              <Person size={24} />
-              <span>Pacientes</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/sessoes"
-              className="flex items-center space-x-2 w-full"
-            >
-              <CalendarCheck size={24} />
-              <span>Sessões</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/terapeutas"
-              className="flex items-center space-x-2 w-full"
-            >
-              <UsersThree size={24} />
-              <span>Terapeutas</span>
-            </Link>
-          </li>
-          <hr />
-          {userRole === "admin" && (
-            <>
-              <li className="hover:text-blue-300 cursor-pointer">
-                <Link
-                  href="/dashboard/convites"
-                  className="flex items-center space-x-2 w-full"
-                >
-                  <EnvelopeSimple size={24} />
-                  <span>Convites</span>
-                </Link>
-              </li>
-              <hr />
-              <li className="hover:text-blue-300 cursor-pointer">
-                <Link
-                  href="/dashboard/usuarios"
-                  className="flex items-center space-x-2 w-full"
-                >
-                  <User size={24} />
-                  <span>Usuários</span>
-                </Link>
-              </li>
-              <hr />
-            </>
-          )}
-          <li className="hover:text-blue-300 cursor-pointer">
-            <Link
-              href="/dashboard/perfil"
-              className="flex items-center space-x-2 w-full"
-            >
-              <Person size={24} />
-              <span>Meu Perfil</span>
-            </Link>
-          </li>
-          <hr />
-          <li className="hover:text-blue-300 cursor-pointer mt-6">
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-2 w-full"
-            >
-              <SignOut size={24} />
-              <span>Sair</span>
-            </button>
-          </li>
-        </ul>
+        <div className="p-6 flex-shrink-0">
+          <Image
+            src="/img/logo2.png"
+            alt="Logo Espaço Dialógico"
+            width={220}
+            height={120}
+            priority
+          />
+          <span className="block mb-4 text-2xl font-bold">
+            Espaço Dialógico
+          </span>
+        </div>
+
+        <div className="overflow-y-auto flex-grow pb-6 px-6">
+          <ul className="menu space-y-4">
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard"
+                className="flex items-center space-x-2 w-full"
+              >
+                <House weight="fill" size={24} />
+                <span>Home</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/agenda"
+                className="flex items-center space-x-2 w-full"
+              >
+                <CalendarBlank size={24} />
+                <span>Agenda</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/transacoes"
+                className="flex items-center space-x-2 w-full"
+              >
+                <Money size={24} />
+                <span>Transações</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/pacientes"
+                className="flex items-center space-x-2 w-full"
+              >
+                <Person size={24} />
+                <span>Pacientes</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/sessoes"
+                className="flex items-center space-x-2 w-full"
+              >
+                <CalendarCheck size={24} />
+                <span>Sessões</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/terapeutas"
+                className="flex items-center space-x-2 w-full"
+              >
+                <UsersThree size={24} />
+                <span>Terapeutas</span>
+              </Link>
+            </li>
+            <hr />
+            {userRole === "admin" && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/convites"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <EnvelopeSimple size={24} />
+                    <span>Convites</span>
+                  </Link>
+                </li>
+                <hr />
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/usuarios"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <User size={24} />
+                    <span>Usuários</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            <li className="hover:text-blue-300 cursor-pointer">
+              <Link
+                href="/dashboard/perfil"
+                className="flex items-center space-x-2 w-full"
+              >
+                <Person size={24} />
+                <span>Meu Perfil</span>
+              </Link>
+            </li>
+            <hr />
+            <li className="hover:text-blue-300 cursor-pointer mt-6">
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 w-full"
+              >
+                <SignOut size={24} />
+                <span>Sair</span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </aside>
     </div>
   );

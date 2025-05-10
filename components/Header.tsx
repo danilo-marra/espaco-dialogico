@@ -40,7 +40,7 @@ const Header = () => {
   return (
     <header
       data-testid="header-component"
-      className="flex items-center justify-between bg-gray-100 py-4 px-8"
+      className="flex items-center justify-between bg-gray-100 py-4 px-4 md:px-8 sticky top-0 z-10 shadow-sm"
     >
       <div>
         <p className="text-xl hidden md:block">
@@ -48,18 +48,20 @@ const Header = () => {
           <span className="font-bold text-2xl"> {displayName}</span>
         </p>
       </div>
-      <div className="profile flex items-center space-x-4">
+      <div className="profile flex items-center space-x-2 md:space-x-4">
         <div className="flex flex-col items-end">
-          <span className="font-semibold">{displayName}</span>
-          <span className="text-sm text-gray-500">
+          <span className="font-semibold text-sm md:text-base">
+            {displayName}
+          </span>
+          <span className="text-xs md:text-sm text-gray-500 hidden sm:block">
             {user?.email || "email@exemplo.com"}
           </span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center ml-1">
           <SignOut size={22} className="cursor-pointer mr-1" />
           <button
             onClick={handleLogout}
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 hover:underline text-sm md:text-base"
           >
             Sair
           </button>
