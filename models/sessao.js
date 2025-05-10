@@ -2,68 +2,76 @@ import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
 
 async function create(sessaoData) {
-  // Verificar se o terapeuta existe
-  const terapeutaExists = await database.query({
-    text: `SELECT id FROM terapeutas WHERE id = $1`,
-    values: [sessaoData.terapeuta_id],
-  });
+  try {
+    // Validar campos obrigatórios
+    if (!sessaoData.terapeuta_id) {
+      throw new ValidationError({
+        message: "ID do terapeuta é obrigatório",
+      });
+    }
 
-  if (terapeutaExists.rowCount === 0) {
-    throw new ValidationError({
-      message: "Terapeuta não encontrado",
+    if (!sessaoData.paciente_id) {
+      throw new ValidationError({
+        message: "ID do paciente é obrigatório",
+      });
+    }
+
+    if (!sessaoData.tipoSessao) {
+      throw new ValidationError({
+        message: "Tipo de sessão é obrigatório",
+      });
+    }
+
+    if (!sessaoData.valorSessao && sessaoData.valorSessao !== 0) {
+      throw new ValidationError({
+        message: "Valor da sessão é obrigatório",
+      });
+    }
+
+    // Inserir a sessão no banco
+    const result = await database.query({
+      text: `
+        INSERT INTO sessoes (
+          terapeuta_id,
+          paciente_id,
+          tipo_sessao,
+          valor_sessao,
+          valor_repasse,
+          status_sessao,
+          dt_sessao1,
+          dt_sessao2,
+          dt_sessao3,
+          dt_sessao4,
+          dt_sessao5,
+          dt_sessao6,
+          agendamento_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING *
+      `,
+      values: [
+        sessaoData.terapeuta_id,
+        sessaoData.paciente_id,
+        sessaoData.tipoSessao,
+        sessaoData.valorSessao,
+        sessaoData.valorRepasse,
+        sessaoData.statusSessao || "Pagamento Pendente",
+        sessaoData.dtSessao1,
+        sessaoData.dtSessao2,
+        sessaoData.dtSessao3,
+        sessaoData.dtSessao4,
+        sessaoData.dtSessao5,
+        sessaoData.dtSessao6,
+        sessaoData.agendamento_id,
+      ],
     });
+
+    // Retornar sessão com informações completas
+    return await getById(result.rows[0].id);
+  } catch (error) {
+    console.error("Erro ao criar sessão:", error);
+    throw error;
   }
-
-  // Verificar se o paciente existe
-  const pacienteExists = await database.query({
-    text: `SELECT id FROM pacientes WHERE id = $1`,
-    values: [sessaoData.paciente_id],
-  });
-
-  if (pacienteExists.rowCount === 0) {
-    throw new ValidationError({
-      message: "Paciente não encontrado",
-    });
-  }
-
-  // Inserir a sessão no banco de dados
-  const result = await database.query({
-    text: `
-      INSERT INTO sessoes (
-        terapeuta_id,
-        paciente_id,
-        tipo_sessao,
-        valor_sessao,
-        valor_repasse,
-        status_sessao,
-        dt_sessao1,
-        dt_sessao2,
-        dt_sessao3,
-        dt_sessao4,
-        dt_sessao5,
-        dt_sessao6
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      RETURNING *
-    `,
-    values: [
-      sessaoData.terapeuta_id,
-      sessaoData.paciente_id,
-      sessaoData.tipoSessao,
-      sessaoData.valorSessao,
-      sessaoData.valorRepasse,
-      sessaoData.statusSessao,
-      sessaoData.dtSessao1,
-      sessaoData.dtSessao2,
-      sessaoData.dtSessao3,
-      sessaoData.dtSessao4,
-      sessaoData.dtSessao5,
-      sessaoData.dtSessao6,
-    ],
-  });
-
-  // Retornar sessão com informações completas
-  return await getById(result.rows[0].id);
 }
 
 async function getAll() {
@@ -121,6 +129,13 @@ async function getFiltered(filters) {
   if (filters.status) {
     conditions.push(`s.status_sessao = $${paramCounter}`);
     values.push(filters.status);
+    paramCounter++;
+  }
+
+  // Adicionar filtro por agendamento_id
+  if (filters.agendamento_id) {
+    conditions.push(`s.agendamento_id = $${paramCounter}`);
+    values.push(filters.agendamento_id);
     paramCounter++;
   }
 
@@ -234,31 +249,28 @@ async function update(id, sessaoData) {
   addField("dt_sessao4", sessaoData.dtSessao4);
   addField("dt_sessao5", sessaoData.dtSessao5);
   addField("dt_sessao6", sessaoData.dtSessao6);
+  addField("agendamento_id", sessaoData.agendamento_id);
 
-  // Se não houver campos para atualizar, retornar os dados atuais
+  // Se não houver campos para atualizar, retornar a sessão existente
   if (fieldsToUpdate.length === 0) {
     return await getById(id);
   }
 
-  // Adicionar o id para a cláusula WHERE
+  // Adicionar o id como último parâmetro
   values.push(id);
 
-  // Construir a query SQL
-  const sql = `
-    UPDATE sessoes
-    SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
-    WHERE id = $${paramCounter}
-    RETURNING *
-  `;
-
-  // Executar a query
-  const result = await database.query({
-    text: sql,
+  // Executar o update
+  await database.query({
+    text: `
+      UPDATE sessoes
+      SET ${fieldsToUpdate.join(", ")}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $${paramCounter}
+    `,
     values: values,
   });
 
-  // Retornar os dados atualizados
-  return formatSessaoResult(result.rows[0]);
+  // Retornar a sessão atualizada
+  return await getById(id);
 }
 
 async function remove(id) {
@@ -277,6 +289,9 @@ async function remove(id) {
 function formatSessaoResult(row) {
   return {
     id: row.id,
+    terapeuta_id: row.terapeuta_id,
+    paciente_id: row.paciente_id,
+    agendamento_id: row.agendamento_id,
     tipoSessao: row.tipo_sessao,
     valorSessao: parseFloat(row.valor_sessao),
     valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : undefined,
@@ -306,10 +321,10 @@ function formatSessaoResult(row) {
     pacienteInfo: {
       id: row.paciente_id,
       nome: row.paciente_nome,
-      dt_nascimento: row.paciente_dt_nascimento,
-      nome_responsavel: row.paciente_nome_responsavel,
-      telefone_responsavel: row.paciente_telefone_responsavel,
-      email_responsavel: row.paciente_email_responsavel,
+      dt_nascimento: row.dt_nascimento,
+      nome_responsavel: row.nome_responsavel,
+      telefone_responsavel: row.telefone_responsavel,
+      email_responsavel: row.email_responsavel,
       cpf_responsavel: row.cpf_responsavel,
       endereco_responsavel: row.endereco_responsavel,
       origem: row.origem,

@@ -1,10 +1,11 @@
 /**
  * Script para inserir dados de teste na tabela agendamentos durante o ambiente de desenvolvimento
+ * e sincronizar automaticamente com a tabela de sessões
  *
  * Executar com: node infra/scripts/seed-agendamentos.js
  *
- * Este script insere dados fictícios na tabela de agendamentos para facilitar o desenvolvimento
- * e testes da aplicação. Não deve ser usado em ambiente de produção.
+ * Este script insere dados fictícios na tabela de agendamentos e cria as sessões correspondentes
+ * para facilitar o desenvolvimento e testes da aplicação. Não deve ser usado em ambiente de produção.
  */
 
 const database = require("../database.js");
@@ -66,12 +67,52 @@ const tiposAgendamento = [
  */
 const statusAgendamento = ["Confirmado", "Remarcado", "Cancelado"];
 
+/**
+ * Mapeia o tipo de agendamento para tipo de sessão
+ * Alinhado com a interface em tipos.ts (valores permitidos: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar")
+ */
+function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
+  switch (tipoAgendamento) {
+    case "Sessão":
+      return "Atendimento";
+    case "Orientação Parental":
+      return "Atendimento"; // Alterado para um tipo válido
+    case "Visita Escolar":
+      return "Visitar Escolar";
+    case "Supervisão":
+      return "Atendimento"; // Alterado para um tipo válido
+    case "Outros":
+      return "Atendimento";
+    default:
+      return "Atendimento";
+  }
+}
+
+/**
+ * Mapeia o status de agendamento para status de sessão
+ * Alinhado com a interface em tipos.ts (valores permitidos: "Pagamento Pendente" | "Pagamento Realizado" | "Nota Fiscal Emitida" | "Nota Fiscal Enviada")
+ */
+function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
+  switch (statusAgendamento) {
+    case "Confirmado":
+      return "Pagamento Pendente";
+    case "Remarcado":
+      return "Pagamento Pendente";
+    case "Cancelado":
+      return "Pagamento Pendente"; // Alterado de "Não Realizada" para um status válido
+    default:
+      return "Pagamento Pendente";
+  }
+}
+
 async function seedAgendamentos() {
-  console.log("\n🌱 Iniciando seed da tabela agendamentos...");
+  console.log(
+    "\n🌱 Iniciando seed da tabela agendamentos e sincronização com sessões...",
+  );
 
   try {
-    // Verificar se a tabela existe
-    const tableCheck = await database.query({
+    // Verificar se as tabelas existem
+    const tableCheckAgendamentos = await database.query({
       text: `
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
@@ -81,9 +122,26 @@ async function seedAgendamentos() {
       `,
     });
 
-    if (!tableCheck.rows[0].exists) {
+    const tableCheckSessoes = await database.query({
+      text: `
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          AND table_name = 'sessoes'
+        );
+      `,
+    });
+
+    if (!tableCheckAgendamentos.rows[0].exists) {
       console.error(
         "❌ A tabela 'agendamentos' não existe. Execute as migrações primeiro.",
+      );
+      process.exit(1);
+    }
+
+    if (!tableCheckSessoes.rows[0].exists) {
+      console.error(
+        "❌ A tabela 'sessoes' não existe. Execute as migrações primeiro.",
       );
       process.exit(1);
     }
@@ -97,13 +155,6 @@ async function seedAgendamentos() {
     console.log(
       `ℹ️ Encontrados ${existingCount} agendamentos existentes no banco.`,
     );
-
-    if (existingCount >= NUM_AGENDAMENTOS) {
-      console.log(
-        `✅ Já existem ${existingCount} agendamentos no banco. Nenhum dado adicional será inserido.`,
-      );
-      process.exit(0);
-    }
 
     // Obter lista de terapeutas e pacientes para associar aos agendamentos
     const terapeutasResult = await database.query({
@@ -127,7 +178,72 @@ async function seedAgendamentos() {
     const terapeutas = terapeutasResult.rows;
     const pacientes = pacientesResult.rows;
 
-    // Gerar e inserir agendamentos
+    // Primeiro, sincronizar os agendamentos existentes com sessões
+    if (existingCount > 0) {
+      console.log("🔄 Sincronizando agendamentos existentes com sessões...");
+
+      // Buscar todos os agendamentos existentes
+      const agendamentosExistentes = await database.query({
+        text: `SELECT * FROM agendamentos`,
+      });
+
+      // Verificar quais agendamentos não possuem sessões correspondentes
+      for (const agendamento of agendamentosExistentes.rows) {
+        const sessaoCheck = await database.query({
+          text: `SELECT COUNT(*) FROM sessoes WHERE agendamento_id = $1`,
+          values: [agendamento.id],
+        });
+
+        // Se não existe sessão para este agendamento, criar uma
+        if (parseInt(sessaoCheck.rows[0].count) === 0) {
+          await database.query({
+            text: `
+              INSERT INTO sessoes (
+                terapeuta_id,
+                paciente_id,
+                tipo_sessao,
+                valor_sessao,
+                status_sessao,
+                dt_sessao1,
+                agendamento_id
+              )
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `,
+            values: [
+              agendamento.terapeuta_id,
+              agendamento.paciente_id,
+              mapearTipoAgendamentoParaTipoSessao(agendamento.tipo_agendamento),
+              agendamento.valor_agendamento,
+              mapearStatusAgendamentoParaStatusSessao(
+                agendamento.status_agendamento,
+              ),
+              agendamento.data_agendamento,
+              agendamento.id,
+            ],
+          });
+
+          console.log(
+            `  ✓ Criada sessão para o agendamento ID: ${agendamento.id}`,
+          );
+        }
+      }
+
+      console.log("✅ Sincronização de agendamentos existentes concluída!");
+    }
+
+    // Se já temos o número desejado de agendamentos, não criar novos
+    if (existingCount >= NUM_AGENDAMENTOS) {
+      console.log(
+        `✅ Já existem ${existingCount} agendamentos no banco. Nenhum agendamento adicional será inserido.`,
+      );
+      process.exit(0);
+    }
+
+    console.log(
+      `📝 Criando ${NUM_AGENDAMENTOS - existingCount} novos agendamentos...`,
+    );
+
+    // Gerar e inserir novos agendamentos
     for (let i = existingCount; i < NUM_AGENDAMENTOS; i++) {
       // Selecionar um terapeuta e paciente aleatoriamente
       const terapeuta_id =
@@ -184,40 +300,84 @@ async function seedAgendamentos() {
             ])
           : null;
 
-      // Inserir no banco
+      // Inserir o agendamento e criar uma sessão correspondente em uma transação
       insertPromises.push(
-        database.query({
-          text: `
-          INSERT INTO agendamentos (
-            terapeuta_id,
-            paciente_id,
-            recurrence_id,
-            data_agendamento,
-            horario_agendamento,
-            local_agendamento,
-            modalidade_agendamento,
-            tipo_agendamento,
-            valor_agendamento,
-            status_agendamento,
-            observacoes_agendamento
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-          RETURNING id, data_agendamento, horario_agendamento, tipo_agendamento, status_agendamento
-        `,
-          values: [
-            terapeuta_id,
-            paciente_id,
-            recurrence_id,
-            data_agendamento,
-            horario_agendamento,
-            local_agendamento,
-            modalidade_agendamento,
-            tipo_agendamento,
-            valor_agendamento,
-            status_agendamento,
-            observacoes_agendamento,
-          ],
-        }),
+        (async () => {
+          try {
+            // Begin transaction
+            await database.query({ text: "BEGIN" });
+
+            // Inserir o agendamento
+            const agendamentoResult = await database.query({
+              text: `
+                INSERT INTO agendamentos (
+                  terapeuta_id,
+                  paciente_id,
+                  recurrence_id,
+                  data_agendamento,
+                  horario_agendamento,
+                  local_agendamento,
+                  modalidade_agendamento,
+                  tipo_agendamento,
+                  valor_agendamento,
+                  status_agendamento,
+                  observacoes_agendamento
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                RETURNING id, data_agendamento, horario_agendamento, tipo_agendamento, status_agendamento
+              `,
+              values: [
+                terapeuta_id,
+                paciente_id,
+                recurrence_id,
+                data_agendamento,
+                horario_agendamento,
+                local_agendamento,
+                modalidade_agendamento,
+                tipo_agendamento,
+                valor_agendamento,
+                status_agendamento,
+                observacoes_agendamento,
+              ],
+            });
+
+            const agendamento_id = agendamentoResult.rows[0].id;
+
+            // Criar a sessão vinculada ao agendamento
+            await database.query({
+              text: `
+                INSERT INTO sessoes (
+                  terapeuta_id,
+                  paciente_id,
+                  tipo_sessao,
+                  valor_sessao,
+                  status_sessao,
+                  dt_sessao1,
+                  agendamento_id
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+              `,
+              values: [
+                terapeuta_id,
+                paciente_id,
+                mapearTipoAgendamentoParaTipoSessao(tipo_agendamento),
+                valor_agendamento,
+                mapearStatusAgendamentoParaStatusSessao(status_agendamento),
+                data_agendamento,
+                agendamento_id,
+              ],
+            });
+
+            // Commit transaction
+            await database.query({ text: "COMMIT" });
+
+            return agendamentoResult;
+          } catch (error) {
+            // Rollback transaction on error
+            await database.query({ text: "ROLLBACK" });
+            throw error;
+          }
+        })(),
       );
     }
 
@@ -225,7 +385,9 @@ async function seedAgendamentos() {
     const results = await Promise.all(insertPromises);
 
     // Exibir os agendamentos criados
-    console.log(`\n✅ ${results.length} agendamentos criados com sucesso:`);
+    console.log(
+      `\n✅ ${results.length} agendamentos criados com sucesso (com sessões correspondentes):`,
+    );
     results.forEach((result, index) => {
       const agendamento = result.rows[0];
       console.log(
@@ -234,6 +396,15 @@ async function seedAgendamentos() {
         } - ${agendamento.tipo_agendamento} (${agendamento.status_agendamento})`,
       );
     });
+
+    // Confirmar total de sessões criadas
+    const sessoesCount = await database.query({
+      text: "SELECT COUNT(*) FROM sessoes",
+    });
+
+    console.log(
+      `\n📊 Total de sessões no sistema: ${sessoesCount.rows[0].count}`,
+    );
   } catch (error) {
     console.error(`\n❌ Erro ao inserir dados na tabela agendamentos:`);
     console.error(error);

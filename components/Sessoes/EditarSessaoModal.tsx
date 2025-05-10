@@ -1,21 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { X } from "@phosphor-icons/react";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { format, isValid, parse } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { CalendarIcon } from "lucide-react";
-
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "store/store";
 import { updateSessao } from "store/sessoesSlice";
@@ -45,13 +36,7 @@ export function EditarSessaoModal({
   const { terapeutas } = useFetchTerapeutas();
   const { pacientes } = useFetchPacientes();
 
-  // Estados para os inputs de data
-  const [inputDataSessao1, setInputDataSessao1] = useState<string>("");
-  const [inputDataSessao2, setInputDataSessao2] = useState<string>("");
-  const [inputDataSessao3, setInputDataSessao3] = useState<string>("");
-  const [inputDataSessao4, setInputDataSessao4] = useState<string>("");
-  const [inputDataSessao5, setInputDataSessao5] = useState<string>("");
-  const [inputDataSessao6, setInputDataSessao6] = useState<string>("");
+  const [sessionDateDisplay, setSessionDateDisplay] = useState<string>("");
   const [valorInput, setValorInput] = useState<string>("");
   const [valorRepasseInput, setValorRepasseInput] = useState<string>("");
   const [useCustomRepasse, setUseCustomRepasse] = useState<boolean>(false);
@@ -65,7 +50,6 @@ export function EditarSessaoModal({
 
   const {
     register,
-    control,
     handleSubmit,
     watch,
     setValue,
@@ -117,35 +101,9 @@ export function EditarSessaoModal({
         }
       }
 
-      // Formatação das datas
       if (sessao.dtSessao1) {
-        setInputDataSessao1(
+        setSessionDateDisplay(
           format(new Date(sessao.dtSessao1), "dd/MM/yyyy", { locale: ptBR }),
-        );
-      }
-      if (sessao.dtSessao2) {
-        setInputDataSessao2(
-          format(new Date(sessao.dtSessao2), "dd/MM/yyyy", { locale: ptBR }),
-        );
-      }
-      if (sessao.dtSessao3) {
-        setInputDataSessao3(
-          format(new Date(sessao.dtSessao3), "dd/MM/yyyy", { locale: ptBR }),
-        );
-      }
-      if (sessao.dtSessao4) {
-        setInputDataSessao4(
-          format(new Date(sessao.dtSessao4), "dd/MM/yyyy", { locale: ptBR }),
-        );
-      }
-      if (sessao.dtSessao5) {
-        setInputDataSessao5(
-          format(new Date(sessao.dtSessao5), "dd/MM/yyyy", { locale: ptBR }),
-        );
-      }
-      if (sessao.dtSessao6) {
-        setInputDataSessao6(
-          format(new Date(sessao.dtSessao6), "dd/MM/yyyy", { locale: ptBR }),
         );
       }
 
@@ -207,12 +165,6 @@ export function EditarSessaoModal({
         tipoSessao: data.tipoSessao,
         valorSessao: data.valorSessao,
         statusSessao: data.statusSessao,
-        dtSessao1: data.dtSessao1 || null,
-        dtSessao2: data.dtSessao2 || null,
-        dtSessao3: data.dtSessao3 || null,
-        dtSessao4: data.dtSessao4 || null,
-        dtSessao5: data.dtSessao5 || null,
-        dtSessao6: data.dtSessao6 || null,
       };
 
       // Adicionar o valorRepasse apenas se estamos usando um valor personalizado
@@ -231,9 +183,6 @@ export function EditarSessaoModal({
         }),
       ).unwrap();
 
-      // Exibir mensagem de sucesso
-      toast.success("Sessão atualizada com sucesso!");
-
       // Chamar funções de callback
       onSuccess?.();
       onClose();
@@ -244,140 +193,6 @@ export function EditarSessaoModal({
       );
     }
   }
-
-  // Função auxiliar para renderizar um input de data com calendário
-  const renderDateInput = (
-    fieldName:
-      | "dtSessao1"
-      | "dtSessao2"
-      | "dtSessao3"
-      | "dtSessao4"
-      | "dtSessao5"
-      | "dtSessao6",
-    inputState: string,
-    setInputState: React.Dispatch<React.SetStateAction<string>>,
-    label: string,
-    isRequired = false,
-  ) => {
-    return (
-      <div className="mb-4">
-        <label htmlFor={fieldName} className="block text-sm font-medium">
-          {label} {isRequired && <span className="text-red-500">*</span>}
-        </label>
-        <Controller
-          control={control}
-          name={fieldName}
-          render={({ field }) => (
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                    id={fieldName}
-                    placeholder="DD/MM/AAAA"
-                    value={inputState}
-                    onChange={(e) => {
-                      // Aplicar a máscara de data
-                      const masked = e.target.value
-                        .replace(/\D/g, "")
-                        .replace(/(\d{2})(\d)/, "$1/$2")
-                        .replace(/(\d{2})(\d)/, "$1/$2")
-                        .replace(/(\d{4})\d+?$/, "$1");
-                      setInputState(masked);
-
-                      // Tentar parsear a data
-                      const parsedDate = parse(
-                        masked,
-                        "dd/MM/yyyy",
-                        new Date(),
-                        {
-                          locale: ptBR,
-                        },
-                      );
-                      if (isValid(parsedDate)) {
-                        field.onChange(parsedDate);
-                      } else {
-                        field.onChange(null);
-                      }
-                    }}
-                    onBlur={() => {
-                      // Validar a data ao perder o foco
-                      const parsedDate = parse(
-                        inputState,
-                        "dd/MM/yyyy",
-                        new Date(),
-                        { locale: ptBR },
-                      );
-                      if (!isValid(parsedDate)) {
-                        setInputState("");
-                        field.onChange(null);
-                      }
-                    }}
-                    autoComplete="off"
-                  />
-                  <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none h-5 w-5 text-gray-400" />
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 p-4 bg-white rounded-md shadow-lg">
-                <Calendar
-                  mode="single"
-                  selected={field.value as Date}
-                  onSelect={(date) => {
-                    if (date && isValid(date)) {
-                      const formattedDate = format(date, "dd/MM/yyyy", {
-                        locale: ptBR,
-                      });
-                      setInputState(formattedDate);
-                      field.onChange(date);
-                    } else {
-                      setInputState("");
-                      field.onChange(null);
-                    }
-                  }}
-                  disabled={(date) => date < new Date("1900-01-01")}
-                  initialFocus
-                  locale={ptBR}
-                  className="rounded-md border"
-                  classNames={{
-                    months: "space-y-4",
-                    month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center",
-                    caption_label: "text-sm font-medium",
-                    nav: "space-x-1 flex items-center",
-                    nav_button:
-                      "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                    nav_button_previous: "absolute left-1",
-                    nav_button_next: "absolute right-1",
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell:
-                      "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-                    row: "flex w-full mt-2",
-                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-                    day_selected:
-                      "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                    day_today: "bg-accent text-accent-foreground",
-                    day_outside: "text-muted-foreground opacity-50",
-                    day_disabled: "text-muted-foreground opacity-50",
-                    day_range_middle:
-                      "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                    day_hidden: "invisible",
-                  }}
-                />
-              </PopoverContent>
-            </Popover>
-          )}
-        />
-        {errors[fieldName] && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors[fieldName]?.message as string}
-          </p>
-        )}
-      </div>
-    );
-  };
 
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
@@ -394,7 +209,10 @@ export function EditarSessaoModal({
             onSubmit={handleSubmit(handleUpdateSessao)}
             className="space-y-6 p-6 bg-white rounded-lg"
           >
-            <h3 className="font-medium text-azul text-xl">Dados da Sessão</h3>
+            <h3 className="font-medium text-azul text-xl">
+              Dados da Sessão
+              {sessionDateDisplay ? ` do dia ${sessionDateDisplay}` : ""}
+            </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -406,7 +224,7 @@ export function EditarSessaoModal({
                 </label>
                 <input
                   type="text"
-                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
                   id="terapeuta_id"
                   value={terapeutaNome}
                   disabled
@@ -427,7 +245,7 @@ export function EditarSessaoModal({
                 </label>
                 <input
                   type="text"
-                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
                   id="paciente_id"
                   value={pacienteNome}
                   disabled
@@ -444,23 +262,16 @@ export function EditarSessaoModal({
                   htmlFor="tipoSessao"
                   className="block text-sm font-medium"
                 >
-                  Tipo de Sessão <span className="text-red-500">*</span>
+                  Tipo de Sessão
                 </label>
-                <select
-                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                <input
+                  type="text"
+                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
                   id="tipoSessao"
-                  {...register("tipoSessao")}
-                >
-                  <option value="Anamnese">Anamnese</option>
-                  <option value="Atendimento">Atendimento</option>
-                  <option value="Avaliação">Avaliação</option>
-                  <option value="Visitar Escolar">Visita Escolar</option>
-                </select>
-                {errors.tipoSessao && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.tipoSessao.message}
-                  </p>
-                )}
+                  value={sessao.tipoSessao}
+                  disabled
+                  readOnly
+                />
               </div>
 
               <div>
@@ -581,54 +392,6 @@ export function EditarSessaoModal({
                   </p>
                 )}
               </div>
-            </div>
-
-            <h3 className="font-medium text-azul text-xl mt-6">
-              Datas das Sessões
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderDateInput(
-                "dtSessao1",
-                inputDataSessao1,
-                setInputDataSessao1,
-                "Data da 1ª Sessão",
-                true,
-              )}
-
-              {renderDateInput(
-                "dtSessao2",
-                inputDataSessao2,
-                setInputDataSessao2,
-                "Data da 2ª Sessão",
-              )}
-
-              {renderDateInput(
-                "dtSessao3",
-                inputDataSessao3,
-                setInputDataSessao3,
-                "Data da 3ª Sessão",
-              )}
-
-              {renderDateInput(
-                "dtSessao4",
-                inputDataSessao4,
-                setInputDataSessao4,
-                "Data da 4ª Sessão",
-              )}
-
-              {renderDateInput(
-                "dtSessao5",
-                inputDataSessao5,
-                setInputDataSessao5,
-                "Data da 5ª Sessão",
-              )}
-
-              {renderDateInput(
-                "dtSessao6",
-                inputDataSessao6,
-                setInputDataSessao6,
-                "Data da 6ª Sessão",
-              )}
             </div>
 
             <div className="mt-6 flex justify-end">

@@ -1,10 +1,7 @@
 import {
   CalendarCheck,
   Calendar,
-  PencilSimple,
-  Plus,
   Receipt,
-  TrashSimple,
   Users,
   CaretLeft,
   CaretRight,
@@ -12,12 +9,9 @@ import {
   ChartPie,
   MagnifyingGlass,
   Info,
+  PencilSimple,
 } from "@phosphor-icons/react";
-import * as Dialog from "@radix-ui/react-dialog";
 import Pagination from "components/Pagination";
-import { NovaSessaoModal } from "components/Sessoes/NovaSessaoModal";
-import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
-import { DeletarSessaoModal } from "components/Sessoes/DeletarSessaoModal";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
 import { Sessao } from "tipos";
@@ -26,7 +20,6 @@ import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { toast } from "sonner";
 import {
   format,
   addMonths,
@@ -37,6 +30,9 @@ import {
   endOfMonth,
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import useAuth from "hooks/useAuth";
+import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
+import { toast } from "sonner";
 
 // Função auxiliar para obter o valor de repasse correto
 function obterValorRepasse(sessao: Sessao): number {
@@ -239,6 +235,7 @@ export default function Sessoes() {
   // Utilizar hooks do Redux
   const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
   const { terapeutas } = useFetchTerapeutas();
+  const { isAdmin } = useAuth();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
@@ -246,12 +243,9 @@ export default function Sessoes() {
   const [selectedTipo, setSelectedTipo] = useState("Todos");
   const [searchPaciente, setSearchPaciente] = useState("");
   const [showLegend, setShowLegend] = useState(false);
-
-  const [editingSessao, setEditingSessao] = useState<Sessao | null>(null);
-  const [deletingSessao, setDeletingSessao] = useState<Sessao | null>(null);
-  const [isNewSessaoOpen, setIsNewSessaoOpen] = useState(false);
-
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
 
   // Função para formatar data com segurança
   const formatSafeDate = (dateValue) => {
@@ -315,10 +309,7 @@ export default function Sessoes() {
         return total;
 
       // Calcular o repasse para esta sessão específica
-      const repasse = calcularRepasse(
-        sessao.valorSessao,
-        sessao.terapeutaInfo.dt_entrada,
-      );
+      const repasse = obterValorRepasse(sessao);
       return total + repasse;
     }, 0);
   }, [filteredSessoes]);
@@ -338,15 +329,8 @@ export default function Sessoes() {
 
     // Calcular repasse total do mês
     const repasseTotalMes = sessoesDoMes.reduce((total, sessao) => {
-      // Verificar se temos as informações do terapeuta
-      if (!sessao.terapeutaInfo || !sessao.terapeutaInfo.dt_entrada)
-        return total;
-
       // Calcular o repasse para esta sessão específica
-      const repasse = calcularRepasse(
-        sessao.valorSessao,
-        sessao.terapeutaInfo.dt_entrada,
-      );
+      const repasse = obterValorRepasse(sessao);
       return total + repasse;
     }, 0);
 
@@ -364,13 +348,24 @@ export default function Sessoes() {
     return sessoesMes.filter(
       (sessao) => sessao.statusSessao === "Pagamento Pendente",
     ).length;
-  }, [sessoes, currentDate]); // Adicionado currentDate na dependência
+  }, [sessoes, currentDate]);
 
   const totalPages = useMemo(() => {
     return Math.ceil(filteredSessoes.length / SESSOES_PER_PAGE);
   }, [filteredSessoes]);
 
   // Handlers
+
+  const handleEditSessao = (sessao: Sessao) => {
+    setSessaoEditando(sessao);
+  };
+
+  const handleEditSuccess = () => {
+    setSessaoEditando(null);
+    mutate();
+    toast.success("Sessão atualizada com sucesso!");
+  };
+
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
     setCurrentPage(1); // Reset para a primeira página ao mudar o mês
@@ -380,28 +375,6 @@ export default function Sessoes() {
     const newDate = addMonths(currentDate, change);
     setCurrentDate(newDate);
     setCurrentPage(1); // Reset para a primeira página ao mudar o mês
-  };
-
-  const handleEditSessao = (sessao: Sessao) => {
-    setEditingSessao(sessao);
-  };
-
-  const handleEditSuccess = () => {
-    // Recarregar dados após edição
-    mutate();
-    setEditingSessao(null);
-    toast.success("Sessão atualizada com sucesso!");
-  };
-
-  const handleDeleteClick = (sessao: Sessao) => {
-    setDeletingSessao(sessao);
-  };
-
-  const handleDeleteSuccess = () => {
-    // Recarregar dados após exclusão
-    mutate();
-    setDeletingSessao(null);
-    toast.success("Sessão excluída com sucesso!");
   };
 
   // Mostrar estado de carregamento
@@ -433,32 +406,6 @@ export default function Sessoes() {
         <title>Sessões</title>
       </Head>
       <main className="flex-1 bg-gray-100 p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold">Sessões</h1>
-          <Dialog.Root open={isNewSessaoOpen} onOpenChange={setIsNewSessaoOpen}>
-            <Dialog.Trigger asChild>
-              <button
-                type="button"
-                className="flex items-center bg-azul text-white px-4 py-2 rounded hover:bg-sky-600 duration-150"
-              >
-                <Plus size={20} weight="bold" className="mr-2" />
-                Nova Sessão
-              </button>
-            </Dialog.Trigger>
-            {isNewSessaoOpen && (
-              <NovaSessaoModal
-                onSuccess={() => {
-                  mutate();
-                  setIsNewSessaoOpen(false);
-                  toast.success("Sessão criada com sucesso!");
-                }}
-                onClose={() => setIsNewSessaoOpen(false)}
-              />
-            )}
-          </Dialog.Root>
-        </div>
-
         {/* Cards de resumo */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
@@ -577,15 +524,18 @@ export default function Sessoes() {
               </div>
 
               <div>
-                <h4 className="text-sm font-medium">Dicas:</h4>
+                <h4 className="text-sm font-medium">Gestão de Sessões:</h4>
                 <div className="text-sm mt-1">
-                  • Clique no ícone de lápis para editar
+                  As sessões são criadas automaticamente a partir dos
+                  agendamentos.
                 </div>
                 <div className="text-sm mt-1">
-                  • Use filtros para encontrar sessões específicas
+                  Para criar uma nova sessão, crie um novo agendamento na página
+                  Agenda.
                 </div>
                 <div className="text-sm mt-1">
-                  • O repasse é calculado com base no tempo de casa do terapeuta
+                  Para editar ou excluir uma sessão, edite ou exclua o
+                  agendamento correspondente.
                 </div>
               </div>
             </div>
@@ -596,8 +546,8 @@ export default function Sessoes() {
         <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4">
           <button
             type="button"
+            aria-label="Mês Anterior"
             onClick={() => handleMonthChange(-1)}
-            aria-label="Previous month"
             className="hover:bg-gray-100 p-2 rounded-full transition-colors"
           >
             <CaretLeft size={24} weight="fill" />
@@ -612,15 +562,10 @@ export default function Sessoes() {
             <DatePicker
               selected={currentDate}
               onChange={handleDateChange}
+              dateFormat="MM/yyyy"
               showMonthYearPicker
-              dateFormat="MMMM yyyy"
-              locale={ptBR}
               customInput={
-                <button
-                  type="button"
-                  aria-label="Select month and year"
-                  className="hover:bg-gray-100 p-1 rounded-full transition-colors"
-                >
+                <button type="button" className="hover:bg-gray-100 p-1 rounded">
                   <Calendar size={20} />
                 </button>
               }
@@ -628,8 +573,8 @@ export default function Sessoes() {
           </div>
           <button
             type="button"
+            aria-label="Próximo Mês"
             onClick={() => handleMonthChange(1)}
-            aria-label="Next month"
             className="hover:bg-gray-100 p-2 rounded-full transition-colors"
           >
             <CaretRight size={24} weight="fill" />
@@ -637,13 +582,13 @@ export default function Sessoes() {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Filtro por Terapeuta */}
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <User size={24} className="text-gray-500" />
+          <div className="flex items-center p-4 bg-white rounded shadow">
+            <User size={24} className="text-gray-500 mr-3 flex-shrink-0" />
             <label
               htmlFor="terapeutas"
-              className="text-md font-medium text-gray-700"
+              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
             >
               Terapeuta
             </label>
@@ -659,33 +604,11 @@ export default function Sessoes() {
             >
               <option value="Todos">Todos</option>
               {terapeutas?.map((terapeuta) => (
-                <option key={terapeuta.id} value={String(terapeuta.id)}>
+                <option key={terapeuta.id} value={terapeuta.id}>
                   {terapeuta.nome}
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Busca por Paciente */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
-            <MagnifyingGlass
-              size={24}
-              className="text-gray-500 mr-3 flex-shrink-0"
-            />
-            <label
-              htmlFor="searchPaciente"
-              className="text-md font-medium text-gray-700 mr-3"
-            >
-              Paciente:
-            </label>
-            <input
-              type="text"
-              id="searchPaciente"
-              className="w-full focus:outline-none"
-              placeholder="Buscar por nome"
-              value={searchPaciente}
-              onChange={(e) => setSearchPaciente(e.target.value)}
-            />
           </div>
 
           {/* Filtro por Status */}
@@ -744,6 +667,31 @@ export default function Sessoes() {
               ))}
             </select>
           </div>
+
+          {/* Busca por Paciente */}
+          <div className="flex items-center p-4 bg-white rounded shadow md:col-span-3">
+            <MagnifyingGlass
+              size={24}
+              className="text-gray-500 mr-3 flex-shrink-0"
+            />
+            <label
+              htmlFor="searchPaciente"
+              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
+            >
+              Buscar Paciente
+            </label>
+            <input
+              type="text"
+              id="searchPaciente"
+              className="w-full focus:outline-none"
+              placeholder="Digite o nome do paciente"
+              value={searchPaciente}
+              onChange={(e) => {
+                setSearchPaciente(e.target.value);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </div>
 
         {/* Tabela de Sessões */}
@@ -754,12 +702,13 @@ export default function Sessoes() {
                 <tr>
                   <th className="p-4 text-left">Terapeuta</th>
                   <th className="p-4 text-left">Paciente</th>
-                  <th className="p-4 text-left">Tipo</th>
+                  <th className="p-4 text-left">Tipo de Sessão</th>{" "}
+                  {/* Nova coluna */}
                   <th className="p-4 text-left">Valor da Sessão</th>
                   <th className="p-4 text-left">Repasse</th>
                   <th className="p-4 text-left">Status</th>
                   <th className="p-4 text-left">Data</th>
-                  <th className="p-4 text-center">Ações</th>
+                  {isAdmin && <th className="p-4 text-center">Ações</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -773,55 +722,48 @@ export default function Sessoes() {
                       sessao.dtSessao4,
                       sessao.dtSessao5,
                       sessao.dtSessao6,
-                    ].filter((data) => {
-                      if (!data) return false;
-                      try {
-                        const dataObj = new Date(data);
-                        return (
-                          !isNaN(dataObj.getTime()) &&
-                          isSameMonth(dataObj, currentDate)
-                        );
-                      } catch (e) {
-                        return false;
-                      }
-                    });
+                    ]
+                      .filter(Boolean)
+                      .filter((data) => {
+                        const dateObj = new Date(data);
+                        return isSameMonth(dateObj, currentDate);
+                      })
+                      .map((data) => formatSafeDate(data));
 
-                    // Obter a primeira data válida para exibir como principal
+                    // Exibir apenas a primeira data do mês atual, ou a primeira data válida
                     const dataExibicao =
                       datasValidas.length > 0
-                        ? formatSafeDate(datasValidas[0])
-                        : formatSafeDate(sessao.dtSessao1); // caso não tenha data no mês atual
+                        ? datasValidas[0]
+                        : formatSafeDate(sessao.dtSessao1);
 
-                    // Calcular o repasse e a porcentagem
-                    let valorRepasse = obterValorRepasse(sessao);
+                    // Calcular valor de repasse para esta sessão
+                    const valorRepasse = obterValorRepasse(sessao);
+
+                    // Calcular percentual de repasse
                     let percentualRepasse = 0;
 
-                    // Calcular o percentual com base no valor de repasse
-                    if (sessao.valorSessao && sessao.valorSessao > 0) {
-                      // Se há um valor de repasse personalizado, calcule o percentual real
-                      if (
-                        sessao.valorRepasse !== undefined &&
-                        sessao.valorRepasse !== null
-                      ) {
-                        percentualRepasse = Math.round(
-                          (Number(sessao.valorRepasse) / sessao.valorSessao) *
-                            100,
-                        );
-                      } else if (sessao.terapeutaInfo?.dt_entrada) {
-                        // Caso contrário, use a regra padrão (45% ou 50%)
+                    // Se temos um valor de repasse personalizado
+                    if (
+                      sessao.valorRepasse !== undefined &&
+                      sessao.valorRepasse !== null
+                    ) {
+                      percentualRepasse = Math.round(
+                        (sessao.valorRepasse / sessao.valorSessao) * 100,
+                      );
+                    } else {
+                      // Calcular baseado na regra padrão
+                      if (sessao.terapeutaInfo?.dt_entrada) {
                         const dataEntrada = new Date(
                           sessao.terapeutaInfo.dt_entrada,
                         );
-                        if (!isNaN(dataEntrada.getTime())) {
-                          const hoje = new Date();
-                          const diferencaEmMilissegundos =
-                            hoje.getTime() - dataEntrada.getTime();
-                          const umAnoEmMilissegundos =
-                            365.25 * 24 * 60 * 60 * 1000;
-                          const anosNaClinica =
-                            diferencaEmMilissegundos / umAnoEmMilissegundos;
-                          percentualRepasse = anosNaClinica >= 1 ? 50 : 45;
-                        }
+                        const hoje = new Date();
+                        const diferencaEmMilissegundos =
+                          hoje.getTime() - dataEntrada.getTime();
+                        const umAnoEmMilissegundos =
+                          365.25 * 24 * 60 * 60 * 1000;
+                        const anosNaClinica =
+                          diferencaEmMilissegundos / umAnoEmMilissegundos;
+                        percentualRepasse = anosNaClinica >= 1 ? 50 : 45;
                       } else {
                         // Fallback para 45%
                         percentualRepasse = 45;
@@ -836,7 +778,8 @@ export default function Sessoes() {
                         <td className="p-4">
                           {sessao.pacienteInfo?.nome || "Não atribuído"}
                         </td>
-                        <td className="p-4">{sessao.tipoSessao}</td>
+                        <td className="p-4">{sessao.tipoSessao}</td>{" "}
+                        {/* Valor do tipoSessao */}
                         <td className="p-4">
                           R$ {sessao.valorSessao.toFixed(2).replace(".", ",")}
                         </td>
@@ -870,30 +813,26 @@ export default function Sessoes() {
                           </span>
                         </td>
                         <td className="p-4">{dataExibicao}</td>
-                        <td className="p-4 text-center space-x-2">
-                          <button
-                            type="button"
-                            title="Editar Sessão"
-                            className="text-green-500 hover:text-green-700 p-1 inline-flex"
-                            onClick={() => handleEditSessao(sessao)}
-                          >
-                            <PencilSimple size={20} weight="bold" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Excluir Sessão"
-                            onClick={() => handleDeleteClick(sessao)}
-                            className="text-red-500 hover:text-red-700 p-1 inline-flex"
-                          >
-                            <TrashSimple size={20} weight="bold" />
-                          </button>
-                        </td>
+                        {isAdmin && (
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleEditSessao(sessao)}
+                              className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                              title="Editar sessão"
+                            >
+                              <PencilSimple size={20} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-gray-500">
+                    <td
+                      colSpan={isAdmin ? 8 : 7}
+                      className="p-8 text-center text-gray-500"
+                    >
                       Nenhuma sessão encontrada com os filtros aplicados
                     </td>
                   </tr>
@@ -912,22 +851,13 @@ export default function Sessoes() {
           />
         )}
 
-        {/* Modals */}
-        {editingSessao && (
+        {/* Edit Session Modal */}
+        {sessaoEditando && (
           <EditarSessaoModal
-            sessao={editingSessao}
-            open={!!editingSessao}
-            onClose={() => setEditingSessao(null)}
+            sessao={sessaoEditando}
+            open={!!sessaoEditando}
+            onClose={() => setSessaoEditando(null)}
             onSuccess={handleEditSuccess}
-          />
-        )}
-
-        {deletingSessao && (
-          <DeletarSessaoModal
-            sessao={deletingSessao}
-            open={!!deletingSessao}
-            onClose={() => setDeletingSessao(null)}
-            onSuccess={handleDeleteSuccess}
           />
         )}
       </main>

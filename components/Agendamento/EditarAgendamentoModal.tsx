@@ -275,6 +275,19 @@ export function EditarAgendamentoModal({
             },
           }),
         ).unwrap();
+
+        // Atualizar a sessão correspondente (se existir)
+        try {
+          await axiosInstance.post("/sessoes/from-agendamento", {
+            agendamento_id: agendamentoToUse.id,
+          });
+        } catch (error) {
+          console.error(
+            "Erro ao atualizar sessão a partir do agendamento:",
+            error,
+          );
+          // Não interrompemos o fluxo se houver erro na atualização da sessão
+        }
       } else {
         // Atualizar apenas este agendamento específico
         await dispatch(
