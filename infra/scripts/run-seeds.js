@@ -45,7 +45,6 @@ function runSeed(scriptName) {
 const seedScripts = [
   "seed-terapeutas.js",
   "seed-pacientes.js",
-  //"seed-sessoes.js",
   "seed-agendamentos.js",
   // etc.
 ];

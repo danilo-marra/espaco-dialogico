@@ -1,6 +1,7 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
+import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
 
 // Criar o router
@@ -73,13 +74,63 @@ async function postHandler(req, res) {
     // Criar um novo agendamento
     const novoAgendamento = await agendamento.create(agendamentoData);
 
-    // Retornar a resposta com status 201 (Created)
-    res.status(201).json(novoAgendamento);
+    try {
+      // Mapear os campos do agendamento para os campos da sessão
+      const sessaoData = {
+        terapeuta_id: novoAgendamento.terapeuta_id,
+        paciente_id: novoAgendamento.paciente_id,
+        tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+          novoAgendamento.tipoAgendamento,
+        ),
+        valorSessao: novoAgendamento.valorAgendamento,
+        statusSessao: mapearStatusAgendamentoParaStatusSessao(
+          novoAgendamento.statusAgendamento,
+        ),
+        dtSessao1: novoAgendamento.dataAgendamento,
+        agendamento_id: novoAgendamento.id,
+      };
+
+      res.status(201).json(novoAgendamento);
+
+      // Criar a sessão
+      await sessao.create(sessaoData);
+    } catch (error) {
+      console.error("Erro ao criar sessão para o agendamento:", error);
+    }
   } catch (error) {
     console.error("Erro ao criar agendamento:", error);
     res
       .status(500)
       .json({ error: "Erro interno do servidor", message: error.message });
+  }
+}
+
+// Funções auxiliares (mover do arquivo /pages/api/v1/sessoes/from-agendamento.js)
+function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
+  switch (tipoAgendamento) {
+    case "Sessão":
+      return "Atendimento";
+    case "Orientação Parental":
+      return "Atendimento"; // Alterado de "Orientação" para "Atendimento"
+    case "Visita Escolar":
+      return "Visitar Escolar";
+    case "Supervisão":
+      return "Atendimento"; // Alterado de "Supervisão" para "Atendimento"
+    default:
+      return "Atendimento";
+  }
+}
+
+function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
+  switch (statusAgendamento) {
+    case "Confirmado":
+      return "Pagamento Pendente";
+    case "Remarcado":
+      return "Pagamento Pendente";
+    case "Cancelado":
+      return "Cancelado";
+    default:
+      return "Pagamento Pendente";
   }
 }
 
