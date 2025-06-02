@@ -20,6 +20,7 @@ import {
 } from "store/agendamentosSlice";
 import { z } from "zod";
 import { maskPrice } from "utils/formatter";
+import { mutate } from "swr";
 
 // Registrar locale pt-BR
 registerLocale("pt-BR", ptBR);
@@ -224,6 +225,10 @@ export function NovoAgendamentoModal({
 
         // Reiniciar o formulário e chamar callbacks sem exibir toast
         reset();
+
+        // Revalidar manualmente os dados de sessões
+        mutate("/sessoes");
+
         onSuccess(); // O componente pai será responsável pelo toast
         onClose();
       }

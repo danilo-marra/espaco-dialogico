@@ -12,9 +12,10 @@ export const useFetchSessoes = () => {
     "/sessoes",
     fetcher,
     {
-      revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
-      revalidateIfStale: false, // Não revalidar dados antigos automaticamente
-      dedupingInterval: 10000, // Deduplicar requisições similares em um intervalo de 10 segundos
+      revalidateOnFocus: true, // Revalidar quando o usuário voltar à aba
+      revalidateIfStale: true, // Revalidar dados antigos automaticamente
+      revalidateOnReconnect: true, // Revalidar quando a conexão for restabelecida
+      dedupingInterval: 2000, // Tempo mínimo entre requisições (2 segundos)
     },
   );
   return {
