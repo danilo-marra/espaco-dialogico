@@ -163,27 +163,29 @@ function Home() {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center justify-between">
               <div className="md:w-1/2 mb-8 md:mb-0">
-                <h1 className="text-4xl md:text-5xl font-bold text-titulo mb-4">
+                <h1 className="text-4xl md:text-5xl font-bold text-titulo mb-4 text-center md:text-left">
                   <span className="text-azul">Espaço Dialógico</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-subTitulo mb-8">
+                <p className="text-xl md:text-2xl text-subTitulo mb-8 text-center md:text-left">
                   Psicologia Infantil com acolhimento, leveza e escuta ativa
                 </p>
-                <a
-                  href="#atendimentos"
-                  className="bg-rosa text-white px-8 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all transform hover:scale-105"
-                >
-                  Agende um Atendimento
-                </a>
+                <div className="text-center md:text-left">
+                  <a
+                    href="#atendimentos"
+                    className="bg-rosa text-white px-8 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all transform hover:scale-105"
+                  >
+                    Agende um Atendimento
+                  </a>
+                </div>
               </div>
-              <div className="md:w-1/2 flex justify-end">
-                <div className="relative w-full max-w-md rounded-lg overflow-hidden shadow-xl">
+              <div className="hidden md:flex md:w-1/2 justify-end">
+                <div className="relative w-full max-w-lg rounded-lg overflow-hidden shadow-xl">
                   <Image
-                    src="/img/menina.jpg"
-                    width={500}
+                    src="/img/sala-13.jpg"
+                    width={600}
                     height={400}
                     alt="Ambiente acolhedor para crianças"
-                    className="rounded-lg"
+                    className="rounded-lg w-full h-full object-cover"
                   />
                 </div>
               </div>
@@ -192,13 +194,13 @@ function Home() {
         </section>
 
         {/* Quem Somos Section */}
-        <section id="quem-somos" className="py-16 bg-white">
+        <section id="quem-somos" className="md:py-16 bg-white">
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row items-center">
               <div className="md:w-1/2 mb-8 md:mb-0">
-                <div className="relative rounded-lg overflow-hidden shadow-lg">
+                <div>
                   <Image
-                    src="/img/menina2.jpg"
+                    src="/img/sala-11.jpg"
                     width={500}
                     height={400}
                     alt="Equipe do Espaço Dialógico"
@@ -241,7 +243,7 @@ function Home() {
             </p>
             <div className="rounded-lg overflow-hidden shadow-xl max-w-2xl mx-auto">
               <Image
-                src="/img/menina3.jpg"
+                src="/img/sala-08.jpg"
                 width={600}
                 height={400}
                 alt="Criança brincando com terapeuta"
@@ -256,13 +258,13 @@ function Home() {
           <div className="container mx-auto px-4">
             <div className="flex flex-col md:flex-row-reverse items-center">
               <div className="md:w-1/2 mb-8 md:mb-0 md:pl-12">
-                <div className="rounded-lg overflow-hidden shadow-lg">
+                <div className="rounded-lg overflow-hidden shadow-xl">
                   <Image
-                    src="/img/menina2x.jpg"
-                    width={500}
+                    src="/img/sala-10.jpg"
+                    width={600}
                     height={400}
                     alt="Materiais lúdicos terapêuticos"
-                    className="rounded-lg"
+                    className="rounded-lg object-cover w-full h-64 md:h-80"
                   />
                 </div>
               </div>
@@ -433,37 +435,37 @@ function Home() {
       <footer className="bg-azul text-white py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="mb-6 md:mb-0">
+            <div className="mb-6 md:mb-0 text-center md:text-left flex flex-col items-center md:items-start">
               <Image
                 src="/img/logo2.png"
-                width={120}
-                height={120}
+                width={200}
+                height={200}
                 alt="Espaço Dialógico"
-                className="mb-4"
+                className="mb-4 mx-auto md:mx-0"
               />
               <p className="text-white/80">
                 © {new Date().getFullYear()} Espaço Dialógico. Todos os
                 direitos reservados.
               </p>
             </div>
-            <div className="flex flex-col space-y-2">
+            <div className="flex flex-col space-y-2 text-center md:text-left">
               <h3 className="font-semibold text-lg mb-2">Contato</h3>
               <a
                 href="tel:+5561992095674"
-                className="text-white/80 hover:text-white flex items-center"
+                className="text-white/80 hover:text-white flex items-center justify-center md:justify-start"
               >
                 <Phone size={16} className="mr-2" /> (61) 99209-5674
               </a>
               <a
                 href="mailto:contato@espacodialogico.com.br"
-                className="text-white/80 hover:text-white flex items-center"
+                className="text-white/80 hover:text-white flex items-center justify-center md:justify-start"
               >
                 <Envelope size={16} className="mr-2" />{" "}
                 contato@espacodialogico.com.br
               </a>
               <a
                 href="https://www.instagram.com/espacodialogico/"
-                className="text-white/80 hover:text-white flex items-center"
+                className="text-white/80 hover:text-white flex items-center justify-center md:justify-start"
                 target="_blank"
                 rel="noopener noreferrer"
               >
