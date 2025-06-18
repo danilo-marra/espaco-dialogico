@@ -639,7 +639,7 @@ export default function Agenda() {
         <title>Agenda</title>
       </Head>
 
-      <main className="flex-1 bg-gray-100 p-8">
+      <main className="flex-1 bg-gray-100 p-8 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold">Agenda</h1>
@@ -678,8 +678,8 @@ export default function Agenda() {
         </div>
 
         {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 overflow-x-auto">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
             <CalendarCheck size={24} className="text-green-500" />
             <div>
               <h3 className="text-xs uppercase text-gray-500">Agendamentos</h3>
@@ -689,7 +689,7 @@ export default function Agenda() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
             <Users size={24} className="text-blue-500" />
             <div>
               <h3 className="text-xs uppercase text-gray-500">Confirmados</h3>
@@ -699,7 +699,7 @@ export default function Agenda() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
             <Calendar size={24} className="text-amber-500" />
             <div>
               <h3 className="text-xs uppercase text-gray-500">Remarcados</h3>
@@ -709,7 +709,7 @@ export default function Agenda() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
             <CalendarX size={24} className="text-red-500" />
             <div>
               <h3 className="text-xs uppercase text-gray-500">Cancelados</h3>
@@ -796,11 +796,11 @@ export default function Agenda() {
         )}
 
         {/* Botões de alternância de visualização */}
-        <div className="flex space-x-4 mb-4">
+        <div className="flex space-x-2 mb-4 overflow-x-auto pb-2">
           <button
             type="button"
             onClick={handleSetWeeklyView}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded whitespace-nowrap min-w-[100px] flex-shrink-0 ${
               viewMode === "semanal"
                 ? "bg-azul text-white"
                 : "bg-white text-azul"
@@ -811,7 +811,7 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetMonthlyView}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded whitespace-nowrap min-w-[100px] flex-shrink-0 ${
               viewMode === "mensal"
                 ? "bg-azul text-white"
                 : "bg-white text-azul"
@@ -822,7 +822,7 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetTerapeutaView}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded whitespace-nowrap min-w-[120px] flex-shrink-0 ${
               viewMode === "terapeuta"
                 ? "bg-azul text-white"
                 : "bg-white text-azul"
@@ -833,7 +833,7 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetCustomPeriod}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded whitespace-nowrap min-w-[150px] flex-shrink-0 ${
               periodMode === "personalizado"
                 ? "bg-azul text-white"
                 : "bg-white text-azul"
@@ -863,18 +863,18 @@ export default function Agenda() {
         )}
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
           {/* Filtro por Terapeuta */}
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <User size={24} className="text-gray-500" />
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow overflow-x-auto">
+            <User size={24} className="text-gray-500 flex-shrink-0" />
             <label
               htmlFor="terapeutas"
-              className="text-md font-medium text-gray-700"
+              className="text-md font-medium text-gray-700 whitespace-nowrap"
             >
               Terapeuta
             </label>
             <select
-              className="text-md w-full focus:outline-none"
+              className="text-md w-full min-w-[120px] focus:outline-none"
               name="terapeutas"
               id="terapeutas"
               value={selectedTerapeuta}
@@ -889,21 +889,21 @@ export default function Agenda() {
           </div>
 
           {/* Busca por Paciente */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
+          <div className="flex items-center p-4 bg-white rounded shadow overflow-x-auto">
             <MagnifyingGlass
               size={24}
               className="text-gray-500 mr-3 flex-shrink-0"
             />
             <label
               htmlFor="searchPaciente"
-              className="text-md font-medium text-gray-700 mr-3"
+              className="text-md font-medium text-gray-700 mr-3 whitespace-nowrap"
             >
               Paciente:
             </label>
             <input
               type="text"
               id="searchPaciente"
-              className="w-full focus:outline-none"
+              className="w-full min-w-[120px] focus:outline-none"
               placeholder="Buscar por nome"
               value={searchPaciente}
               onChange={(e) => setSearchPaciente(e.target.value)}
@@ -911,16 +911,16 @@ export default function Agenda() {
           </div>
 
           {/* Filtro por Sala */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
+          <div className="flex items-center p-4 bg-white rounded shadow overflow-x-auto">
             <Door size={24} className="text-gray-500 mr-3 flex-shrink-0" />
             <label
               htmlFor="localAgendamento"
-              className="text-md font-medium text-gray-700 mr-3"
+              className="text-md font-medium text-gray-700 mr-3 whitespace-nowrap"
             >
               Sala:
             </label>
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center">
+            <div className="flex items-center space-x-4 min-w-[200px]">
+              <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-azul mr-2"
@@ -929,7 +929,7 @@ export default function Agenda() {
                 />
                 <span>Sala Verde</span>
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-azul mr-2"
@@ -942,18 +942,18 @@ export default function Agenda() {
           </div>
 
           {/* Filtro por Status */}
-          <div className="bg-white rounded shadow flex items-center">
-            <div className="flex items-center p-4">
+          <div className="bg-white rounded shadow flex items-center overflow-x-auto">
+            <div className="flex items-center p-4 flex-shrink-0">
               <CalendarCheck size={24} className="text-gray-500 mr-3" />
               <label
                 htmlFor="statusAgendamento"
-                className="text-md font-medium text-gray-700"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
               >
                 Status:
               </label>
             </div>
-            <div className="flex space-x-2 p-2">
-              <label className="flex items-center">
+            <div className="flex space-x-2 p-2 min-w-[300px]">
+              <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-green-500 mr-2"
@@ -962,7 +962,7 @@ export default function Agenda() {
                 />
                 <span>Confirmado</span>
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-yellow-500 mr-2"
@@ -971,7 +971,7 @@ export default function Agenda() {
                 />
                 <span>Remarcado</span>
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
                   className="form-checkbox h-4 w-4 text-red-500 mr-2"
@@ -985,17 +985,17 @@ export default function Agenda() {
         </div>
 
         {/* Navegação da Semana/Mês */}
-        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4">
+        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4 overflow-x-auto">
           <button
             type="button"
             aria-label="Anterior"
             onClick={handlePrevious}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretLeft size={24} weight="fill" />
           </button>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-semibold">
+          <div className="flex items-center space-x-2 min-w-0 px-4">
+            <h2 className="text-lg md:text-xl font-semibold text-center truncate">
               {periodMode === "semana"
                 ? `${format(selectedDate, "MMMM", { locale: ptBR }).replace(/^\w/, (c) => c.toUpperCase())} - Semana de ${format(startOfSelectedWeek, "dd/MM/yyyy")} até ${format(addDays(startOfSelectedWeek, 6), "dd/MM/yyyy")}`
                 : periodMode === "mes"
@@ -1009,7 +1009,10 @@ export default function Agenda() {
               selected={selectedDate}
               onChange={(date: Date) => setSelectedDate(date)}
               customInput={
-                <button type="button" className="hover:bg-gray-100 p-1 rounded">
+                <button
+                  type="button"
+                  className="hover:bg-gray-100 p-1 rounded flex-shrink-0"
+                >
                   <Calendar size={20} />
                 </button>
               }
@@ -1019,7 +1022,7 @@ export default function Agenda() {
             type="button"
             aria-label="Próximo"
             onClick={handleNext}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretRight size={24} weight="fill" />
           </button>
