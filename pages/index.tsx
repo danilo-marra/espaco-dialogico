@@ -34,15 +34,6 @@ function Home() {
           content="Espaço Dialógico - Psicologia Infantil com acolhimento, leveza e escuta ativa. Atendimento para crianças de 3 a 12 anos."
         />
       </Head>
-      {/* Add a div for the Sistema link */}
-      <div className="absolute top-4 right-4 z-30">
-        <Link
-          href="/dashboard/"
-          className="text-azul hover:text-blue-800 font-medium bg-white/70 px-2 py-1 rounded-md backdrop-blur-sm"
-        >
-          Sistema
-        </Link>
-      </div>
 
       <header className="w-full bg-branco shadow-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -54,6 +45,12 @@ function Home() {
               alt="Espaço Dialógico"
               className="mr-4"
             />
+            <Link
+              href="/dashboard/"
+              className="text-azul hover:text-blue-800 font-medium bg-azul/10 px-3 py-1 rounded-md transition-colors ml-4 text-sm"
+            >
+              Admin
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
