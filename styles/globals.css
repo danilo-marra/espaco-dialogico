@@ -64,3 +64,145 @@
     @apply bg-background text-foreground;
   }
 }
+
+.overflow-x-auto::-webkit-scrollbar {
+  height: 8px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Para Firefox */
+.overflow-x-auto,
+.overflow-x-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+/* Força a exibição da barra de rolagem horizontal */
+.overflow-x-scroll {
+  overflow-x: scroll !important;
+  overflow-y: hidden !important;
+}
+
+.overflow-x-scroll::-webkit-scrollbar {
+  height: 12px !important;
+  display: block !important;
+}
+
+.overflow-x-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
+  border-radius: 6px !important;
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 6px !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Garante que o conteúdo seja maior que o container */
+.force-scroll {
+  min-width: 100% !important;
+  width: max-content !important;
+}
+
+/* Melhorias para responsividade */
+@media (max-width: 768px) {
+  .calendar-day {
+    min-width: 100px !important;
+  }
+
+  .calendar-day-height {
+    min-height: 100px !important;
+  }
+
+  .text-lg {
+    font-size: 0.875rem !important;
+  }
+
+  .text-xl {
+    font-size: 1rem !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-day {
+    min-width: 80px !important;
+  }
+
+  .calendar-day-height {
+    min-height: 80px !important;
+  }
+
+  .p-4 {
+    padding: 0.5rem !important;
+  }
+}
+
+/* Indicador visual para scroll horizontal */
+.overflow-x-auto::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.overflow-x-auto:hover::after {
+  opacity: 1;
+}
+
+/* Estilo para indicar que é possível fazer scroll */
+.scroll-indicator {
+  position: relative;
+}
+
+.scroll-indicator::before {
+  content: "→";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
+  font-size: 1.2rem;
+  opacity: 0.7;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (min-width: 1024px) {
+  .scroll-indicator::before {
+    display: none;
+  }
+}

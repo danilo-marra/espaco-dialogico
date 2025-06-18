@@ -24,7 +24,7 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
           <h3 className="font-semibold">{terapeuta.nome}</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 text-left">Data</th>
