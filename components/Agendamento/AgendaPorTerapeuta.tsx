@@ -1,7 +1,7 @@
 import React from "react";
 import { CalendarX, PencilSimple, TrashSimple } from "@phosphor-icons/react";
-import { format } from "date-fns";
 import { Agendamento, Terapeuta } from "../../tipos";
+import { parseAnyDate, formatDateForDisplay } from "../../utils/dateUtils";
 
 interface AgendaPorTerapeutaProps {
   agendamentosPorTerapeuta: {
@@ -52,9 +52,8 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
                   onClick={() => handleEditAgendamento(agendamento)}
                 >
                   <td className="p-2">
-                    {format(
-                      new Date(agendamento.dataAgendamento),
-                      "dd/MM/yyyy",
+                    {formatDateForDisplay(
+                      parseAnyDate(agendamento.dataAgendamento),
                     )}
                   </td>
                   <td className="p-2">{agendamento.horarioAgendamento}</td>

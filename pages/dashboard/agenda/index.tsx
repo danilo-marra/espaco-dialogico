@@ -44,6 +44,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "sonner";
 import { AgendaSemSala } from "components/Agendamento/AgendaSemSala";
+import { parseAnyDate, formatDateForAPI } from "utils/dateUtils";
 
 // Tipo de visualização
 type ViewMode = "semanal" | "mensal" | "terapeuta";
@@ -132,7 +133,7 @@ export default function Agenda() {
 
     return agendamentos.filter((agendamento) => {
       // Verificar período selecionado
-      const agendamentoDate = new Date(agendamento.dataAgendamento);
+      const agendamentoDate = parseAnyDate(agendamento.dataAgendamento);
 
       let isInSelectedPeriod = false;
       if (periodMode === "semana") {
@@ -210,7 +211,7 @@ export default function Agenda() {
     if (!agendamentos) return [];
 
     return agendamentos.filter((agendamento) => {
-      const agendamentoDate = new Date(agendamento.dataAgendamento);
+      const agendamentoDate = parseAnyDate(agendamento.dataAgendamento);
 
       let isInSelectedPeriod = false;
       if (periodMode === "semana") {
@@ -277,7 +278,7 @@ export default function Agenda() {
 
     // Primeiro, filtrar agendamentos conforme critérios atuais (exceto pelo terapeuta específico)
     const agendamentosFiltrados = agendamentos.filter((agendamento) => {
-      const agendamentoDate = new Date(agendamento.dataAgendamento);
+      const agendamentoDate = parseAnyDate(agendamento.dataAgendamento);
 
       let isInSelectedPeriod = false;
       if (periodMode === "semana") {
@@ -328,8 +329,8 @@ export default function Agenda() {
           .filter((a) => a.terapeuta_id === terapeuta.id)
           .sort((a, b) => {
             // Ordenar primeiramente por data e depois por horário
-            const dataA = new Date(a.dataAgendamento).getTime();
-            const dataB = new Date(b.dataAgendamento).getTime();
+            const dataA = parseAnyDate(a.dataAgendamento).getTime();
+            const dataB = parseAnyDate(b.dataAgendamento).getTime();
             if (dataA !== dataB) return dataA - dataB;
             return a.horarioAgendamento.localeCompare(b.horarioAgendamento);
           });
@@ -349,8 +350,8 @@ export default function Agenda() {
         const agendamentosDoTerapeuta = agendamentosFiltrados
           .filter((a) => a.terapeuta_id === terapeuta.id)
           .sort((a, b) => {
-            const dataA = new Date(a.dataAgendamento).getTime();
-            const dataB = new Date(b.dataAgendamento).getTime();
+            const dataA = parseAnyDate(a.dataAgendamento).getTime();
+            const dataB = parseAnyDate(b.dataAgendamento).getTime();
             if (dataA !== dataB) return dataA - dataB;
             return a.horarioAgendamento.localeCompare(b.horarioAgendamento);
           });
@@ -391,7 +392,7 @@ export default function Agenda() {
 
     // Filtrar apenas pelo período atual (semana ou mês)
     const agendamentosPeriodo = agendamentos.filter((agendamento) => {
-      const agendamentoDate = new Date(agendamento.dataAgendamento);
+      const agendamentoDate = parseAnyDate(agendamento.dataAgendamento);
       if (periodMode === "semana") {
         return isSameWeek(agendamentoDate, selectedDate, { weekStartsOn: 0 });
       } else if (periodMode === "mes") {
@@ -574,7 +575,7 @@ export default function Agenda() {
 
     try {
       // Formatar a data para o formato esperado pela API (YYYY-MM-DD)
-      const formattedDate = format(date, "yyyy-MM-dd");
+      const formattedDate = formatDateForAPI(date);
 
       // Criar cópia do agendamento com nova data e status "Remarcado"
       const updatedAgendamento = {
