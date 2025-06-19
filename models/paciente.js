@@ -1,32 +1,9 @@
 import database from "infra/database.js";
-import { NotFoundError, ValidationError } from "infra/errors";
+import { NotFoundError } from "infra/errors";
 
 async function create(pacienteInputValues) {
-  await validateUniqueEmailResponsavel(pacienteInputValues.email_responsavel);
-
   const newPaciente = await runInsertQuery(pacienteInputValues);
   return newPaciente;
-
-  async function validateUniqueEmailResponsavel(email) {
-    const results = await database.query({
-      text: `
-      SELECT
-        email_responsavel
-      FROM
-        pacientes
-      WHERE
-        LOWER(email_responsavel) = LOWER($1)
-      ;`,
-      values: [email],
-    });
-
-    if (results.rowCount > 0) {
-      throw new ValidationError({
-        message: "O email do responsável informado já está sendo utilizado.",
-        action: "Utilize outro email para realizar o cadastro.",
-      });
-    }
-  }
 
   async function runInsertQuery(pacienteInputValues) {
     const results = await database.query({
@@ -195,29 +172,6 @@ async function update(id, pacienteInputValues) {
       message: "Paciente não encontrado",
       action: "Verifique o ID e tente novamente",
     });
-  }
-
-  // Verificar se o email já existe em outro paciente
-  if (pacienteInputValues.email_responsavel) {
-    const checkEmailQuery = {
-      text: `
-        SELECT
-          id
-        FROM
-          pacientes
-        WHERE
-          LOWER(email_responsavel) = LOWER($1)
-          AND id != $2
-      `,
-      values: [pacienteInputValues.email_responsavel, id],
-    };
-    const emailResults = await database.query(checkEmailQuery);
-    if (emailResults.rowCount > 0) {
-      throw new ValidationError({
-        message: "O email do responsável informado já está sendo utilizado.",
-        action: "Utilize outro email para realizar a atualização.",
-      });
-    }
   }
 
   const queryObject = {

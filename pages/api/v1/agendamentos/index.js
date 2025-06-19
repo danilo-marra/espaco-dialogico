@@ -74,29 +74,33 @@ async function postHandler(req, res) {
     // Criar um novo agendamento
     const novoAgendamento = await agendamento.create(agendamentoData);
 
-    try {
-      // Mapear os campos do agendamento para os campos da sessão
-      const sessaoData = {
-        terapeuta_id: novoAgendamento.terapeuta_id,
-        paciente_id: novoAgendamento.paciente_id,
-        tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-          novoAgendamento.tipoAgendamento,
-        ),
-        valorSessao: novoAgendamento.valorAgendamento,
-        statusSessao: mapearStatusAgendamentoParaStatusSessao(
-          novoAgendamento.statusAgendamento,
-        ),
-        dtSessao1: novoAgendamento.dataAgendamento,
-        agendamento_id: novoAgendamento.id,
-      };
+    // Só criar sessão se o agendamento não estiver cancelado
+    if (novoAgendamento.statusAgendamento !== "Cancelado") {
+      try {
+        // Mapear os campos do agendamento para os campos da sessão
+        const sessaoData = {
+          terapeuta_id: novoAgendamento.terapeuta_id,
+          paciente_id: novoAgendamento.paciente_id,
+          tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+            novoAgendamento.tipoAgendamento,
+          ),
+          valorSessao: novoAgendamento.valorAgendamento,
+          statusSessao: mapearStatusAgendamentoParaStatusSessao(
+            novoAgendamento.statusAgendamento,
+          ),
+          dtSessao1: novoAgendamento.dataAgendamento,
+          agendamento_id: novoAgendamento.id,
+        };
 
-      res.status(201).json(novoAgendamento);
-
-      // Criar a sessão
-      await sessao.create(sessaoData);
-    } catch (error) {
-      console.error("Erro ao criar sessão para o agendamento:", error);
+        // Criar a sessão
+        await sessao.create(sessaoData);
+      } catch (error) {
+        console.error("Erro ao criar sessão para o agendamento:", error);
+        // Não falhar a criação do agendamento se houver erro na sessão
+      }
     }
+
+    res.status(201).json(novoAgendamento);
   } catch (error) {
     console.error("Erro ao criar agendamento:", error);
     res
@@ -128,7 +132,7 @@ function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
     case "Remarcado":
       return "Pagamento Pendente";
     case "Cancelado":
-      return "Cancelado";
+      return "Pagamento Pendente"; // Não criar sessões para agendamentos cancelados
     default:
       return "Pagamento Pendente";
   }

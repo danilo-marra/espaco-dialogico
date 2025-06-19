@@ -20,15 +20,7 @@ import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import {
-  format,
-  addMonths,
-  isSameMonth,
-  isAfter,
-  isBefore,
-  startOfMonth,
-  endOfMonth,
-} from "date-fns";
+import { format, addMonths, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
@@ -84,10 +76,6 @@ const filterSessoes = (
     return [];
   }
 
-  // Definir o início e fim do mês selecionado
-  const inicioMes = startOfMonth(selectedMonth);
-  const fimMes = endOfMonth(selectedMonth);
-
   // Ordenamos as sessões (do mais recente para o mais antigo)
   return sessoes
     .slice() // Copia o array para não modificar o original
@@ -134,15 +122,24 @@ const filterSessoes = (
 
       for (const dataSessao of datasParaVerificar) {
         if (dataSessao) {
-          const data = new Date(dataSessao);
-          if (!isNaN(data.getTime())) {
-            if (
-              (isAfter(data, inicioMes) && isBefore(data, fimMes)) ||
-              isSameMonth(data, selectedMonth)
-            ) {
-              matchesMonth = true;
-              break;
+          try {
+            const data = new Date(dataSessao);
+            if (!isNaN(data.getTime())) {
+              // Usar uma comparação mais robusta que considera apenas ano e mês
+              const anoMesSessao = format(data, "yyyy-MM");
+              const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+
+              if (anoMesSessao === anoMesSelecionado) {
+                matchesMonth = true;
+                break;
+              }
             }
+          } catch (error) {
+            console.warn(
+              "Erro ao processar data da sessão:",
+              dataSessao,
+              error,
+            );
           }
         }
       }
@@ -166,10 +163,6 @@ const filterSessoesByMonth = (
     return [];
   }
 
-  // Definir o início e fim do mês selecionado
-  const inicioMes = startOfMonth(selectedMonth);
-  const fimMes = endOfMonth(selectedMonth);
-
   return sessoes.filter((sessao) => {
     // Verifica se alguma das datas de sessão está dentro do mês selecionado
     const datasParaVerificar = [
@@ -183,14 +176,19 @@ const filterSessoesByMonth = (
 
     for (const dataSessao of datasParaVerificar) {
       if (dataSessao) {
-        const data = new Date(dataSessao);
-        if (!isNaN(data.getTime())) {
-          if (
-            (isAfter(data, inicioMes) && isBefore(data, fimMes)) ||
-            isSameMonth(data, selectedMonth)
-          ) {
-            return true;
+        try {
+          const data = new Date(dataSessao);
+          if (!isNaN(data.getTime())) {
+            // Usar uma comparação mais robusta que considera apenas ano e mês
+            const anoMesSessao = format(data, "yyyy-MM");
+            const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+
+            if (anoMesSessao === anoMesSelecionado) {
+              return true;
+            }
           }
+        } catch (error) {
+          console.warn("Erro ao processar data da sessão:", dataSessao, error);
         }
       }
     }

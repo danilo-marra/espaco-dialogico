@@ -1,18 +1,24 @@
-import { authMiddleware } from "utils/authMiddleware";
-import agendamento from "models/agendamento";
-import sessao from "models/sessao";
-import { NotFoundError } from "infra/errors";
+import { createRouter } from "next-connect";
+import controller from "infra/controller.js";
+import agendamento from "models/agendamento.js";
+import sessao from "models/sessao.js";
+import authMiddleware from "utils/authMiddleware.js";
+import { NotFoundError } from "infra/errors.js";
+
+// Criar o router
+const router = createRouter();
+
+// Aplicar middleware de autenticação para proteger as rotas
+router.use(authMiddleware);
+
+// Definir os handlers para cada método HTTP
+router.post(postHandler);
 
 // Handler principal da API
-async function handler(request, response) {
-  // Verificar método HTTP
-  if (request.method !== "POST") {
-    return response.status(405).json({ error: "Método não permitido" });
-  }
-
+async function postHandler(request, response) {
   try {
     // Extrair o ID do agendamento da requisição
-    const { agendamento_id } = request.body;
+    const { agendamento_id, update_all_recurrences } = request.body;
 
     if (!agendamento_id) {
       return response.status(400).json({
@@ -26,6 +32,70 @@ async function handler(request, response) {
     if (!agendamentoData) {
       return response.status(404).json({
         error: "Agendamento não encontrado",
+      });
+    }
+
+    // Se for para atualizar todas as recorrências e o agendamento tem um recurrenceId
+    if (update_all_recurrences && agendamentoData.recurrenceId) {
+      // Buscar todos os agendamentos da mesma recorrência
+      const agendamentosRecorrentes = await agendamento.getFiltered({
+        recurrenceId: agendamentoData.recurrenceId,
+      });
+
+      const sessoesAtualizadas = [];
+
+      for (const agend of agendamentosRecorrentes) {
+        // Pular agendamentos cancelados - não criar/atualizar sessões para eles
+        if (agend.statusAgendamento === "Cancelado") {
+          continue;
+        }
+
+        // Verificar se já existe uma sessão para este agendamento
+        const sessoesExistentes = await sessao.getFiltered({
+          agendamento_id: agend.id,
+        });
+
+        // Preparar dados para a sessão
+        const dadosSessao = {
+          terapeuta_id: agend.terapeuta_id,
+          paciente_id: agend.paciente_id,
+          tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+            agend.tipoAgendamento,
+          ),
+          valorSessao: agend.valorAgendamento,
+          dtSessao1: agend.dataAgendamento,
+          statusSessao: mapearStatusAgendamentoParaStatusSessao(
+            agend.statusAgendamento,
+          ),
+          agendamento_id: agend.id,
+        };
+
+        if (sessoesExistentes && sessoesExistentes.length > 0) {
+          // Atualizar a sessão existente
+          const sessaoAtualizada = await sessao.update(
+            sessoesExistentes[0].id,
+            dadosSessao,
+          );
+          sessoesAtualizadas.push(sessaoAtualizada);
+        } else {
+          // Criar nova sessão
+          const novaSessao = await sessao.create(dadosSessao);
+          sessoesAtualizadas.push(novaSessao);
+        }
+      }
+
+      return response.status(200).json({
+        message: `${sessoesAtualizadas.length} sessões atualizadas/criadas com sucesso para a recorrência`,
+        sessoes: sessoesAtualizadas,
+      });
+    }
+
+    // Processamento para um único agendamento
+    // Se o agendamento está cancelado, não criar/atualizar sessão
+    if (agendamentoData.statusAgendamento === "Cancelado") {
+      return response.status(200).json({
+        message: "Agendamento cancelado - sessão não será criada/atualizada",
+        agendamento: agendamentoData,
       });
     }
 
@@ -107,11 +177,11 @@ function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
     case "Sessão":
       return "Atendimento";
     case "Orientação Parental":
-      return "Orientação";
+      return "Atendimento"; // Alterado para ser consistente com a API de agendamentos
     case "Visita Escolar":
       return "Visitar Escolar";
     case "Supervisão":
-      return "Supervisão";
+      return "Atendimento"; // Alterado para ser consistente com a API de agendamentos
     default:
       return "Atendimento"; // Valor padrão
   }
@@ -124,12 +194,10 @@ function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
       return "Pagamento Pendente";
     case "Remarcado":
       return "Pagamento Pendente";
-    case "Cancelado":
-      return "Cancelado";
     default:
       return "Pagamento Pendente"; // Valor padrão
   }
 }
 
-// Exportar o endpoint protegido por autenticação
-export default authMiddleware(handler);
+// Exportar o handler com tratamento de erros
+export default router.handler(controller.errorHandlers);
