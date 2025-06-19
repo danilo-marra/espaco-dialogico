@@ -1,6 +1,7 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
 import { format, addDays, parse, isAfter } from "date-fns";
+import sessao from "./sessao.js";
 
 async function create(agendamentoData) {
   // Verificar se o terapeuta existe
@@ -376,6 +377,32 @@ async function createRecurrences({
     try {
       const novoAgendamento = await create(agendamento);
       createdAgendamentos.push(novoAgendamento);
+
+      // Só criar sessão se o agendamento não estiver cancelado
+      if (novoAgendamento.statusAgendamento !== "Cancelado") {
+        try {
+          // Mapear os campos do agendamento para os campos da sessão
+          const sessaoData = {
+            terapeuta_id: novoAgendamento.terapeuta_id,
+            paciente_id: novoAgendamento.paciente_id,
+            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+              novoAgendamento.tipoAgendamento,
+            ),
+            valorSessao: novoAgendamento.valorAgendamento,
+            statusSessao: mapearStatusAgendamentoParaStatusSessao(
+              novoAgendamento.statusAgendamento,
+            ),
+            dtSessao1: novoAgendamento.dataAgendamento,
+            agendamento_id: novoAgendamento.id,
+          };
+
+          // Criar a sessão
+          await sessao.create(sessaoData);
+        } catch (error) {
+          console.error("Erro ao criar sessão para o agendamento:", error);
+          // Não falhar a criação do agendamento se houver erro na sessão
+        }
+      }
     } catch (error) {
       console.error(
         `Erro ao criar agendamento para ${agendamento.dataAgendamento}: ${error.message}`,
@@ -621,6 +648,35 @@ function formatAgendamentoResult(row) {
       dt_entrada: row.paciente_dt_entrada,
     },
   };
+}
+
+// Funções auxiliares para mapeamento de tipos e status
+function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
+  switch (tipoAgendamento) {
+    case "Sessão":
+      return "Atendimento";
+    case "Orientação Parental":
+      return "Atendimento";
+    case "Visita Escolar":
+      return "Visitar Escolar";
+    case "Supervisão":
+      return "Atendimento";
+    default:
+      return "Atendimento";
+  }
+}
+
+function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
+  switch (statusAgendamento) {
+    case "Confirmado":
+      return "Pagamento Pendente";
+    case "Remarcado":
+      return "Pagamento Pendente";
+    case "Cancelado":
+      return "Pagamento Pendente";
+    default:
+      return "Pagamento Pendente";
+  }
 }
 
 const agendamento = {
