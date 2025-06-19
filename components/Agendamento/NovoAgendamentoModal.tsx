@@ -180,6 +180,10 @@ export function NovoAgendamentoModal({
 
         // Reiniciar o formulário e chamar callbacks sem exibir toast
         reset();
+
+        // Revalidar manualmente os dados de sessões para agendamentos simples também
+        mutate("/sessoes");
+
         onSuccess(); // O componente pai será responsável pelo toast
         onClose();
       }

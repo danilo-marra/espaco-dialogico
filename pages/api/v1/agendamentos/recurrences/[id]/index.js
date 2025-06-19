@@ -66,19 +66,38 @@ async function putHandler(req, res) {
     const updateAllRecurrences = agendamentoData.updateAllRecurrences === true;
 
     if (updateAllRecurrences) {
+      // Verificar se é para alterar o dia da semana
+      const novoDiaSemana = agendamentoData.novoDiaSemana;
+
       // Remover flags que não devem ser persistidas
       delete agendamentoData.updateAllRecurrences;
+      delete agendamentoData.novoDiaSemana;
 
-      // Atualizar todos os agendamentos com o mesmo ID de recorrência
-      const atualizados = await agendamento.updateAllByRecurrenceId(
-        recurrenceId,
-        agendamentoData,
-      );
+      // Se for para alterar o dia da semana, usar função específica
+      if (novoDiaSemana !== undefined && novoDiaSemana !== null) {
+        const atualizados =
+          await agendamento.updateAllByRecurrenceIdWithNewWeekday(
+            recurrenceId,
+            agendamentoData,
+            novoDiaSemana,
+          );
 
-      return res.status(200).json({
-        message: `${atualizados.length} agendamentos recorrentes atualizados com sucesso`,
-        data: atualizados,
-      });
+        return res.status(200).json({
+          message: `${atualizados.length} agendamentos recorrentes atualizados com novo dia da semana`,
+          data: atualizados,
+        });
+      } else {
+        // Atualizar todos os agendamentos com o mesmo ID de recorrência sem alterar dia
+        const atualizados = await agendamento.updateAllByRecurrenceId(
+          recurrenceId,
+          agendamentoData,
+        );
+
+        return res.status(200).json({
+          message: `${atualizados.length} agendamentos recorrentes atualizados com sucesso`,
+          data: atualizados,
+        });
+      }
     } else {
       // Se não for para atualizar todos, retorna erro pois esta rota é específica para recorrências
       return res.status(400).json({

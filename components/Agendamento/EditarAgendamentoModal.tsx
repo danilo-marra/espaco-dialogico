@@ -41,6 +41,17 @@ const modalidadesAgendamento = ["Presencial", "Online"];
 // Locais de agendamento
 const locaisAgendamento = ["Sala Verde", "Sala Azul", "Não Precisa de Sala"];
 
+// Dias da semana
+const diasDaSemana = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Segunda-feira" },
+  { value: 2, label: "Terça-feira" },
+  { value: 3, label: "Quarta-feira" },
+  { value: 4, label: "Quinta-feira" },
+  { value: 5, label: "Sexta-feira" },
+  { value: 6, label: "Sábado" },
+];
+
 // Horários disponíveis (8h às 20h, a cada 30min)
 const horariosDisponiveis: string[] = [];
 for (let hora = 8; hora <= 20; hora++) {
@@ -69,6 +80,8 @@ export function EditarAgendamentoModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [valorInput, setValorInput] = useState<string>("");
   const [editarRecorrencia, setEditarRecorrencia] = useState(false);
+  const [alterarDiaSemana, setAlterarDiaSemana] = useState(false);
+  const [novoDiaSemana, setNovoDiaSemana] = useState<number>(0); // 0 = Domingo, 1 = Segunda, etc.
   const [agendamentoAtualizado, setAgendamentoAtualizado] =
     useState<Agendamento | null>(null);
   const [isLoadingAgendamento, setIsLoadingAgendamento] = useState(false);
@@ -230,6 +243,31 @@ export function EditarAgendamentoModal({
         (agendamentoToUse.valorAgendamento * 100).toString(),
       );
       setValorInput(valorFormatado);
+
+      // Inicializar o dia da semana atual baseado na data do agendamento
+      try {
+        let dataParaDiaSemana: Date;
+        if (typeof agendamentoToUse.dataAgendamento === "string") {
+          dataParaDiaSemana = new Date(agendamentoToUse.dataAgendamento);
+          if (isNaN(dataParaDiaSemana.getTime())) {
+            dataParaDiaSemana = parse(
+              agendamentoToUse.dataAgendamento,
+              "yyyy-MM-dd",
+              new Date(),
+            );
+          }
+        } else {
+          dataParaDiaSemana = new Date(agendamentoToUse.dataAgendamento);
+        }
+
+        if (isValid(dataParaDiaSemana)) {
+          const diaSemanaAtual = dataParaDiaSemana.getDay();
+          setNovoDiaSemana(diaSemanaAtual);
+        }
+      } catch (error) {
+        console.error("Erro ao calcular dia da semana:", error);
+        setNovoDiaSemana(0); // Default para Domingo
+      }
     }
   }, [agendamento, agendamentoAtualizado, setValue, isLoadingAgendamento]);
 
@@ -264,15 +302,19 @@ export function EditarAgendamentoModal({
       const agendamentoToUse = agendamentoAtualizado || agendamento;
 
       if (agendamentoToUse.recurrenceId && editarRecorrencia) {
+        // Preparar dados adicionais se alterando dia da semana
+        const dadosAtualizacao = {
+          ...formattedData,
+          updateAllRecurrences: true,
+          recurrenceId: agendamentoToUse.recurrenceId,
+          ...(alterarDiaSemana && { novoDiaSemana }),
+        };
+
         // Enviar uma requisição para atualizar todos os agendamentos com o mesmo recurrenceId
         await dispatch(
           updateAgendamento({
             id: agendamentoToUse.id,
-            agendamento: {
-              ...formattedData,
-              updateAllRecurrences: true,
-              recurrenceId: agendamentoToUse.recurrenceId,
-            },
+            agendamento: dadosAtualizacao,
           }),
         ).unwrap();
 
@@ -280,6 +322,7 @@ export function EditarAgendamentoModal({
         try {
           await axiosInstance.post("/sessoes/from-agendamento", {
             agendamento_id: agendamentoToUse.id,
+            update_all_recurrences: true,
           });
         } catch (error) {
           console.error(
@@ -299,6 +342,20 @@ export function EditarAgendamentoModal({
             },
           }),
         ).unwrap();
+
+        // Atualizar a sessão correspondente (se existir)
+        try {
+          await axiosInstance.post("/sessoes/from-agendamento", {
+            agendamento_id: agendamentoToUse.id,
+            update_all_recurrences: false,
+          });
+        } catch (error) {
+          console.error(
+            "Erro ao atualizar sessão a partir do agendamento:",
+            error,
+          );
+          // Não interrompemos o fluxo se houver erro na atualização da sessão
+        }
       }
 
       // Recarregar dados após salvar
@@ -673,6 +730,68 @@ export function EditarAgendamentoModal({
                       ? "As alterações serão aplicadas a todos os agendamentos desta recorrência."
                       : "As alterações serão aplicadas apenas a este agendamento."}
                   </p>
+
+                  {/* Opção para alterar o dia da semana quando editando recorrências */}
+                  {editarRecorrencia && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-medium text-blue-800">
+                          Alterar dia da semana
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">
+                            Aplicar novo dia
+                          </span>
+                          <Switch
+                            checked={alterarDiaSemana}
+                            onChange={setAlterarDiaSemana}
+                            className={`${
+                              alterarDiaSemana ? "bg-blue-600" : "bg-gray-300"
+                            } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none`}
+                          >
+                            <span
+                              className={`${
+                                alterarDiaSemana
+                                  ? "translate-x-6"
+                                  : "translate-x-1"
+                              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                            />
+                          </Switch>
+                        </div>
+                      </div>
+
+                      {alterarDiaSemana && (
+                        <div className="flex flex-col space-y-2">
+                          <label className="text-sm font-medium text-blue-800">
+                            Novo dia da semana:
+                          </label>
+                          <select
+                            value={novoDiaSemana}
+                            onChange={(e) =>
+                              setNovoDiaSemana(Number(e.target.value))
+                            }
+                            className="border border-blue-300 rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            {diasDaSemana.map((dia) => (
+                              <option key={dia.value} value={dia.value}>
+                                {dia.label}
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-xs text-blue-600">
+                            Todos os agendamentos da recorrência serão movidos
+                            para{" "}
+                            {
+                              diasDaSemana.find(
+                                (d) => d.value === novoDiaSemana,
+                              )?.label
+                            }
+                            .
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

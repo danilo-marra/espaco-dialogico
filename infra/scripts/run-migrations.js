@@ -4,7 +4,7 @@ const dotenv = require("dotenv");
 // Configurando caminho correto para as variáveis de ambiente
 dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
-// Importando migrator com caminho relativo correto (sem .default pois agora usamos CommonJS)
+// Importando migrator com caminho relativo correto
 const migrator = require(path.resolve(process.cwd(), "models/migrator.js"));
 
 console.log("Executando migrações automaticamente...");
@@ -30,12 +30,10 @@ async function runMigrations() {
     const result = await migrator.runPendingMigrations();
     console.log(`Migrações executadas: ${result.length}`);
 
-    // Se a migração de admin não estiver entre as executadas, forçar sua execução
-    const adminMigration = "1744376265470_update-admin-from-env";
-    if (!result.some((m) => m.name.includes(adminMigration))) {
-      console.log(`Forçando execução da migração: ${adminMigration}`);
-      await migrator.runSpecificMigration(adminMigration);
-      console.log(`Migração de admin executada manualmente.`);
+    if (result.length > 0) {
+      result.forEach((migration) => {
+        console.log(`✓ ${migration.name}`);
+      });
     }
 
     console.log("Migrações concluídas com sucesso!");

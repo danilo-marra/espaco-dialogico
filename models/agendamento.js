@@ -139,6 +139,12 @@ async function getFiltered(filters) {
     paramCounter++;
   }
 
+  if (filters.recurrenceId) {
+    conditions.push(`a.recurrence_id = $${paramCounter}`);
+    values.push(filters.recurrenceId);
+    paramCounter++;
+  }
+
   const whereClause =
     conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
@@ -426,6 +432,58 @@ async function updateAllByRecurrenceId(recurrenceId, agendamentoData) {
   return updatedAgendamentos;
 }
 
+async function updateAllByRecurrenceIdWithNewWeekday(
+  recurrenceId,
+  agendamentoData,
+  novoDiaSemana,
+) {
+  // Verificar se existe algum agendamento com este ID de recorrência
+  const agendamentosRecorrentes =
+    await getAgendamentoByRecurrenceId(recurrenceId);
+
+  if (agendamentosRecorrentes.length === 0) {
+    throw new NotFoundError({
+      message: "Não foram encontrados agendamentos com este ID de recorrência",
+    });
+  }
+
+  // Array para armazenar os agendamentos atualizados
+  const updatedAgendamentos = [];
+
+  // Atualizar cada agendamento da recorrência individualmente
+  for (const agendamento of agendamentosRecorrentes) {
+    try {
+      // Calcular a nova data baseada no novo dia da semana
+      const dataAtual = new Date(agendamento.dataAgendamento);
+      const diaSemanaAtual = dataAtual.getDay();
+      const diferenca = novoDiaSemana - diaSemanaAtual;
+
+      // Criar nova data ajustando o dia da semana
+      const novaData = new Date(dataAtual);
+      novaData.setDate(dataAtual.getDate() + diferenca);
+
+      // Criar uma cópia dos dados de atualização
+      const agendamentoUpdateData = {
+        ...agendamentoData,
+        dataAgendamento: format(novaData, "yyyy-MM-dd"),
+      };
+
+      // Atualizar o agendamento
+      const updatedAgendamento = await update(
+        agendamento.id,
+        agendamentoUpdateData,
+      );
+      updatedAgendamentos.push(updatedAgendamento);
+    } catch (error) {
+      console.error(
+        `Erro ao atualizar agendamento ${agendamento.id} da recorrência com novo dia da semana: ${error.message}`,
+      );
+    }
+  }
+
+  return updatedAgendamentos;
+}
+
 async function update(id, agendamentoData) {
   // Verificar se o agendamento existe
   await getById(id);
@@ -577,6 +635,7 @@ const agendamento = {
   createRecurrentAgendamentos,
   createRecurrences,
   updateAllByRecurrenceId,
+  updateAllByRecurrenceIdWithNewWeekday,
 };
 
 export default agendamento;
