@@ -2,6 +2,7 @@ import React from "react";
 import { format, isSameDay, isSameMonth, isToday } from "date-fns";
 import { TrashSimple } from "@phosphor-icons/react";
 import { Agendamento } from "tipos";
+import { parseAnyDate } from "utils/dateUtils";
 
 interface AgendaMensalProps {
   daysOfMonth: Date[];
@@ -49,7 +50,7 @@ export const AgendaMensal: React.FC<AgendaMensalProps> = ({
           {daysOfMonth.map((day) => {
             const dayAgendamentos = agendamentos
               .filter((agendamento) =>
-                isSameDay(new Date(agendamento.dataAgendamento), day),
+                isSameDay(parseAnyDate(agendamento.dataAgendamento), day),
               )
               .sort(sortByTime);
             const isCurrentMonth = isSameMonth(day, selectedDate);

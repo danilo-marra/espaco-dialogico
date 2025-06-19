@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux";
 import { AppDispatch } from "store/store";
 import { deleteAgendamento, fetchAgendamentos } from "store/agendamentosSlice";
 import { toast } from "sonner";
+import { parseAnyDate } from "utils/dateUtils";
 import { Switch } from "@headlessui/react";
 
 interface DeletarAgendamentoModalProps {
@@ -29,7 +30,7 @@ export function DeletarAgendamentoModal({
 
   // Formatar a data para exibição
   const dataFormatada = format(
-    new Date(agendamento.dataAgendamento),
+    parseAnyDate(agendamento.dataAgendamento),
     "dd 'de' MMMM 'de' yyyy",
     { locale: ptBR },
   );

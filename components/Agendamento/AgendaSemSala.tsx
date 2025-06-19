@@ -3,6 +3,7 @@ import { ptBR } from "date-fns/locale";
 import { TrashSimple } from "@phosphor-icons/react";
 import React from "react";
 import { Agendamento } from "tipos";
+import { parseAnyDate, formatDateForDisplay } from "utils/dateUtils";
 
 interface AgendaSemSalaProps {
   agendamentos: Agendamento[];
@@ -44,9 +45,11 @@ export const AgendaSemSala: React.FC<AgendaSemSalaProps> = ({
             <div className="mb-2">
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-slate-500 group-hover:text-zinc-500 text-sm">
-                  {format(new Date(agendamento.dataAgendamento), "dd/MM/yyyy")}{" "}
+                  {formatDateForDisplay(
+                    parseAnyDate(agendamento.dataAgendamento),
+                  )}{" "}
                   (
-                  {format(new Date(agendamento.dataAgendamento), "EEEE", {
+                  {format(parseAnyDate(agendamento.dataAgendamento), "EEEE", {
                     locale: ptBR,
                   }).replace(/^\w/, (c) => c.toUpperCase())}
                   )

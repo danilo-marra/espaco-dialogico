@@ -3,7 +3,82 @@ import { ValidationError, NotFoundError } from "infra/errors.js";
 import { format, addDays, parse, isAfter } from "date-fns";
 import sessao from "./sessao.js";
 
+// Função auxiliar para formatar data para SQL de forma segura
+function formatDateForSQL(dateInput) {
+  let date;
+
+  if (typeof dateInput === "string") {
+    // Se a string contém 'T' (formato ISO), extrair apenas a parte da data
+    let dateOnly = dateInput;
+    if (dateInput.includes("T")) {
+      dateOnly = dateInput.split("T")[0];
+    }
+
+    // Se está no formato YYYY-MM-DD, apenas validar e retornar
+    if (dateOnly.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateOnly.split("-").map(Number);
+      if (year && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        return dateOnly;
+      }
+    }
+
+    // Tentar criar Date da string
+    date = new Date(dateInput);
+  } else if (dateInput instanceof Date) {
+    date = dateInput;
+  } else {
+    throw new Error(`Formato de data inválido: ${dateInput}`);
+  }
+
+  if (isNaN(date.getTime())) {
+    throw new Error(`Data inválida: ${dateInput}`);
+  }
+
+  // Usar métodos locais para evitar problemas de timezone
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  const formatted = `${year}-${month}-${day}`;
+
+  // Validar o formato final
+  if (!formatted.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    throw new Error(`Formato de data SQL inválido gerado: ${formatted}`);
+  }
+
+  return formatted;
+}
+
 async function create(agendamentoData) {
+  // Validações básicas
+  if (!agendamentoData.terapeuta_id) {
+    throw new ValidationError({
+      message: "ID do terapeuta é obrigatório",
+    });
+  }
+
+  if (!agendamentoData.paciente_id) {
+    throw new ValidationError({
+      message: "ID do paciente é obrigatório",
+    });
+  }
+
+  if (!agendamentoData.dataAgendamento) {
+    throw new ValidationError({
+      message: "Data do agendamento é obrigatória",
+    });
+  }
+
+  // Formatar a data de forma segura para o banco
+  let dataFormatada;
+  try {
+    dataFormatada = formatDateForSQL(agendamentoData.dataAgendamento);
+  } catch (error) {
+    throw new ValidationError({
+      message: `Erro ao formatar data: ${error.message}`,
+    });
+  }
+
   // Verificar se o terapeuta existe
   const terapeutaExists = await database.query({
     text: `SELECT id FROM terapeutas WHERE id = $1`,
@@ -28,42 +103,51 @@ async function create(agendamentoData) {
     });
   }
 
-  // Inserir o agendamento no banco de dados
-  const result = await database.query({
-    text: `
-      INSERT INTO agendamentos (
-        terapeuta_id,
-        paciente_id,
-        recurrence_id,
-        data_agendamento,
-        horario_agendamento,
-        local_agendamento,
-        modalidade_agendamento,
-        tipo_agendamento,
-        valor_agendamento,
-        status_agendamento,
-        observacoes_agendamento
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `,
-    values: [
-      agendamentoData.terapeuta_id,
-      agendamentoData.paciente_id,
-      agendamentoData.recurrenceId,
-      agendamentoData.dataAgendamento,
-      agendamentoData.horarioAgendamento,
-      agendamentoData.localAgendamento,
-      agendamentoData.modalidadeAgendamento,
-      agendamentoData.tipoAgendamento,
-      agendamentoData.valorAgendamento,
-      agendamentoData.statusAgendamento || "Confirmado",
-      agendamentoData.observacoesAgendamento,
-    ],
-  });
+  try {
+    // Inserir o agendamento no banco de dados
+    const result = await database.query({
+      text: `
+        INSERT INTO agendamentos (
+          terapeuta_id,
+          paciente_id,
+          recurrence_id,
+          data_agendamento,
+          horario_agendamento,
+          local_agendamento,
+          modalidade_agendamento,
+          tipo_agendamento,
+          valor_agendamento,
+          status_agendamento,
+          observacoes_agendamento
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *
+      `,
+      values: [
+        agendamentoData.terapeuta_id,
+        agendamentoData.paciente_id,
+        agendamentoData.recurrenceId,
+        dataFormatada, // Usar a data formatada de forma segura
+        agendamentoData.horarioAgendamento,
+        agendamentoData.localAgendamento,
+        agendamentoData.modalidadeAgendamento,
+        agendamentoData.tipoAgendamento,
+        agendamentoData.valorAgendamento,
+        agendamentoData.statusAgendamento || "Confirmado",
+        agendamentoData.observacoesAgendamento,
+      ],
+    });
 
-  // Retornar agendamento com informações completas
-  return await getById(result.rows[0].id);
+    // Retornar agendamento com informações completas
+    return await getById(result.rows[0].id);
+  } catch (error) {
+    console.error("Erro ao inserir agendamento no banco:", {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+    });
+    throw error;
+  }
 }
 
 async function getAll() {
@@ -300,13 +384,60 @@ async function createRecurrences({
   // Array para armazenar todos os agendamentos criados
   const createdAgendamentos = [];
 
-  // Converter as strings de data para objetos Date
-  const dataInicio = parse(
-    agendamentoBase.dataAgendamento,
-    "yyyy-MM-dd",
-    new Date(),
-  );
-  const dataFim = parse(dataFimRecorrencia, "yyyy-MM-dd", new Date());
+  // Converter as strings de data para objetos Date de forma mais robusta
+  let dataInicio, dataFim;
+
+  try {
+    // Se a data está no formato YYYY-MM-DD, usar parseISO ou criar data diretamente
+    if (typeof agendamentoBase.dataAgendamento === "string") {
+      if (agendamentoBase.dataAgendamento.includes("-")) {
+        // Formato YYYY-MM-DD
+        const [year, month, day] = agendamentoBase.dataAgendamento
+          .split("-")
+          .map(Number);
+        dataInicio = new Date(year, month - 1, day);
+      } else {
+        // Tentar parsear de outras formas
+        dataInicio = parse(
+          agendamentoBase.dataAgendamento,
+          "yyyy-MM-dd",
+          new Date(),
+        );
+      }
+    } else {
+      dataInicio = new Date(agendamentoBase.dataAgendamento);
+    }
+
+    if (typeof dataFimRecorrencia === "string") {
+      if (dataFimRecorrencia.includes("-")) {
+        // Formato YYYY-MM-DD
+        const [year, month, day] = dataFimRecorrencia.split("-").map(Number);
+        dataFim = new Date(year, month - 1, day);
+      } else {
+        // Tentar parsear de outras formas
+        dataFim = parse(dataFimRecorrencia, "yyyy-MM-dd", new Date());
+      }
+    } else {
+      dataFim = new Date(dataFimRecorrencia);
+    }
+
+    // Verificar se as datas são válidas
+    if (isNaN(dataInicio.getTime())) {
+      throw new ValidationError({
+        message: `Data de início inválida: ${agendamentoBase.dataAgendamento}`,
+      });
+    }
+
+    if (isNaN(dataFim.getTime())) {
+      throw new ValidationError({
+        message: `Data de fim inválida: ${dataFimRecorrencia}`,
+      });
+    }
+  } catch (error) {
+    throw new ValidationError({
+      message: `Erro ao converter datas: ${error.message}`,
+    });
+  }
 
   // Mapear dias da semana para números (0 = domingo, 1 = segunda, ..., 6 = sábado)
   const diasDaSemanaMap = {
@@ -368,13 +499,16 @@ async function createRecurrences({
 
   // Criar um agendamento para cada data
   for (const data of dataAgendamentos) {
-    const agendamento = {
-      ...agendamentoBase,
-      recurrenceId: recurrenceId,
-      dataAgendamento: format(data, "yyyy-MM-dd"),
-    };
-
     try {
+      // Formatar a data de forma segura para o formato esperado pelo banco
+      const dataFormatada = formatDateForSQL(data);
+
+      const agendamento = {
+        ...agendamentoBase,
+        recurrenceId: recurrenceId,
+        dataAgendamento: dataFormatada,
+      };
+
       const novoAgendamento = await create(agendamento);
       createdAgendamentos.push(novoAgendamento);
 
@@ -399,13 +533,16 @@ async function createRecurrences({
           // Criar a sessão
           await sessao.create(sessaoData);
         } catch (error) {
-          console.error("Erro ao criar sessão para o agendamento:", error);
+          console.error(
+            `Erro ao criar sessão para o agendamento ${novoAgendamento.id}:`,
+            error,
+          );
           // Não falhar a criação do agendamento se houver erro na sessão
         }
       }
     } catch (error) {
       console.error(
-        `Erro ao criar agendamento para ${agendamento.dataAgendamento}: ${error.message}`,
+        `Erro ao criar agendamento para ${formatDateForSQL(data)}: ${error.message}`,
       );
       // Continuar criando os próximos agendamentos mesmo se houver erro
     }
@@ -611,7 +748,10 @@ function formatAgendamentoResult(row) {
     paciente_id: row.paciente_id,
     terapeuta_id: row.terapeuta_id,
     recurrenceId: row.recurrence_id,
-    dataAgendamento: row.data_agendamento,
+    dataAgendamento:
+      row.data_agendamento instanceof Date
+        ? format(row.data_agendamento, "yyyy-MM-dd")
+        : row.data_agendamento,
     horarioAgendamento: row.horario_agendamento,
     localAgendamento: row.local_agendamento,
     modalidadeAgendamento: row.modalidade_agendamento,

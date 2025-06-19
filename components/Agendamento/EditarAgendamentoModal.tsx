@@ -10,7 +10,6 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
 import { agendamentoSchema } from "./agendamentoSchema";
-import { format, parse, isValid } from "date-fns";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "store/store";
 import { updateAgendamento, fetchAgendamentos } from "store/agendamentosSlice";
@@ -18,6 +17,7 @@ import { z } from "zod";
 import { Agendamento } from "tipos";
 import { maskPrice } from "utils/formatter";
 import { Switch } from "@headlessui/react";
+import { formatDateForAPI, parseAnyDate } from "utils/dateUtils";
 import axiosInstance from "utils/api";
 
 // Registrar locale pt-BR
@@ -144,7 +144,6 @@ export function EditarAgendamentoModal({
         axiosInstance
           .get<Agendamento>(`/agendamentos/${agendamento.id}`)
           .then((response) => {
-            console.log("Dados do agendamento da API:", response.data);
             setAgendamentoAtualizado(response.data);
           })
           .catch((error) => {
@@ -168,56 +167,15 @@ export function EditarAgendamentoModal({
     const agendamentoToUse = agendamentoAtualizado || agendamento;
 
     if (agendamentoToUse && !isLoadingAgendamento) {
-      console.log("Carregando dados do agendamento:", agendamentoToUse);
       setValue("paciente_id", agendamentoToUse.paciente_id);
       setValue("terapeuta_id", agendamentoToUse.terapeuta_id);
 
       // Converter a string de data para um objeto Date de forma segura
       try {
-        let dataAgendamento: Date;
+        // Usar nossa função utilitária robusta para conversão segura
+        const dataAgendamento = parseAnyDate(agendamentoToUse.dataAgendamento);
 
-        // Verifica o formato da data recebida do servidor
-        if (typeof agendamentoToUse.dataAgendamento === "string") {
-          console.log("Data original:", agendamentoToUse.dataAgendamento);
-
-          // Abordagem mais direta: primeiro tenta criar uma data diretamente
-          dataAgendamento = new Date(agendamentoToUse.dataAgendamento);
-
-          // Se não for uma data válida, então tenta os parsers específicos
-          if (isNaN(dataAgendamento.getTime())) {
-            // Tenta o formato yyyy-MM-dd primeiro (formato padrão da API)
-            dataAgendamento = parse(
-              agendamentoToUse.dataAgendamento,
-              "yyyy-MM-dd",
-              new Date(),
-            );
-
-            // Se ainda não for válido, tenta o formato dd/MM/yyyy
-            if (!isValid(dataAgendamento)) {
-              dataAgendamento = parse(
-                agendamentoToUse.dataAgendamento,
-                "dd/MM/yyyy",
-                new Date(),
-              );
-            }
-          }
-        } else {
-          // Se não for uma string, assume que é um objeto Date ou timestamp
-          dataAgendamento = new Date(agendamentoToUse.dataAgendamento);
-        }
-
-        // Verificação final de validade
-        if (isValid(dataAgendamento) && !isNaN(dataAgendamento.getTime())) {
-          console.log("Data convertida com sucesso:", dataAgendamento);
-          setValue("dataAgendamento", dataAgendamento);
-        } else {
-          console.error(
-            "Data inválida após conversão:",
-            agendamentoToUse.dataAgendamento,
-          );
-          // Usar a data atual apenas como último recurso
-          setValue("dataAgendamento", new Date());
-        }
+        setValue("dataAgendamento", dataAgendamento);
       } catch (error) {
         console.error("Erro ao converter data:", error);
         setValue("dataAgendamento", new Date());
@@ -246,24 +204,11 @@ export function EditarAgendamentoModal({
 
       // Inicializar o dia da semana atual baseado na data do agendamento
       try {
-        let dataParaDiaSemana: Date;
-        if (typeof agendamentoToUse.dataAgendamento === "string") {
-          dataParaDiaSemana = new Date(agendamentoToUse.dataAgendamento);
-          if (isNaN(dataParaDiaSemana.getTime())) {
-            dataParaDiaSemana = parse(
-              agendamentoToUse.dataAgendamento,
-              "yyyy-MM-dd",
-              new Date(),
-            );
-          }
-        } else {
-          dataParaDiaSemana = new Date(agendamentoToUse.dataAgendamento);
-        }
-
-        if (isValid(dataParaDiaSemana)) {
-          const diaSemanaAtual = dataParaDiaSemana.getDay();
-          setNovoDiaSemana(diaSemanaAtual);
-        }
+        const dataParaDiaSemana = parseAnyDate(
+          agendamentoToUse.dataAgendamento,
+        );
+        const diaSemanaAtual = dataParaDiaSemana.getDay();
+        setNovoDiaSemana(diaSemanaAtual);
       } catch (error) {
         console.error("Erro ao calcular dia da semana:", error);
         setNovoDiaSemana(0); // Default para Domingo
@@ -295,7 +240,7 @@ export function EditarAgendamentoModal({
       // Formatar a data para o formato esperado pela API
       const formattedData = {
         ...data,
-        dataAgendamento: format(data.dataAgendamento, "yyyy-MM-dd"),
+        dataAgendamento: formatDateForAPI(data.dataAgendamento),
       };
 
       // Se o agendamento tem recorrência e o usuário optou por editar todas as recorrências

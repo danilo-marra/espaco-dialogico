@@ -11,7 +11,6 @@ import "react-datepicker/dist/react-datepicker.css";
 import { ptBR } from "date-fns/locale";
 import { agendamentoSchema } from "./agendamentoSchema";
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "store/store";
 import {
@@ -21,6 +20,7 @@ import {
 import { z } from "zod";
 import { maskPrice } from "utils/formatter";
 import { mutate } from "swr";
+import { formatDateForAPI } from "utils/dateUtils";
 
 // Registrar locale pt-BR
 registerLocale("pt-BR", ptBR);
@@ -172,7 +172,7 @@ export function NovoAgendamentoModal({
         // Formatar a data para ISO string (apenas a parte da data)
         const formattedRequestData = {
           ...requestData,
-          dataAgendamento: format(data.dataAgendamento, "yyyy-MM-dd"),
+          dataAgendamento: formatDateForAPI(data.dataAgendamento),
         };
 
         // Usando o Redux action em vez do axios diretamente
@@ -193,13 +193,9 @@ export function NovoAgendamentoModal({
         const recurrenceId = crypto.randomUUID();
 
         // Formatar as datas para ISO string
-        const formattedDataAgendamento = format(
-          data.dataAgendamento,
-          "yyyy-MM-dd",
-        );
-        const formattedDataFim = format(
+        const formattedDataAgendamento = formatDateForAPI(data.dataAgendamento);
+        const formattedDataFim = formatDateForAPI(
           data.dataFimRecorrencia as Date,
-          "yyyy-MM-dd",
         );
 
         // Preparar objeto base de agendamento

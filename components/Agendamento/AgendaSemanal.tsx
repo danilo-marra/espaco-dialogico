@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { format, isSameDay, isToday } from "date-fns";
 import { TrashSimple } from "@phosphor-icons/react";
 import { Agendamento } from "tipos";
+import { parseAnyDate } from "utils/dateUtils";
 
 interface AgendaSemanalProps {
   daysOfWeek: Date[];
@@ -86,7 +87,7 @@ export const AgendaSemanal: React.FC<AgendaSemanalProps> = ({
             {daysOfWeek.map((day) => {
               const dayAgendamentos = agendamentos
                 .filter((agendamento) =>
-                  isSameDay(new Date(agendamento.dataAgendamento), day),
+                  isSameDay(parseAnyDate(agendamento.dataAgendamento), day),
                 )
                 .sort(sortByTime);
               const isCurrentDay = isToday(day);
