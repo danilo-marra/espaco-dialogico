@@ -4,8 +4,10 @@ import authMiddleware from "utils/authMiddleware.js";
 
 const router = createRouter();
 
+// Aplicar middleware de autenticação
+router.use(authMiddleware);
 // Rota protegida que só pode ser acessada com autenticação
-router.get(authMiddleware(getHandler));
+router.get(getHandler);
 
 export default router.handler(controller.errorHandlers);
 
