@@ -403,23 +403,28 @@ export default function Sessoes() {
       <Head>
         <title>Sessões</title>
       </Head>
-      <main className="flex-1 bg-gray-100 p-8">
+      <main className="flex-1 bg-gray-100 p-4 min-w-0 sm:p-6 lg:p-8">
+        {/* Header */}
+        <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold sm:text-2xl">Sessões</h1>
+        </div>
+
         {/* Cards de resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <Receipt size={24} className="text-rosa" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-5 overflow-x-auto">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <Receipt size={24} className="text-rosa flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
                 Pagamentos Pendentes
               </h3>
               <span className="text-xl font-semibold">{sessoesPendentes}</span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <CalendarCheck size={24} className="text-green-500" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <CalendarCheck size={24} className="text-green-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
                 Total de Sessões
               </h3>
               <span className="text-xl font-semibold">
@@ -428,11 +433,11 @@ export default function Sessoes() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <Users size={24} className="text-purple-500" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">
-                Faturamento Filtrado
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <Users size={24} className="text-purple-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
+                <span>Faturamento</span>
               </h3>
               <span className="text-xl font-semibold">
                 R$ {faturamentoSessoesFiltradas.toFixed(2).replace(".", ",")}
@@ -440,11 +445,11 @@ export default function Sessoes() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow">
-            <User size={24} className="text-blue-500" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">
-                Repasse Filtrado
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <User size={24} className="text-blue-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
+                <span>Repasse</span>
               </h3>
               <span className="text-xl font-semibold">
                 R$ {valorRepasseTerapeutas.toFixed(2).replace(".", ",")}
@@ -452,12 +457,16 @@ export default function Sessoes() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow justify-between">
-            <div className="flex items-center">
-              <ChartPie size={24} className="text-green-600 mr-2" />
-              <div>
-                <h3 className="text-xs uppercase text-gray-500">
-                  Lucro Mensal
+          <div className="flex items-center p-4 bg-white rounded shadow justify-between">
+            <div className="flex items-center min-w-0">
+              <ChartPie
+                size={24}
+                className="text-green-600 mr-2 flex-shrink-0"
+              />
+              <div className="min-w-0">
+                <h3 className="text-xs uppercase text-gray-500 truncate">
+                  <span className="hidden sm:inline">Lucro Mensal</span>
+                  <span className="sm:hidden">Lucro</span>
                 </h3>
                 <span className="text-md font-semibold">
                   R$ {lucroDaClinica.toFixed(2).replace(".", ",")}
@@ -467,7 +476,7 @@ export default function Sessoes() {
 
             <button
               onClick={() => setShowLegend(!showLegend)}
-              className="text-gray-500 hover:text-gray-700 ml-2"
+              className="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0"
               aria-label="Mostrar legenda"
               title="Mostrar legenda"
             >
@@ -546,12 +555,12 @@ export default function Sessoes() {
             type="button"
             aria-label="Mês Anterior"
             onClick={() => handleMonthChange(-1)}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretLeft size={24} weight="fill" />
           </button>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-semibold">
+          <div className="flex items-center justify-center min-w-0 px-2 sm:px-4">
+            <h2 className="text-sm font-semibold text-center sm:text-lg md:text-xl">
               {format(currentDate, "MMMM yyyy", { locale: ptBR }).replace(
                 /^\w/,
                 (c) => c.toUpperCase(),
@@ -563,7 +572,10 @@ export default function Sessoes() {
               dateFormat="MM/yyyy"
               showMonthYearPicker
               customInput={
-                <button type="button" className="hover:bg-gray-100 p-1 rounded">
+                <button
+                  type="button"
+                  className="hover:bg-gray-100 p-1 rounded flex-shrink-0 ml-2"
+                >
                   <Calendar size={20} />
                 </button>
               }
@@ -573,25 +585,27 @@ export default function Sessoes() {
             type="button"
             aria-label="Próximo Mês"
             onClick={() => handleMonthChange(1)}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretRight size={24} weight="fill" />
           </button>
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
           {/* Filtro por Terapeuta */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
-            <User size={24} className="text-gray-500 mr-3 flex-shrink-0" />
-            <label
-              htmlFor="terapeutas"
-              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
-            >
-              Terapeuta
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <User size={24} className="text-gray-500" />
+              <label
+                htmlFor="terapeutas"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Terapeuta:
+              </label>
+            </div>
             <select
-              className="text-md w-full focus:outline-none"
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               name="terapeutas"
               id="terapeutas"
               value={selectedTerapeuta}
@@ -610,16 +624,18 @@ export default function Sessoes() {
           </div>
 
           {/* Filtro por Status */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
-            <Receipt size={24} className="text-gray-500 mr-3 flex-shrink-0" />
-            <label
-              htmlFor="status"
-              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
-            >
-              Status do Pagamento
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <Receipt size={24} className="text-gray-500" />
+              <label
+                htmlFor="status"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Status:
+              </label>
+            </div>
             <select
-              className="text-md w-full focus:outline-none"
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               name="status"
               id="status"
               value={selectedStatus}
@@ -637,19 +653,18 @@ export default function Sessoes() {
           </div>
 
           {/* Filtro por Tipo */}
-          <div className="flex items-center p-4 bg-white rounded shadow">
-            <CalendarCheck
-              size={24}
-              className="text-gray-500 mr-3 flex-shrink-0"
-            />
-            <label
-              htmlFor="tipo"
-              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
-            >
-              Tipo de Sessão
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <CalendarCheck size={24} className="text-gray-500" />
+              <label
+                htmlFor="tipo"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Tipo:
+              </label>
+            </div>
             <select
-              className="text-md w-full focus:outline-none"
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               name="tipo"
               id="tipo"
               value={selectedTipo}
@@ -667,21 +682,20 @@ export default function Sessoes() {
           </div>
 
           {/* Busca por Paciente */}
-          <div className="flex items-center p-4 bg-white rounded shadow md:col-span-3">
-            <MagnifyingGlass
-              size={24}
-              className="text-gray-500 mr-3 flex-shrink-0"
-            />
-            <label
-              htmlFor="searchPaciente"
-              className="text-md font-medium text-gray-700 whitespace-nowrap mr-3"
-            >
-              Buscar Paciente
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow lg:col-span-3 sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <MagnifyingGlass size={24} className="text-gray-500" />
+              <label
+                htmlFor="searchPaciente"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Paciente:
+              </label>
+            </div>
             <input
               type="text"
               id="searchPaciente"
-              className="w-full focus:outline-none"
+              className="w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               placeholder="Digite o nome do paciente"
               value={searchPaciente}
               onChange={(e) => {
@@ -698,15 +712,32 @@ export default function Sessoes() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-rosa text-white">
                 <tr>
-                  <th className="p-4 text-left">Terapeuta</th>
-                  <th className="p-4 text-left">Paciente</th>
-                  <th className="p-4 text-left">Tipo de Sessão</th>{" "}
-                  {/* Nova coluna */}
-                  <th className="p-4 text-left">Valor da Sessão</th>
-                  <th className="p-4 text-left">Repasse</th>
-                  <th className="p-4 text-left">Status</th>
-                  <th className="p-4 text-left">Data</th>
-                  {isAdmin && <th className="p-4 text-center">Ações</th>}
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                    Terapeuta
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                    Paciente
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm hidden md:table-cell">
+                    Tipo de Sessão
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                    Valor
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm hidden lg:table-cell">
+                    Repasse
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                    Status
+                  </th>
+                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                    Data
+                  </th>
+                  {isAdmin && (
+                    <th className="p-2 text-center text-xs sm:p-4 sm:text-sm">
+                      Ações
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -770,18 +801,31 @@ export default function Sessoes() {
 
                     return (
                       <tr key={sessao.id} className="hover:bg-gray-50">
-                        <td className="p-4">
-                          {sessao.terapeutaInfo?.nome || "Não atribuído"}
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
+                          <div className="truncate max-w-[120px] sm:max-w-none">
+                            {sessao.terapeutaInfo?.nome || "Não atribuído"}
+                          </div>
                         </td>
-                        <td className="p-4">
-                          {sessao.pacienteInfo?.nome || "Não atribuído"}
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
+                          <div className="truncate max-w-[120px] sm:max-w-none">
+                            {sessao.pacienteInfo?.nome || "Não atribuído"}
+                          </div>
                         </td>
-                        <td className="p-4">{sessao.tipoSessao}</td>{" "}
-                        {/* Valor do tipoSessao */}
-                        <td className="p-4">
-                          R$ {sessao.valorSessao.toFixed(2).replace(".", ",")}
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm hidden md:table-cell">
+                          {sessao.tipoSessao}
                         </td>
-                        <td className="p-4">
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
+                          <div className="flex flex-col">
+                            <span>
+                              R${" "}
+                              {sessao.valorSessao.toFixed(2).replace(".", ",")}
+                            </span>
+                            <span className="text-xs text-gray-500 md:hidden">
+                              {sessao.tipoSessao}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm hidden lg:table-cell">
                           <div className="flex flex-col">
                             <span>
                               R$ {valorRepasse.toFixed(2).replace(".", ",")}
@@ -791,34 +835,56 @@ export default function Sessoes() {
                             </span>
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium inline-block ${
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               sessao.statusSessao === "Pagamento Pendente"
-                                ? "bg-yellow-100 text-yellow-700"
+                                ? "bg-yellow-100 text-yellow-800"
                                 : sessao.statusSessao === "Pagamento Realizado"
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-green-100 text-green-800"
                                   : sessao.statusSessao ===
                                       "Nota Fiscal Emitida"
-                                    ? "bg-blue-100 text-blue-700"
+                                    ? "bg-blue-100 text-blue-800"
                                     : sessao.statusSessao ===
                                         "Nota Fiscal Enviada"
-                                      ? "bg-purple-100 text-purple-700"
-                                      : "bg-gray-100 text-gray-700"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-gray-100 text-gray-800"
                             }`}
                           >
-                            {sessao.statusSessao}
+                            <span className="hidden sm:inline">
+                              {sessao.statusSessao}
+                            </span>
+                            <span className="sm:hidden">
+                              {sessao.statusSessao === "Pagamento Pendente"
+                                ? "Pendente"
+                                : sessao.statusSessao === "Pagamento Realizado"
+                                  ? "Realizado"
+                                  : sessao.statusSessao ===
+                                      "Nota Fiscal Emitida"
+                                    ? "NF Emitida"
+                                    : sessao.statusSessao ===
+                                        "Nota Fiscal Enviada"
+                                      ? "NF Enviada"
+                                      : sessao.statusSessao}
+                            </span>
                           </span>
+                          <div className="text-xs text-gray-500 mt-1 lg:hidden">
+                            Repasse: R${" "}
+                            {valorRepasse.toFixed(2).replace(".", ",")} (
+                            {percentualRepasse}%)
+                          </div>
                         </td>
-                        <td className="p-4">{dataExibicao}</td>
+                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
+                          <div className="truncate">{dataExibicao}</div>
+                        </td>
                         {isAdmin && (
-                          <td className="p-4 text-center">
+                          <td className="p-2 text-center sm:p-4">
                             <button
                               onClick={() => handleEditSessao(sessao)}
-                              className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                              className="text-azul hover:text-blue-700 transition-colors p-1"
                               title="Editar sessão"
                             >
-                              <PencilSimple size={20} />
+                              <PencilSimple size={16} />
                             </button>
                           </td>
                         )}

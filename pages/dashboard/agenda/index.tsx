@@ -640,10 +640,10 @@ export default function Agenda() {
         <title>Agenda</title>
       </Head>
 
-      <main className="flex-1 bg-gray-100 p-8 min-w-0">
+      <main className="flex-1 bg-gray-100 p-4 min-w-0 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold">Agenda</h1>
+        <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold sm:text-2xl">Agenda</h1>
           <Dialog.Root
             open={isNewAgendamentoOpen}
             onOpenChange={setIsNewAgendamentoOpen}
@@ -651,14 +651,14 @@ export default function Agenda() {
             <Dialog.Trigger asChild>
               <button
                 type="button"
-                className="flex items-center bg-azul text-white px-4 py-2 rounded hover:bg-sky-600 duration-150"
+                className="flex items-center justify-center bg-azul text-white px-4 py-3 rounded hover:bg-sky-600 duration-150 w-full sm:w-auto"
                 onClick={() => {
                   setNewAgendamentoDate(null);
                   setOpenedFromDayClick(false);
                 }}
               >
                 <Plus size={20} weight="bold" className="mr-2" />
-                Novo Agendamento
+                <span className="sm:inline">Novo Agendamento</span>
               </button>
             </Dialog.Trigger>
             {isNewAgendamentoOpen && (
@@ -797,14 +797,14 @@ export default function Agenda() {
         )}
 
         {/* Botões de alternância de visualização */}
-        <div className="flex space-x-2 mb-4 overflow-x-auto pb-2">
+        <div className="flex flex-col space-y-2 mb-6 sm:flex-row sm:space-y-0 sm:space-x-4 sm:items-center">
           <button
             type="button"
             onClick={handleSetWeeklyView}
-            className={`px-4 py-2 rounded whitespace-nowrap min-w-[100px] flex-shrink-0 ${
+            className={`px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto sm:min-w-[100px] flex-shrink-0 ${
               viewMode === "semanal"
                 ? "bg-azul text-white"
-                : "bg-white text-azul"
+                : "bg-white text-azul border border-azul"
             }`}
           >
             Semanal
@@ -812,10 +812,10 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetMonthlyView}
-            className={`px-4 py-2 rounded whitespace-nowrap min-w-[100px] flex-shrink-0 ${
+            className={`px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto sm:min-w-[100px] flex-shrink-0 ${
               viewMode === "mensal"
                 ? "bg-azul text-white"
-                : "bg-white text-azul"
+                : "bg-white text-azul border border-azul"
             }`}
           >
             Mensal
@@ -823,10 +823,10 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetTerapeutaView}
-            className={`px-4 py-2 rounded whitespace-nowrap min-w-[120px] flex-shrink-0 ${
+            className={`px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto sm:min-w-[120px] flex-shrink-0 ${
               viewMode === "terapeuta"
                 ? "bg-azul text-white"
-                : "bg-white text-azul"
+                : "bg-white text-azul border border-azul"
             }`}
           >
             Por Terapeuta
@@ -834,13 +834,14 @@ export default function Agenda() {
           <button
             type="button"
             onClick={handleSetCustomPeriod}
-            className={`px-4 py-2 rounded whitespace-nowrap min-w-[150px] flex-shrink-0 ${
+            className={`px-4 py-2 rounded whitespace-nowrap w-full sm:w-auto sm:min-w-[150px] flex-shrink-0 ${
               periodMode === "personalizado"
                 ? "bg-azul text-white"
-                : "bg-white text-azul"
+                : "bg-white text-azul border border-azul"
             }`}
           >
-            Período Personalizado
+            <span className="hidden sm:inline">Período Personalizado</span>
+            <span className="sm:hidden">Personalizado</span>
           </button>
         </div>
 
@@ -864,18 +865,20 @@ export default function Agenda() {
         )}
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 mb-8 lg:grid-cols-2">
           {/* Filtro por Terapeuta */}
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow overflow-x-auto">
-            <User size={24} className="text-gray-500 flex-shrink-0" />
-            <label
-              htmlFor="terapeutas"
-              className="text-md font-medium text-gray-700 whitespace-nowrap"
-            >
-              Terapeuta
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center sm:space-x-4">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <User size={24} className="text-gray-500" />
+              <label
+                htmlFor="terapeutas"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Terapeuta:
+              </label>
+            </div>
             <select
-              className="text-md w-full min-w-[120px] focus:outline-none"
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               name="terapeutas"
               id="terapeutas"
               value={selectedTerapeuta}
@@ -890,21 +893,20 @@ export default function Agenda() {
           </div>
 
           {/* Busca por Paciente */}
-          <div className="flex items-center p-4 bg-white rounded shadow overflow-x-auto">
-            <MagnifyingGlass
-              size={24}
-              className="text-gray-500 mr-3 flex-shrink-0"
-            />
-            <label
-              htmlFor="searchPaciente"
-              className="text-md font-medium text-gray-700 mr-3 whitespace-nowrap"
-            >
-              Paciente:
-            </label>
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <MagnifyingGlass size={24} className="text-gray-500" />
+              <label
+                htmlFor="searchPaciente"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Paciente:
+              </label>
+            </div>
             <input
               type="text"
               id="searchPaciente"
-              className="w-full min-w-[120px] focus:outline-none"
+              className="w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
               placeholder="Buscar por nome"
               value={searchPaciente}
               onChange={(e) => setSearchPaciente(e.target.value)}
@@ -912,15 +914,14 @@ export default function Agenda() {
           </div>
 
           {/* Filtro por Sala */}
-          <div className="flex items-center p-4 bg-white rounded shadow overflow-x-auto">
-            <Door size={24} className="text-gray-500 mr-3 flex-shrink-0" />
-            <label
-              htmlFor="localAgendamento"
-              className="text-md font-medium text-gray-700 mr-3 whitespace-nowrap"
-            >
-              Sala:
-            </label>
-            <div className="flex items-center space-x-4 min-w-[200px]">
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <Door size={24} className="text-gray-500" />
+              <label className="text-md font-medium text-gray-700 whitespace-nowrap">
+                Sala:
+              </label>
+            </div>
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4 md:ml-2">
               <label className="flex items-center whitespace-nowrap">
                 <input
                   type="checkbox"
@@ -943,50 +944,49 @@ export default function Agenda() {
           </div>
 
           {/* Filtro por Status */}
-          <div className="bg-white rounded shadow flex items-center overflow-x-auto">
-            <div className="flex items-center p-4 flex-shrink-0">
-              <CalendarCheck size={24} className="text-gray-500 mr-3" />
-              <label
-                htmlFor="statusAgendamento"
-                className="text-md font-medium text-gray-700 whitespace-nowrap"
-              >
-                Status:
-              </label>
-            </div>
-            <div className="flex space-x-2 p-2 min-w-[300px]">
-              <label className="flex items-center whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-green-500 mr-2"
-                  checked={selectedStatus.confirmado}
-                  onChange={() => handleStatusChange("confirmado")}
-                />
-                <span>Confirmado</span>
-              </label>
-              <label className="flex items-center whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-yellow-500 mr-2"
-                  checked={selectedStatus.remarcado}
-                  onChange={() => handleStatusChange("remarcado")}
-                />
-                <span>Remarcado</span>
-              </label>
-              <label className="flex items-center whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-4 w-4 text-red-500 mr-2"
-                  checked={selectedStatus.cancelado}
-                  onChange={() => handleStatusChange("cancelado")}
-                />
-                <span>Cancelado</span>
-              </label>
+          <div className="bg-white rounded shadow">
+            <div className="flex flex-col space-y-2 p-4 sm:flex-row sm:space-y-0 sm:items-center">
+              <div className="flex items-center space-x-2 flex-shrink-0">
+                <CalendarCheck size={24} className="text-gray-500" />
+                <label className="text-md font-medium text-gray-700 whitespace-nowrap">
+                  Status:
+                </label>
+              </div>
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4 md:ml-2">
+                <label className="flex items-center whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    className="form-checkbox h-4 w-4 text-green-500 mr-2"
+                    checked={selectedStatus.confirmado}
+                    onChange={() => handleStatusChange("confirmado")}
+                  />
+                  <span>Confirmado</span>
+                </label>
+                <label className="flex items-center whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    className="form-checkbox h-4 w-4 text-yellow-500 mr-2"
+                    checked={selectedStatus.remarcado}
+                    onChange={() => handleStatusChange("remarcado")}
+                  />
+                  <span>Remarcado</span>
+                </label>
+                <label className="flex items-center whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    className="form-checkbox h-4 w-4 text-red-500 mr-2"
+                    checked={selectedStatus.cancelado}
+                    onChange={() => handleStatusChange("cancelado")}
+                  />
+                  <span>Cancelado</span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Navegação da Semana/Mês */}
-        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4 overflow-x-auto">
+        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4">
           <button
             type="button"
             aria-label="Anterior"
@@ -995,16 +995,16 @@ export default function Agenda() {
           >
             <CaretLeft size={24} weight="fill" />
           </button>
-          <div className="flex items-center space-x-2 min-w-0 px-4">
-            <h2 className="text-lg md:text-xl font-semibold text-center truncate">
+          <div className="flex items-center justify-center min-w-0 px-2 sm:px-4">
+            <h2 className="text-sm font-semibold text-center sm:text-lg md:text-xl">
               {periodMode === "semana"
-                ? `${format(selectedDate, "MMMM", { locale: ptBR }).replace(/^\w/, (c) => c.toUpperCase())} - Semana de ${format(startOfSelectedWeek, "dd/MM/yyyy")} até ${format(addDays(startOfSelectedWeek, 6), "dd/MM/yyyy")}`
+                ? `${format(selectedDate, "MMM", { locale: ptBR }).replace(/^\w/, (c) => c.toUpperCase())} - ${format(startOfSelectedWeek, "dd/MM")} - ${format(addDays(startOfSelectedWeek, 6), "dd/MM")}`
                 : periodMode === "mes"
                   ? format(selectedDate, "MMMM yyyy", { locale: ptBR }).replace(
                       /^\w/,
                       (c) => c.toUpperCase(),
                     )
-                  : `Período personalizado: ${customPeriodStart ? format(customPeriodStart, "dd/MM/yyyy") : ""} até ${customPeriodEnd ? format(customPeriodEnd, "dd/MM/yyyy") : ""}`}
+                  : `${customPeriodStart ? format(customPeriodStart, "dd/MM") : ""} - ${customPeriodEnd ? format(customPeriodEnd, "dd/MM") : ""}`}
             </h2>
             <DatePicker
               selected={selectedDate}
@@ -1012,7 +1012,7 @@ export default function Agenda() {
               customInput={
                 <button
                   type="button"
-                  className="hover:bg-gray-100 p-1 rounded flex-shrink-0"
+                  className="hover:bg-gray-100 p-1 rounded flex-shrink-0 ml-2"
                 >
                   <Calendar size={20} />
                 </button>
