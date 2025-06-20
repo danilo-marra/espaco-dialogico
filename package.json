@@ -9,6 +9,7 @@
     "build": "next build",
     "postbuild": "node -e \"if(process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') require('./infra/scripts/run-migrations.js')\"",
     "db:validate": "node infra/scripts/validate-db.js",
+    "db:test": "node infra/scripts/test-db-connection.js",
     "db:seed:terapeutas": "node infra/scripts/seed-terapeutas.js",
     "db:seed:all": "node infra/scripts/run-seeds.js",
     "test:frontend": "jest tests/frontend --env=jsdom",

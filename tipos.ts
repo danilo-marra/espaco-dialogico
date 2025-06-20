@@ -91,7 +91,7 @@ export interface Agendamento {
   dataFimRecorrencia?: Date | string | null;
 }
 
-export interface Transacoes {
+export interface Transacao {
   id: string;
   tipo: "entrada" | "saida";
   categoria: string;
