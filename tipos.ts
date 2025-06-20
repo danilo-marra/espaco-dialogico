@@ -90,3 +90,28 @@ export interface Agendamento {
   diasDaSemana?: string[];
   dataFimRecorrencia?: Date | string | null;
 }
+
+export interface Transacoes {
+  id: string;
+  tipo: "entrada" | "saida";
+  categoria: string;
+  descricao: string;
+  valor: number;
+  data: Date | string;
+  usuario_id: string;
+  observacoes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ResumoFinanceiro {
+  periodo: string; // "YYYY-MM" para mês/ano
+  receitaSessoes: number;
+  repasseTerapeutas: number;
+  entradasManuais: number;
+  saidasManuais: number;
+  totalEntradas: number;
+  totalSaidas: number;
+  saldoFinal: number;
+  quantidadeSessoes: number;
+}
