@@ -38,15 +38,9 @@ async function create(sessaoData) {
           valor_sessao,
           valor_repasse,
           status_sessao,
-          dt_sessao1,
-          dt_sessao2,
-          dt_sessao3,
-          dt_sessao4,
-          dt_sessao5,
-          dt_sessao6,
           agendamento_id
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING *
       `,
       values: [
@@ -56,12 +50,6 @@ async function create(sessaoData) {
         sessaoData.valorSessao,
         sessaoData.valorRepasse,
         sessaoData.statusSessao || "Pagamento Pendente",
-        sessaoData.dtSessao1,
-        sessaoData.dtSessao2,
-        sessaoData.dtSessao3,
-        sessaoData.dtSessao4,
-        sessaoData.dtSessao5,
-        sessaoData.dtSessao6,
         sessaoData.agendamento_id,
       ],
     });
@@ -94,15 +82,24 @@ async function getAll() {
         p.cpf_responsavel as paciente_cpf_responsavel,
         p.endereco_responsavel as paciente_endereco_responsavel,
         p.origem as paciente_origem,
-        p.dt_entrada as paciente_dt_entrada
+        p.dt_entrada as paciente_dt_entrada,
+        a.data_agendamento,
+        a.horario_agendamento,
+        a.local_agendamento,
+        a.modalidade_agendamento,
+        a.tipo_agendamento,
+        a.valor_agendamento,
+        a.status_agendamento
       FROM 
         sessoes s
       JOIN 
         terapeutas t ON s.terapeuta_id = t.id
       JOIN 
         pacientes p ON s.paciente_id = p.id
+      LEFT JOIN
+        agendamentos a ON s.agendamento_id = a.id
       ORDER BY 
-        COALESCE(s.dt_sessao1, s.created_at) DESC
+        COALESCE(a.data_agendamento, s.created_at) DESC
     `,
   });
 
@@ -161,16 +158,25 @@ async function getFiltered(filters) {
         p.cpf_responsavel as paciente_cpf_responsavel,
         p.endereco_responsavel as paciente_endereco_responsavel,
         p.origem as paciente_origem,
-        p.dt_entrada as paciente_dt_entrada
+        p.dt_entrada as paciente_dt_entrada,
+        a.data_agendamento,
+        a.horario_agendamento,
+        a.local_agendamento,
+        a.modalidade_agendamento,
+        a.tipo_agendamento,
+        a.valor_agendamento,
+        a.status_agendamento
       FROM 
         sessoes s
       JOIN 
         terapeutas t ON s.terapeuta_id = t.id
       JOIN 
         pacientes p ON s.paciente_id = p.id
+      LEFT JOIN
+        agendamentos a ON s.agendamento_id = a.id
       ${whereClause}
       ORDER BY 
-        COALESCE(s.dt_sessao1, s.created_at) DESC
+        COALESCE(a.data_agendamento, s.created_at) DESC
     `,
     values: values,
   });
@@ -198,13 +204,22 @@ async function getById(id) {
         p.cpf_responsavel as paciente_cpf_responsavel,
         p.endereco_responsavel as paciente_endereco_responsavel,
         p.origem as paciente_origem,
-        p.dt_entrada as paciente_dt_entrada
+        p.dt_entrada as paciente_dt_entrada,
+        a.data_agendamento,
+        a.horario_agendamento,
+        a.local_agendamento,
+        a.modalidade_agendamento,
+        a.tipo_agendamento,
+        a.valor_agendamento,
+        a.status_agendamento
       FROM 
         sessoes s
       JOIN 
         terapeutas t ON s.terapeuta_id = t.id
       JOIN 
         pacientes p ON s.paciente_id = p.id
+      LEFT JOIN
+        agendamentos a ON s.agendamento_id = a.id
       WHERE 
         s.id = $1
     `,
@@ -243,12 +258,6 @@ async function update(id, sessaoData) {
   addField("valor_sessao", sessaoData.valorSessao);
   addField("valor_repasse", sessaoData.valorRepasse);
   addField("status_sessao", sessaoData.statusSessao);
-  addField("dt_sessao1", sessaoData.dtSessao1);
-  addField("dt_sessao2", sessaoData.dtSessao2);
-  addField("dt_sessao3", sessaoData.dtSessao3);
-  addField("dt_sessao4", sessaoData.dtSessao4);
-  addField("dt_sessao5", sessaoData.dtSessao5);
-  addField("dt_sessao6", sessaoData.dtSessao6);
   addField("agendamento_id", sessaoData.agendamento_id);
 
   // Se não houver campos para atualizar, retornar a sessão existente
@@ -296,12 +305,6 @@ function formatSessaoResult(row) {
     valorSessao: parseFloat(row.valor_sessao),
     valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : undefined,
     statusSessao: row.status_sessao,
-    dtSessao1: row.dt_sessao1,
-    dtSessao2: row.dt_sessao2,
-    dtSessao3: row.dt_sessao3,
-    dtSessao4: row.dt_sessao4,
-    dtSessao5: row.dt_sessao5,
-    dtSessao6: row.dt_sessao6,
     created_at: row.created_at,
     updated_at: row.updated_at,
 
@@ -321,14 +324,28 @@ function formatSessaoResult(row) {
     pacienteInfo: {
       id: row.paciente_id,
       nome: row.paciente_nome,
-      dt_nascimento: row.dt_nascimento,
-      nome_responsavel: row.nome_responsavel,
-      telefone_responsavel: row.telefone_responsavel,
-      email_responsavel: row.email_responsavel,
-      cpf_responsavel: row.cpf_responsavel,
-      endereco_responsavel: row.endereco_responsavel,
-      origem: row.origem,
-      dt_entrada: row.dt_entrada,
+      dt_nascimento: row.paciente_dt_nascimento,
+      nome_responsavel: row.paciente_nome_responsavel,
+      telefone_responsavel: row.paciente_telefone_responsavel,
+      email_responsavel: row.paciente_email_responsavel,
+      cpf_responsavel: row.paciente_cpf_responsavel,
+      endereco_responsavel: row.paciente_endereco_responsavel,
+      origem: row.paciente_origem,
+      dt_entrada: row.paciente_dt_entrada,
+    },
+
+    // Informações do agendamento
+    agendamentoInfo: {
+      id: row.agendamento_id,
+      data_agendamento: row.data_agendamento,
+      horario_agendamento: row.horario_agendamento,
+      local_agendamento: row.local_agendamento,
+      modalidade_agendamento: row.modalidade_agendamento,
+      tipo_agendamento: row.tipo_agendamento,
+      valor_agendamento: row.valor_agendamento
+        ? parseFloat(row.valor_agendamento)
+        : undefined,
+      status_agendamento: row.status_agendamento,
     },
   };
 }

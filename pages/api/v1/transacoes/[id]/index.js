@@ -17,7 +17,7 @@ function adminMiddleware(request, response, next) {
         "Acesso negado. Apenas administradores podem gerenciar transações.",
     });
   }
-  next();
+  return next();
 }
 
 // Aplicar middleware de admin
@@ -49,7 +49,9 @@ async function getHandler(request, response) {
     console.error("Erro ao buscar transação:", error);
 
     if (error.message.includes("não encontrada")) {
-      return response.status(404).json({ error: error.message });
+      return response.status(404).json({
+        error: "Transação não encontrada",
+      });
     }
 
     return response.status(500).json({
@@ -71,9 +73,9 @@ async function putHandler(request, response) {
       });
     }
 
+    // Validações básicas
     const updateData = {};
 
-    // Validar e adicionar campos que podem ser atualizados
     if (tipo !== undefined) {
       if (!["entrada", "saida"].includes(tipo)) {
         return response.status(400).json({
@@ -112,6 +114,11 @@ async function putHandler(request, response) {
     }
 
     if (data !== undefined) {
+      if (!data) {
+        return response.status(400).json({
+          error: "Data não pode estar vazia",
+        });
+      }
       updateData.data = data;
     }
 
@@ -135,7 +142,9 @@ async function putHandler(request, response) {
     console.error("Erro ao atualizar transação:", error);
 
     if (error.message.includes("não encontrada")) {
-      return response.status(404).json({ error: error.message });
+      return response.status(404).json({
+        error: "Transação não encontrada",
+      });
     }
 
     if (error.message.includes("Erro ao atualizar transação")) {
@@ -148,7 +157,7 @@ async function putHandler(request, response) {
   }
 }
 
-// Handler para deletar uma transação
+// Handler para excluir uma transação
 async function deleteHandler(request, response) {
   try {
     const { id } = request.query;
@@ -159,17 +168,23 @@ async function deleteHandler(request, response) {
       });
     }
 
-    const transacaoRemovida = await transacao.remove(id);
+    const transacaoExcluida = await transacao.remove(id);
 
     return response.status(200).json({
       message: "Transação excluída com sucesso",
-      transacao: transacaoRemovida,
+      transacao: transacaoExcluida,
     });
   } catch (error) {
     console.error("Erro ao excluir transação:", error);
 
     if (error.message.includes("não encontrada")) {
-      return response.status(404).json({ error: error.message });
+      return response.status(404).json({
+        error: "Transação não encontrada",
+      });
+    }
+
+    if (error.message.includes("Erro ao excluir transação")) {
+      return response.status(400).json({ error: error.message });
     }
 
     return response.status(500).json({

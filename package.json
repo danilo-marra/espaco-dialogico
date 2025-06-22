@@ -27,6 +27,7 @@
     "migrations:up": "cross-env NODE_ENV=development node infra/scripts/run-migrations.js",
     "migrations:up:legacy": "node-pg-migrate -m infra/migrations --envPath .env.development up",
     "migrations:down": "node-pg-migrate -m infra/migrations --envPath .env.development down",
+    "migrations:down:all": "node-pg-migrate -m infra/migrations --envPath .env.development down --count all",
     "lint:prettier:check": "prettier --check .",
     "lint:prettier:fix": "prettier --write .",
     "lint:eslint:check": "next lint --dir .",

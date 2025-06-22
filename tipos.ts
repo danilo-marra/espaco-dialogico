@@ -40,8 +40,8 @@ export interface Sessao {
   agendamentoInfo?: Agendamento;
 
   // Campos mapeados do Agendamento
-  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar"; // Convertido de tipoAgendamento
-  valorSessao: number; // Valor copiado de valorAgendamento
+  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar";
+  valorSessao: number;
 
   // Campos específicos da sessão
   valorRepasse?: number;
@@ -50,14 +50,6 @@ export interface Sessao {
     | "Pagamento Realizado"
     | "Nota Fiscal Emitida"
     | "Nota Fiscal Enviada";
-
-  // Data da sessão (pode ser derivada de dataAgendamento)
-  dtSessao1: Date | string;
-  dtSessao2?: Date | string;
-  dtSessao3?: Date | string;
-  dtSessao4?: Date | string;
-  dtSessao5?: Date | string;
-  dtSessao6?: Date | string;
 
   // Datas de controle
   created_at?: string;

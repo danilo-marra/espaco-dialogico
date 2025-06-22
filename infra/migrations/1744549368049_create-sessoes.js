@@ -36,32 +36,6 @@ exports.up = (pgm) => {
       check: `status_sessao IN ('Pagamento Pendente', 'Pagamento Realizado', 'Nota Fiscal Emitida', 'Nota Fiscal Enviada')`,
     },
 
-    // Datas das sessões
-    dt_sessao1: {
-      type: "timestamptz",
-      notNull: false,
-    },
-    dt_sessao2: {
-      type: "timestamptz",
-      notNull: false,
-    },
-    dt_sessao3: {
-      type: "timestamptz",
-      notNull: false,
-    },
-    dt_sessao4: {
-      type: "timestamptz",
-      notNull: false,
-    },
-    dt_sessao5: {
-      type: "timestamptz",
-      notNull: false,
-    },
-    dt_sessao6: {
-      type: "timestamptz",
-      notNull: false,
-    },
-
     // Controle de data/hora
     created_at: {
       type: "timestamptz",

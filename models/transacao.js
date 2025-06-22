@@ -74,6 +74,14 @@ async function create(transacaoData) {
 
     return result.rows[0];
   } catch (error) {
+    console.error("🔍 DEBUG - Erro capturado em transacao.create():", error);
+    console.error("🔍 DEBUG - Error details:", {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      constraint: error.constraint,
+    });
+
     if (error instanceof ValidationError) {
       throw error;
     }
@@ -87,7 +95,7 @@ async function findAll(filters = {}) {
     let query = `
       SELECT 
         t.*,
-        u.name as usuario_nome
+        u.username as usuario_nome
       FROM transacoes t
       LEFT JOIN users u ON t.usuario_id = u.id
     `;
@@ -162,7 +170,7 @@ async function findById(id) {
       text: `
         SELECT 
           t.*,
-          u.name as usuario_nome
+          u.username as usuario_nome
         FROM transacoes t
         LEFT JOIN users u ON t.usuario_id = u.id
         WHERE t.id = $1

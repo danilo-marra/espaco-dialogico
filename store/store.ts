@@ -5,6 +5,7 @@ import pacientesReducer from "./pacientesSlice";
 import terapeutasReducer from "./terapeutasSlice";
 import sessoesReducer from "./sessoesSlice";
 import agendamentosReducer from "./agendamentosSlice";
+import transacoesReducer from "./transacoesSlice";
 
 export interface PacientesState {
   data: Paciente[];
@@ -36,6 +37,7 @@ const rootReducer = combineReducers({
   terapeutas: terapeutasReducer,
   sessoes: sessoesReducer,
   agendamentos: agendamentosReducer,
+  transacoes: transacoesReducer,
 });
 
 // Configurar store

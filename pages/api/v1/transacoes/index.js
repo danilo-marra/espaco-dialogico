@@ -17,7 +17,7 @@ function adminMiddleware(request, response, next) {
         "Acesso negado. Apenas administradores podem gerenciar transações.",
     });
   }
-  next();
+  return next();
 }
 
 // Aplicar middleware de admin

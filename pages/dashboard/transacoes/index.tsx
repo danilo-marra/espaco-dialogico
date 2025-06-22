@@ -10,16 +10,24 @@ import {
   CurrencyDollar,
   ChartPie,
   Note,
+  PencilSimple,
+  Trash,
 } from "@phosphor-icons/react";
 import Head from "next/head";
+import Image from "next/image";
 import React, { useMemo, useState } from "react";
 import { useFetchSessoes } from "hooks/useFetchSessoes";
+import { useFetchTransacoes } from "hooks/useFetchTransacoes";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { parseAnyDate, isValidDate } from "utils/dateUtils";
+import * as Dialog from "@radix-ui/react-dialog";
+import NovaTransacaoModal from "../../../components/Transacao/NovaTransacaoModal";
+import EditarTransacaoModal from "../../../components/Transacao/EditarTransacaoModal";
+import DeletarTransacaoModal from "../../../components/Transacao/DeletarTransacaoModal";
 
 /**
  * Dashboard de Transações Financeiras
@@ -70,38 +78,33 @@ function obterValorRepasse(sessao: any): number {
   return sessao.valorSessao * 0.45;
 }
 
-// Função para filtrar sessões apenas pelo mês
+// Função para filtrar sessões apenas pelo mês (usando data do agendamento)
 const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
   if (!Array.isArray(sessoes)) {
     return [];
   }
 
   return sessoes.filter((sessao) => {
-    const datasParaVerificar = [
-      sessao.dtSessao1,
-      sessao.dtSessao2,
-      sessao.dtSessao3,
-      sessao.dtSessao4,
-      sessao.dtSessao5,
-      sessao.dtSessao6,
-    ];
+    // Usar a data do agendamento associado
+    const dataAgendamento = sessao.agendamentoInfo?.data_agendamento;
 
-    for (const dataSessao of datasParaVerificar) {
-      if (dataSessao) {
-        try {
-          const data = parseAnyDate(dataSessao);
-          if (isValidDate(data)) {
-            const anoMesSessao = format(data, "yyyy-MM");
-            const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+    if (!dataAgendamento) {
+      return false;
+    }
 
-            if (anoMesSessao === anoMesSelecionado) {
-              return true;
-            }
-          }
-        } catch (error) {
-          console.warn("Erro ao processar data da sessão:", dataSessao, error);
-        }
+    try {
+      const data = parseAnyDate(dataAgendamento);
+      if (isValidDate(data)) {
+        const anoMesSessao = format(data, "yyyy-MM");
+        const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+        return anoMesSessao === anoMesSelecionado;
       }
+    } catch (error) {
+      console.warn(
+        "Erro ao processar data do agendamento:",
+        dataAgendamento,
+        error,
+      );
     }
 
     return false;
@@ -112,14 +115,79 @@ export default function Transacoes() {
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNovaTransacao, setShowNovaTransacao] = useState(false);
+  const [showEditarTransacao, setShowEditarTransacao] = useState(false);
+  const [transacaoParaEditar, setTransacaoParaEditar] = useState<any>(null);
+  const [showDeletarTransacao, setShowDeletarTransacao] = useState(false);
+  const [transacaoParaDeletar, setTransacaoParaDeletar] = useState<any>(null);
 
   // Buscar dados das sessões para calcular lucros e repasses
-  const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
+  const {
+    sessoes,
+    isLoading: isLoadingSessoes,
+    isError: isErrorSessoes,
+    mutate: mutateSessoes,
+  } = useFetchSessoes();
 
-  // Período atual formatado de forma segura para futuras integrações com backend
-  const _periodoAtual = useMemo(() => {
-    return format(currentDate, "yyyy-MM");
-  }, [currentDate]);
+  // Buscar todas as transações manuais do backend (sem filtros na API)
+  const {
+    transacoes: todasTransacoesManuais,
+    isLoading: isLoadingTransacoes,
+    isError: isErrorTransacoes,
+    mutate: mutateTransacoes,
+  } = useFetchTransacoes();
+
+  // Filtrar transações manuais do mês atual (similar ao filtro de sessões)
+  const transacoesManuais = useMemo(() => {
+    if (!todasTransacoesManuais) return [];
+    return todasTransacoesManuais.filter((transacao) => {
+      try {
+        const dataTransacao = parseAnyDate(transacao.data);
+        if (isValidDate(dataTransacao)) {
+          const anoMesTransacao = format(dataTransacao, "yyyy-MM");
+          const anoMesSelecionado = format(currentDate, "yyyy-MM");
+          return anoMesTransacao === anoMesSelecionado;
+        }
+      } catch (error) {
+        console.warn(
+          "Erro ao processar data da transação:",
+          transacao.data,
+          error,
+        );
+      }
+      return false;
+    });
+  }, [todasTransacoesManuais, currentDate]);
+
+  // Estados de loading e error combinados
+  const isLoading = isLoadingSessoes || isLoadingTransacoes;
+  const isError = isErrorSessoes || isErrorTransacoes;
+
+  const mutate = () => {
+    mutateSessoes();
+    mutateTransacoes();
+  };
+
+  // Função para abrir o modal de edição
+  const handleEditarTransacao = (transacao: any) => {
+    setTransacaoParaEditar(transacao);
+    setShowEditarTransacao(true);
+  };
+
+  const handleCloseEditarTransacao = () => {
+    setShowEditarTransacao(false);
+    setTransacaoParaEditar(null);
+  };
+
+  // Função para abrir o modal de deletar
+  const handleDeletarTransacao = (transacao: any) => {
+    setTransacaoParaDeletar(transacao);
+    setShowDeletarTransacao(true);
+  };
+
+  const handleCloseDeletarTransacao = () => {
+    setShowDeletarTransacao(false);
+    setTransacaoParaDeletar(null);
+  };
 
   // Filtrar sessões do mês atual
   const sessoesDoMes = useMemo(() => {
@@ -148,9 +216,80 @@ export default function Transacoes() {
     return receitaTotal - repasseTotal;
   }, [receitaTotal, repasseTotal]);
 
-  // Por enquanto, transações manuais serão zero (implementar depois)
-  const entradasManuais = 0;
-  const saidasManuais = 0;
+  const transacoesSessoes = useMemo(() => {
+    return sessoesDoMes.flatMap((sessao) => {
+      const repasse = obterValorRepasse(sessao);
+
+      // Usar a data do agendamento associado
+      const dataAgendamento = sessao.agendamentoInfo?.data_agendamento;
+      if (!dataAgendamento) return [];
+
+      let dataSessaoExibir = null;
+      try {
+        const data = parseAnyDate(dataAgendamento);
+        if (isValidDate(data)) {
+          dataSessaoExibir = data;
+        }
+      } catch (error) {
+        console.warn("Erro ao processar data:", dataAgendamento, error);
+      }
+
+      if (!dataSessaoExibir) return [];
+
+      // Retornar duas transações: uma de receita e uma de repasse
+      return [
+        {
+          id: `${sessao.id}-receita`,
+          tipo: "entrada",
+          categoria: "Receita de Sessões",
+          descricao: `${sessao.tipoSessao || "Sessão"} - ${sessao.pacienteInfo?.nome || "N/A"}`,
+          valor: sessao.valorSessao || 0,
+          data: dataSessaoExibir,
+          terapeuta: sessao.terapeutaInfo,
+          paciente: sessao.pacienteInfo,
+          sessaoOriginal: sessao,
+        },
+        {
+          id: `${sessao.id}-repasse`,
+          tipo: "saida",
+          categoria: "Repasse a Terapeutas",
+          descricao: `Repasse - ${sessao.terapeutaInfo?.nome || "N/A"}`,
+          valor: repasse,
+          data: dataSessaoExibir,
+          terapeuta: sessao.terapeutaInfo,
+          paciente: sessao.pacienteInfo,
+          sessaoOriginal: sessao,
+        },
+      ];
+    });
+  }, [sessoesDoMes]);
+
+  // Combinar todas as transações e ordenar por data
+  const todasTransacoes = useMemo(() => {
+    // Converter transações manuais para o formato correto (já filtradas pelo mês atual)
+    const transacoesManuaisFormatadas = transacoesManuais.map((transacao) => ({
+      ...transacao,
+      data: parseAnyDate(transacao.data),
+    }));
+
+    const combinadas = [...transacoesSessoes, ...transacoesManuaisFormatadas];
+    return combinadas.sort(
+      (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
+    );
+  }, [transacoesSessoes, transacoesManuais]);
+
+  // Recalcular totais incluindo transações manuais do mês atual
+  const entradasManuais = useMemo(() => {
+    return transacoesManuais
+      .filter((t) => t.tipo === "entrada")
+      .reduce((total, t) => total + (Number(t.valor) || 0), 0);
+  }, [transacoesManuais]);
+
+  const saidasManuais = useMemo(() => {
+    return transacoesManuais
+      .filter((t) => t.tipo === "saida")
+      .reduce((total, t) => total + (Number(t.valor) || 0), 0);
+  }, [transacoesManuais]);
 
   // Totais finais
   const totalEntradas = receitaTotal + entradasManuais;
@@ -412,37 +551,266 @@ export default function Transacoes() {
           </div>
         </div>
 
-        {/* Placeholder para futuras funcionalidades */}
-        <div className="mt-6 bg-white rounded shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            Próximas Funcionalidades
-          </h3>
-          <div className="space-y-2 text-gray-600">
-            <p>• Cadastro de transações manuais (entradas e saídas)</p>
-            <p>• Histórico detalhado de todas as transações</p>
-            <p>• Filtros por categoria e período</p>
-            <p>• Relatórios e gráficos financeiros</p>
-            <p>• Exportação de dados para Excel/PDF</p>
-          </div>
-        </div>
-
-        {/* Placeholder para Modal de Nova Transação */}
-        {showNovaTransacao && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Nova Transação</h3>
-              <p className="text-gray-600 mb-4">
-                Esta funcionalidade será implementada em breve.
-              </p>
-              <button
-                onClick={() => setShowNovaTransacao(false)}
-                className="w-full bg-azul text-white py-2 rounded hover:bg-sky-600"
-              >
-                Fechar
-              </button>
+        {/* Tabela de Transações */}
+        <div className="mt-6 bg-white rounded shadow">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
+              <h3 className="text-lg font-semibold">Transações do Período</h3>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">
+                  {todasTransacoes.length} transações encontradas
+                </span>
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tipo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Descrição
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Responsável
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Valor
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {todasTransacoes.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center space-y-2">
+                        <Receipt size={48} className="text-gray-300" />
+                        <span className="text-gray-500">
+                          Nenhuma transação encontrada para este período
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  todasTransacoes.map((transacao) => {
+                    return (
+                      <tr key={transacao.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {format(new Date(transacao.data), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`text-sm font-medium ${
+                              transacao.tipo === "entrada"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }`}
+                          >
+                            {transacao.tipo === "entrada"
+                              ? "Receita"
+                              : "Despesa"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs">
+                            <p className="font-medium truncate">
+                              {transacao.descricao}
+                            </p>
+                            {"paciente" in transacao && transacao.paciente && (
+                              <p className="text-gray-500 text-xs truncate">
+                                Paciente: {transacao.paciente.nome}
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center space-x-3">
+                            {"terapeuta" in transacao && transacao.terapeuta ? (
+                              <>
+                                {transacao.terapeuta.foto ? (
+                                  <Image
+                                    className="h-8 w-8 rounded-full object-cover"
+                                    src={transacao.terapeuta.foto}
+                                    alt={transacao.terapeuta.nome}
+                                    width={32}
+                                    height={32}
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <span className="text-xs font-medium text-gray-600">
+                                      {transacao.terapeuta.nome?.charAt(0) ||
+                                        "?"}
+                                    </span>
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="font-medium">
+                                    {transacao.terapeuta.nome}
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <div className="h-8 w-8 rounded-full bg-blue-200 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-blue-600">
+                                    A
+                                  </span>
+                                </div>
+                                <span className="text-sm text-gray-600">
+                                  {"usuario_nome" in transacao
+                                    ? transacao.usuario_nome
+                                    : "Sistema"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <span
+                            className={
+                              transacao.tipo === "entrada"
+                                ? "text-green-600"
+                                : "text-red-600"
+                            }
+                          >
+                            {transacao.tipo === "entrada" ? "+" : "-"}R${" "}
+                            {Number(transacao.valor || 0)
+                              .toFixed(2)
+                              .replace(".", ",")}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {/* Mostrar botões de ação apenas para transações manuais */}
+                          {!("sessaoOriginal" in transacao) && (
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => handleEditarTransacao(transacao)}
+                                className="text-azul hover:text-sky-600 transition-colors p-1 rounded"
+                                title="Editar transação"
+                              >
+                                <PencilSimple size={16} />
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleDeletarTransacao(transacao)
+                                }
+                                className="text-red-500 hover:text-red-700 transition-colors p-1 rounded"
+                                title="Deletar transação"
+                              >
+                                <Trash size={16} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Resumo da Tabela */}
+          {todasTransacoes.length > 0 && (
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center space-x-4">
+                  <span className="text-gray-600">
+                    Total de {todasTransacoes.length} transações
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({sessoesDoMes.length * 2} automáticas +{" "}
+                    {transacoesManuais.length} manuais)
+                  </span>
+                </div>
+                <div className="flex items-center space-x-6">
+                  <div className="text-right">
+                    <span className="text-gray-500">Total Entradas: </span>
+                    <span className="font-semibold text-green-600">
+                      R$ {totalEntradas.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-500">Total Saídas: </span>
+                    <span className="font-semibold text-red-600">
+                      R$ {totalSaidas.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-gray-500">Saldo: </span>
+                    <span
+                      className={`font-semibold ${saldoFinal >= 0 ? "text-blue-600" : "text-red-600"}`}
+                    >
+                      R$ {saldoFinal.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal de Nova Transação */}
+        <Dialog.Root
+          open={showNovaTransacao}
+          onOpenChange={setShowNovaTransacao}
+        >
+          <NovaTransacaoModal
+            onClose={() => setShowNovaTransacao(false)}
+            onSuccess={() => {
+              // Recarregar transações após criar uma nova
+              mutateTransacoes();
+              setShowNovaTransacao(false);
+            }}
+          />
+        </Dialog.Root>
+
+        {/* Modal de Editar Transação */}
+        <Dialog.Root
+          open={showEditarTransacao}
+          onOpenChange={setShowEditarTransacao}
+        >
+          {transacaoParaEditar && (
+            <EditarTransacaoModal
+              transacao={transacaoParaEditar}
+              onClose={handleCloseEditarTransacao}
+              onSuccess={() => {
+                // Recarregar transações após editar
+                mutateTransacoes();
+                handleCloseEditarTransacao();
+              }}
+            />
+          )}
+        </Dialog.Root>
+
+        {/* Modal de Deletar Transação */}
+        <Dialog.Root
+          open={showDeletarTransacao}
+          onOpenChange={setShowDeletarTransacao}
+        >
+          {transacaoParaDeletar && (
+            <DeletarTransacaoModal
+              transacao={transacaoParaDeletar}
+              onClose={handleCloseDeletarTransacao}
+              onSuccess={() => {
+                // Recarregar transações após deletar
+                mutateTransacoes();
+                handleCloseDeletarTransacao();
+              }}
+            />
+          )}
+        </Dialog.Root>
       </main>
     </div>
   );
