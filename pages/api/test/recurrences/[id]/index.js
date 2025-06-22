@@ -78,18 +78,18 @@ async function postHandler(req, res) {
       `Iniciando criação de agendamentos recorrentes. Período: ${diferencaDias} dias`,
     );
 
-    // VERSÃO DE TESTE: não criar agendamentos reais, apenas simular
-    console.log("=== SIMULAÇÃO DE CRIAÇÃO ===");
+    // VERSÃO DE TESTE: usar sempre o método otimizado para simular staging
+    console.log("=== USANDO MÉTODO OTIMIZADO PARA TESTE ===");
 
-    // Simular a criação dos agendamentos recorrentes para ver onde falha
     try {
-      const simulatedResult = await agendamento.createRecurrences({
-        recurrenceId,
-        agendamentoBase,
-        diasDaSemana,
-        dataFimRecorrencia,
-        periodicidade,
-      });
+      const simulatedResult =
+        await agendamento.createRecurrencesOptimizedForStaging({
+          recurrenceId,
+          agendamentoBase,
+          diasDaSemana,
+          dataFimRecorrencia,
+          periodicidade,
+        });
 
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -128,5 +128,5 @@ async function postHandler(req, res) {
   }
 }
 
-// Exportar o handler com tratamento de erros e timeout
-export default withTimeout(router.handler(controller.errorHandlers), 25000);
+// Exportar o handler com tratamento de erros e timeout aumentado para staging
+export default withTimeout(router.handler(controller.errorHandlers), 55000);

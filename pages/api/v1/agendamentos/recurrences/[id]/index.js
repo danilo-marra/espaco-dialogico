@@ -73,14 +73,38 @@ async function postHandler(req, res) {
       `Iniciando criação de agendamentos recorrentes. Período: ${diferencaDias} dias`,
     );
 
-    // Criar os agendamentos recorrentes utilizando o model
-    const agendamentosRecorrentes = await agendamento.createRecurrences({
-      recurrenceId,
-      agendamentoBase,
-      diasDaSemana,
-      dataFimRecorrencia,
-      periodicidade,
-    });
+    // Detectar ambiente e usar método otimizado para staging/produção
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.VERCEL_ENV === "production";
+    const isStaging = process.env.VERCEL_ENV === "preview";
+
+    let agendamentosRecorrentes;
+
+    if (isProduction || isStaging) {
+      console.log(
+        "🏭 Usando método otimizado para ambiente de staging/produção",
+      );
+      // Criar os agendamentos recorrentes utilizando o método otimizado
+      agendamentosRecorrentes =
+        await agendamento.createRecurrencesOptimizedForStaging({
+          recurrenceId,
+          agendamentoBase,
+          diasDaSemana,
+          dataFimRecorrencia,
+          periodicidade,
+        });
+    } else {
+      console.log("🔧 Usando método padrão para ambiente de desenvolvimento");
+      // Criar os agendamentos recorrentes utilizando o método padrão
+      agendamentosRecorrentes = await agendamento.createRecurrences({
+        recurrenceId,
+        agendamentoBase,
+        diasDaSemana,
+        dataFimRecorrencia,
+        periodicidade,
+      });
+    }
 
     const endTime = Date.now();
     const duration = endTime - startTime;
@@ -205,5 +229,5 @@ async function deleteHandler(req, res) {
   }
 }
 
-// Exportar o handler com tratamento de erros e timeout
-export default withTimeout(router.handler(controller.errorHandlers), 25000);
+// Exportar o handler com tratamento de erros e timeout aumentado para staging
+export default withTimeout(router.handler(controller.errorHandlers), 55000);

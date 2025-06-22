@@ -1,7 +1,6 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
 import { format, addDays, parse, isAfter } from "date-fns";
-import sessao from "./sessao.js";
 
 // Função auxiliar para formatar data para SQL de forma segura
 function formatDateForSQL(dateInput) {
@@ -551,97 +550,111 @@ async function createRecurrences({
   try {
     await database.query({ text: "BEGIN" });
 
-    // Preparar arrays para inserção em lote
-    const agendamentosParaInserir = dataAgendamentos.map((data) => {
-      const dataFormatada = formatDateForSQL(data);
-
-      // Criar uma cópia profunda e explícita do agendamentoBase
-      const agendamentoCompleto = {
-        paciente_id: agendamentoBase.paciente_id,
-        terapeuta_id: agendamentoBase.terapeuta_id,
-        dataAgendamento: dataFormatada,
-        horarioAgendamento: agendamentoBase.horarioAgendamento,
-        localAgendamento: agendamentoBase.localAgendamento,
-        modalidadeAgendamento: agendamentoBase.modalidadeAgendamento,
-        tipoAgendamento: agendamentoBase.tipoAgendamento,
-        valorAgendamento: agendamentoBase.valorAgendamento,
-        statusAgendamento: agendamentoBase.statusAgendamento,
-        observacoesAgendamento: agendamentoBase.observacoesAgendamento,
-        recurrenceId: recurrenceId,
-      };
-
-      // Debug: verificar se cada agendamento mantém o terapeuta_id
-      console.log(`Preparando agendamento para ${dataFormatada}`);
-
-      // Validação adicional antes de retornar
-      if (!agendamentoCompleto.terapeuta_id) {
-        console.error(
-          "ERRO: terapeuta_id perdido durante processamento de recorrência",
-        );
-        throw new ValidationError({
-          message: `Erro interno: terapeuta_id perdido durante processamento de recorrência para data ${dataFormatada}`,
-        });
-      }
-
-      if (!agendamentoCompleto.paciente_id) {
-        console.error(
-          "ERRO: paciente_id perdido durante processamento de recorrência",
-        );
-        throw new ValidationError({
-          message: `Erro interno: paciente_id perdido durante processamento de recorrência para data ${dataFormatada}`,
-        });
-      }
-
-      return agendamentoCompleto;
+    // Verificar se terapeuta e paciente existem UMA VEZ antes do loop
+    const terapeutaExists = await database.query({
+      text: `SELECT id FROM terapeutas WHERE id = $1`,
+      values: [agendamentoBase.terapeuta_id],
     });
 
-    // Inserir agendamentos em lote usando múltiplas queries otimizadas
-    for (let i = 0; i < agendamentosParaInserir.length; i += 10) {
-      const lote = agendamentosParaInserir.slice(i, i + 10);
+    if (terapeutaExists.rowCount === 0) {
+      throw new ValidationError({
+        message: "Terapeuta não encontrado",
+      });
+    }
 
-      for (const agendamento of lote) {
-        try {
-          const novoAgendamento = await create(agendamento);
-          createdAgendamentos.push(novoAgendamento);
+    const pacienteExists = await database.query({
+      text: `SELECT id FROM pacientes WHERE id = $1`,
+      values: [agendamentoBase.paciente_id],
+    });
 
-          // Criar sessão correspondente se o agendamento não estiver cancelado
-          if (novoAgendamento.statusAgendamento !== "Cancelado") {
-            try {
-              const sessaoData = {
-                terapeuta_id: novoAgendamento.terapeuta_id,
-                paciente_id: novoAgendamento.paciente_id,
-                tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-                  novoAgendamento.tipoAgendamento,
-                ),
-                valorSessao: novoAgendamento.valorAgendamento,
-                statusSessao: mapearStatusAgendamentoParaStatusSessao(
-                  novoAgendamento.statusAgendamento,
-                ),
-                agendamento_id: novoAgendamento.id,
-              };
+    if (pacienteExists.rowCount === 0) {
+      throw new ValidationError({
+        message: "Paciente não encontrado",
+      });
+    }
 
-              await sessao.create(sessaoData);
-            } catch (sessaoError) {
-              console.error(
-                `Erro ao criar sessão para agendamento ${novoAgendamento.id}:`,
-                sessaoError,
-              );
-              // Não falhar a transação por erro na sessão
-            }
-          }
-        } catch (agendamentoError) {
-          console.error(
-            `Erro ao criar agendamento para ${agendamento.dataAgendamento}:`,
-            agendamentoError.message,
-          );
-          // Se um agendamento falhar, continuar com os outros
-        }
+    // Preparar dados para inserção em lote - SEM logs individuais
+    const agendamentosParaInserir = dataAgendamentos.map((data) => {
+      const dataFormatada = formatDateForSQL(data);
+      return [
+        agendamentoBase.terapeuta_id,
+        agendamentoBase.paciente_id,
+        recurrenceId,
+        dataFormatada,
+        agendamentoBase.horarioAgendamento,
+        agendamentoBase.localAgendamento,
+        agendamentoBase.modalidadeAgendamento,
+        agendamentoBase.tipoAgendamento,
+        agendamentoBase.valorAgendamento,
+        agendamentoBase.statusAgendamento,
+        agendamentoBase.observacoesAgendamento,
+      ];
+    });
+
+    console.log(
+      `🚀 Inserindo ${agendamentosParaInserir.length} agendamentos em lote...`,
+    );
+
+    // Inserção em lote otimizada - máximo 5 agendamentos por query para evitar timeout
+    const batchSize = 5;
+    for (let i = 0; i < agendamentosParaInserir.length; i += batchSize) {
+      const batch = agendamentosParaInserir.slice(i, i + batchSize);
+
+      // Construir query com múltiplos VALUES
+      const placeholders = batch
+        .map((_, index) => {
+          const base = index * 11;
+          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11})`;
+        })
+        .join(", ");
+
+      const values = batch.flat();
+
+      const batchResult = await database.query({
+        text: `
+          INSERT INTO agendamentos (
+            terapeuta_id,
+            paciente_id,
+            recurrence_id,
+            data_agendamento,
+            horario_agendamento,
+            local_agendamento,
+            modalidade_agendamento,
+            tipo_agendamento,
+            valor_agendamento,
+            status_agendamento,
+            observacoes_agendamento
+          )
+          VALUES ${placeholders}
+          RETURNING *
+        `,
+        values: values,
+      });
+
+      // Adicionar agendamentos criados ao resultado
+      for (const row of batchResult.rows) {
+        createdAgendamentos.push({
+          id: row.id,
+          terapeutaId: row.terapeuta_id,
+          pacienteId: row.paciente_id,
+          recurrenceId: row.recurrence_id,
+          dataAgendamento: row.data_agendamento,
+          horarioAgendamento: row.horario_agendamento,
+          localAgendamento: row.local_agendamento,
+          modalidadeAgendamento: row.modalidade_agendamento,
+          tipoAgendamento: row.tipo_agendamento,
+          valorAgendamento: row.valor_agendamento,
+          statusAgendamento: row.status_agendamento,
+          observacoesAgendamento: row.observacoes_agendamento,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        });
       }
 
-      // Log de progresso para lotes grandes
-      if (agendamentosParaInserir.length > 20) {
+      // Log de progresso apenas para lotes grandes
+      if (agendamentosParaInserir.length > 10) {
         console.log(
-          `Processados ${Math.min(i + 10, agendamentosParaInserir.length)} de ${agendamentosParaInserir.length} agendamentos`,
+          `✓ Processados ${Math.min(i + batchSize, agendamentosParaInserir.length)}/${agendamentosParaInserir.length} agendamentos`,
         );
       }
     }
@@ -653,6 +666,226 @@ async function createRecurrences({
   } catch (error) {
     await database.query({ text: "ROLLBACK" });
     console.error("Erro durante a criação de agendamentos recorrentes:", error);
+    throw new ValidationError({
+      message: `Erro ao criar agendamentos recorrentes: ${error.message}`,
+    });
+  }
+
+  return createdAgendamentos;
+}
+
+async function createRecurrencesOptimizedForStaging({
+  recurrenceId,
+  agendamentoBase,
+  diasDaSemana,
+  dataFimRecorrencia,
+  periodicidade,
+}) {
+  // Mesmo processamento de datas que o método original
+  const createdAgendamentos = [];
+  let dataInicio, dataFim;
+
+  try {
+    if (typeof agendamentoBase.dataAgendamento === "string") {
+      if (agendamentoBase.dataAgendamento.includes("-")) {
+        const [year, month, day] = agendamentoBase.dataAgendamento
+          .split("-")
+          .map(Number);
+        dataInicio = new Date(year, month - 1, day);
+      } else {
+        dataInicio = parse(
+          agendamentoBase.dataAgendamento,
+          "yyyy-MM-dd",
+          new Date(),
+        );
+      }
+    } else {
+      dataInicio = new Date(agendamentoBase.dataAgendamento);
+    }
+
+    if (typeof dataFimRecorrencia === "string") {
+      if (dataFimRecorrencia.includes("-")) {
+        const [year, month, day] = dataFimRecorrencia.split("-").map(Number);
+        dataFim = new Date(year, month - 1, day);
+      } else {
+        dataFim = parse(dataFimRecorrencia, "yyyy-MM-dd", new Date());
+      }
+    } else {
+      dataFim = new Date(dataFimRecorrencia);
+    }
+
+    if (isNaN(dataInicio.getTime()) || isNaN(dataFim.getTime())) {
+      throw new ValidationError({
+        message: "Datas inválidas fornecidas",
+      });
+    }
+  } catch (error) {
+    throw new ValidationError({
+      message: `Erro ao converter datas: ${error.message}`,
+    });
+  }
+
+  const diasDaSemanaMap = {
+    Domingo: 0,
+    "Segunda-feira": 1,
+    "Terça-feira": 2,
+    "Quarta-feira": 3,
+    "Quinta-feira": 4,
+    "Sexta-feira": 5,
+    Sábado: 6,
+  };
+
+  const diasDaSemanaNumeros = diasDaSemana.map((dia) => diasDaSemanaMap[dia]);
+
+  let intervaloDias;
+  switch (periodicidade) {
+    case "Semanal":
+      intervaloDias = 7;
+      break;
+    case "Quinzenal":
+      intervaloDias = 14;
+      break;
+    default:
+      throw new ValidationError({
+        message: "Periodicidade não suportada",
+      });
+  }
+
+  const dataAgendamentos = [];
+  let currentDate = new Date(dataInicio);
+
+  while (!isAfter(currentDate, dataFim)) {
+    const diaDaSemana = currentDate.getDay();
+
+    if (diasDaSemanaNumeros.includes(diaDaSemana)) {
+      dataAgendamentos.push(new Date(currentDate));
+    }
+
+    if (
+      dataAgendamentos.length > 0 &&
+      dataAgendamentos[dataAgendamentos.length - 1].getTime() ===
+        currentDate.getTime()
+    ) {
+      currentDate = addDays(currentDate, intervaloDias);
+    } else {
+      currentDate = addDays(currentDate, 1);
+    }
+  }
+
+  if (dataAgendamentos.length === 0) {
+    return createdAgendamentos;
+  }
+
+  if (dataAgendamentos.length > 25) {
+    throw new ValidationError({
+      message: `Número de agendamentos muito alto (${dataAgendamentos.length}). Máximo permitido para staging: 25. Reduza o período da recorrência.`,
+    });
+  }
+
+  // OTIMIZAÇÃO PARA STAGING: inserção única com todos os valores
+  try {
+    await database.query({ text: "BEGIN" });
+
+    // Validar FK apenas uma vez
+    const [terapeutaExists, pacienteExists] = await Promise.all([
+      database.query({
+        text: `SELECT id FROM terapeutas WHERE id = $1`,
+        values: [agendamentoBase.terapeuta_id],
+      }),
+      database.query({
+        text: `SELECT id FROM pacientes WHERE id = $1`,
+        values: [agendamentoBase.paciente_id],
+      }),
+    ]);
+
+    if (terapeutaExists.rowCount === 0) {
+      throw new ValidationError({ message: "Terapeuta não encontrado" });
+    }
+
+    if (pacienteExists.rowCount === 0) {
+      throw new ValidationError({ message: "Paciente não encontrado" });
+    }
+
+    // Preparar TODOS os valores para uma única query
+    const allValues = [];
+    const placeholders = [];
+
+    dataAgendamentos.forEach((data, index) => {
+      const dataFormatada = formatDateForSQL(data);
+      const base = index * 11;
+
+      placeholders.push(
+        `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11})`,
+      );
+
+      allValues.push(
+        agendamentoBase.terapeuta_id,
+        agendamentoBase.paciente_id,
+        recurrenceId,
+        dataFormatada,
+        agendamentoBase.horarioAgendamento,
+        agendamentoBase.localAgendamento,
+        agendamentoBase.modalidadeAgendamento,
+        agendamentoBase.tipoAgendamento,
+        agendamentoBase.valorAgendamento,
+        agendamentoBase.statusAgendamento,
+        agendamentoBase.observacoesAgendamento,
+      );
+    });
+
+    console.log(
+      `🚀 STAGING: Inserindo ${dataAgendamentos.length} agendamentos em uma única query...`,
+    );
+
+    // INSERÇÃO ÚNICA OTIMIZADA PARA STAGING
+    const result = await database.query({
+      text: `
+        INSERT INTO agendamentos (
+          terapeuta_id,
+          paciente_id,
+          recurrence_id,
+          data_agendamento,
+          horario_agendamento,
+          local_agendamento,
+          modalidade_agendamento,
+          tipo_agendamento,
+          valor_agendamento,
+          status_agendamento,
+          observacoes_agendamento
+        )
+        VALUES ${placeholders.join(", ")}
+        RETURNING *
+      `,
+      values: allValues,
+    });
+
+    // Processar resultados
+    for (const row of result.rows) {
+      createdAgendamentos.push({
+        id: row.id,
+        terapeutaId: row.terapeuta_id,
+        pacienteId: row.paciente_id,
+        recurrenceId: row.recurrence_id,
+        dataAgendamento: row.data_agendamento,
+        horarioAgendamento: row.horario_agendamento,
+        localAgendamento: row.local_agendamento,
+        modalidadeAgendamento: row.modalidade_agendamento,
+        tipoAgendamento: row.tipo_agendamento,
+        valorAgendamento: row.valor_agendamento,
+        statusAgendamento: row.status_agendamento,
+        observacoesAgendamento: row.observacoes_agendamento,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      });
+    }
+
+    await database.query({ text: "COMMIT" });
+    console.log(
+      `✅ STAGING: ${createdAgendamentos.length} agendamentos criados com sucesso`,
+    );
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("STAGING: Erro durante criação:", error);
     throw new ValidationError({
       message: `Erro ao criar agendamentos recorrentes: ${error.message}`,
     });
@@ -900,35 +1133,6 @@ function formatAgendamentoResult(row) {
   };
 }
 
-// Funções auxiliares para mapeamento de tipos e status
-function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
-  switch (tipoAgendamento) {
-    case "Sessão":
-      return "Atendimento";
-    case "Orientação Parental":
-      return "Atendimento";
-    case "Visita Escolar":
-      return "Visitar Escolar";
-    case "Supervisão":
-      return "Atendimento";
-    default:
-      return "Atendimento";
-  }
-}
-
-function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
-  switch (statusAgendamento) {
-    case "Confirmado":
-      return "Pagamento Pendente";
-    case "Remarcado":
-      return "Pagamento Pendente";
-    case "Cancelado":
-      return "Pagamento Pendente";
-    default:
-      return "Pagamento Pendente";
-  }
-}
-
 const agendamento = {
   create,
   getAll,
@@ -940,6 +1144,7 @@ const agendamento = {
   getAgendamentoByRecurrenceId,
   createRecurrentAgendamentos,
   createRecurrences,
+  createRecurrencesOptimizedForStaging,
   updateAllByRecurrenceId,
   updateAllByRecurrenceIdWithNewWeekday,
 };
