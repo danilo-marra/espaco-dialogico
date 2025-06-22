@@ -79,14 +79,20 @@ function obterValorRepasse(sessao: any): number {
 }
 
 // Função para filtrar sessões apenas pelo mês (usando data do agendamento)
+// e excluir sessões com status "Pagamento Pendente"
 const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
   if (!Array.isArray(sessoes)) {
     return [];
   }
 
   return sessoes.filter((sessao) => {
+    // Filtrar apenas sessões que não estão com "Pagamento Pendente"
+    if (sessao.statusSessao === "Pagamento Pendente") {
+      return false;
+    }
+
     // Usar a data do agendamento associado
-    const dataAgendamento = sessao.agendamentoInfo?.data_agendamento;
+    const dataAgendamento = sessao.agendamentoInfo?.dataAgendamento;
 
     if (!dataAgendamento) {
       return false;
@@ -218,10 +224,12 @@ export default function Transacoes() {
 
   const transacoesSessoes = useMemo(() => {
     return sessoesDoMes.flatMap((sessao) => {
+      // Nota: Apenas sessões com status diferente de "Pagamento Pendente"
+      // são incluídas no dashboard financeiro
       const repasse = obterValorRepasse(sessao);
 
       // Usar a data do agendamento associado
-      const dataAgendamento = sessao.agendamentoInfo?.data_agendamento;
+      const dataAgendamento = sessao.agendamentoInfo?.dataAgendamento;
       if (!dataAgendamento) return [];
 
       let dataSessaoExibir = null;
@@ -627,11 +635,6 @@ export default function Transacoes() {
                             <p className="font-medium truncate">
                               {transacao.descricao}
                             </p>
-                            {"paciente" in transacao && transacao.paciente && (
-                              <p className="text-gray-500 text-xs truncate">
-                                Paciente: {transacao.paciente.nome}
-                              </p>
-                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

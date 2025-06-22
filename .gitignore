@@ -3,3 +3,6 @@ node_modules
 .husky/_
 .vscode/settings.json
 .env.development.local
+.env.development
+.env.staging
+.env.production

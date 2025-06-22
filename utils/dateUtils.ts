@@ -2,6 +2,9 @@
  * Utilitários para manipulação segura de datas, evitando problemas de timezone
  */
 
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
 /**
  * Formata uma data para o formato YYYY-MM-DD de forma segura,
  * evitando problemas de timezone entre ambientes
@@ -17,6 +20,24 @@ export function formatDateForAPI(date: Date): string {
   const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Formata data de forma segura para exibição
+ */
+export function formatSafeDate(dateValue: any): string {
+  if (!dateValue) return "-";
+
+  try {
+    const date = new Date(dateValue);
+    // Verifica se a data é válida
+    if (isNaN(date.getTime())) {
+      return "Data inválida";
+    }
+    return format(date, "dd/MM/yyyy", { locale: ptBR });
+  } catch (error) {
+    return "Data inválida";
+  }
 }
 
 /**
@@ -179,4 +200,55 @@ export function formatDateForSQL(dateInput: string | Date): string {
   }
 
   return formatted;
+}
+
+/**
+ * Obter a data da sessão a partir dos dados do agendamento
+ * A data da sessão vem sempre do agendamento relacionado
+ */
+export function getSessaoDate(sessao: any): Date | null {
+  if (!sessao?.agendamentoInfo?.dataAgendamento) {
+    return null;
+  }
+
+  try {
+    return new Date(sessao.agendamentoInfo.dataAgendamento);
+  } catch (error) {
+    console.warn("Erro ao processar data da sessão:", error);
+    return null;
+  }
+}
+
+/**
+ * Formatar a data da sessão para exibição
+ */
+export function formatSessaoDate(sessao: any): string {
+  const date = getSessaoDate(sessao);
+  if (!date) {
+    return "Data não informada";
+  }
+
+  return formatSafeDate(date);
+}
+
+/**
+ * Filtrar sessões por status de pagamento
+ * Útil para incluir apenas sessões pagas nas transações
+ */
+export function filterSessoesPagas(sessoes: any[]): any[] {
+  if (!Array.isArray(sessoes)) {
+    return [];
+  }
+
+  return sessoes.filter((sessao) => {
+    // Incluir apenas sessões que NÃO estão com "Pagamento Pendente"
+    return sessao.statusSessao !== "Pagamento Pendente";
+  });
+}
+
+/**
+ * Verificar se uma sessão deve aparecer nas transações financeiras
+ */
+export function sessaoDeveAparecerNasTransacoes(sessao: any): boolean {
+  return sessao?.statusSessao !== "Pagamento Pendente";
 }

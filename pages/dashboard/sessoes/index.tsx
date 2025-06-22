@@ -2,7 +2,6 @@ import {
   CalendarCheck,
   Calendar,
   Receipt,
-  Users,
   CaretLeft,
   CaretRight,
   User,
@@ -10,17 +9,20 @@ import {
   MagnifyingGlass,
   Info,
   PencilSimple,
+  FileText,
+  PaperPlaneTilt,
 } from "@phosphor-icons/react";
 import Pagination from "components/Pagination";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
 import { Sessao } from "tipos";
-import { dateFormatter } from "utils/formatter";
+
 import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addMonths, isSameMonth } from "date-fns";
+import { format, addMonths } from "date-fns";
+import { formatSessaoDate } from "utils/dateUtils";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
@@ -80,9 +82,13 @@ const filterSessoes = (
   return sessoes
     .slice() // Copia o array para não modificar o original
     .sort((a, b) => {
-      // Ordenando por data da primeira sessão (se existir)
-      const dateA = a.dtSessao1 ? new Date(a.dtSessao1).getTime() : 0;
-      const dateB = b.dtSessao1 ? new Date(b.dtSessao1).getTime() : 0;
+      // Ordenando por data do agendamento (se existir)
+      const dateA = a.agendamentoInfo?.dataAgendamento
+        ? new Date(a.agendamentoInfo.dataAgendamento).getTime()
+        : 0;
+      const dateB = b.agendamentoInfo?.dataAgendamento
+        ? new Date(b.agendamentoInfo.dataAgendamento).getTime()
+        : 0;
       return dateA - dateB; // Da mais próxima para a mais distante
     })
     .filter((sessao) => {
@@ -107,40 +113,28 @@ const filterSessoes = (
           .toLowerCase()
           .includes(searchPaciente.toLowerCase());
 
-      // Filtrar por mês selecionado (verificando todas as datas possíveis de sessão)
+      // Filtrar por mês selecionado (verificando a data do agendamento)
       let matchesMonth = false;
 
-      // Verifica se alguma das datas de sessão está dentro do mês selecionado
-      const datasParaVerificar = [
-        sessao.dtSessao1,
-        sessao.dtSessao2,
-        sessao.dtSessao3,
-        sessao.dtSessao4,
-        sessao.dtSessao5,
-        sessao.dtSessao6,
-      ];
+      // Verifica se a data do agendamento está dentro do mês selecionado
+      if (sessao.agendamentoInfo?.dataAgendamento) {
+        try {
+          const data = new Date(sessao.agendamentoInfo.dataAgendamento);
+          if (!isNaN(data.getTime())) {
+            // Usar uma comparação mais robusta que considera apenas ano e mês
+            const anoMesSessao = format(data, "yyyy-MM");
+            const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
 
-      for (const dataSessao of datasParaVerificar) {
-        if (dataSessao) {
-          try {
-            const data = new Date(dataSessao);
-            if (!isNaN(data.getTime())) {
-              // Usar uma comparação mais robusta que considera apenas ano e mês
-              const anoMesSessao = format(data, "yyyy-MM");
-              const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
-
-              if (anoMesSessao === anoMesSelecionado) {
-                matchesMonth = true;
-                break;
-              }
+            if (anoMesSessao === anoMesSelecionado) {
+              matchesMonth = true;
             }
-          } catch (error) {
-            console.warn(
-              "Erro ao processar data da sessão:",
-              dataSessao,
-              error,
-            );
           }
+        } catch (error) {
+          console.warn(
+            "Erro ao processar data da sessão:",
+            sessao.agendamentoInfo.dataAgendamento,
+            error,
+          );
         }
       }
 
@@ -164,32 +158,25 @@ const filterSessoesByMonth = (
   }
 
   return sessoes.filter((sessao) => {
-    // Verifica se alguma das datas de sessão está dentro do mês selecionado
-    const datasParaVerificar = [
-      sessao.dtSessao1,
-      sessao.dtSessao2,
-      sessao.dtSessao3,
-      sessao.dtSessao4,
-      sessao.dtSessao5,
-      sessao.dtSessao6,
-    ];
+    // Verifica se a data do agendamento está dentro do mês selecionado
+    if (sessao.agendamentoInfo?.dataAgendamento) {
+      try {
+        const data = new Date(sessao.agendamentoInfo.dataAgendamento);
+        if (!isNaN(data.getTime())) {
+          // Usar uma comparação mais robusta que considera apenas ano e mês
+          const anoMesSessao = format(data, "yyyy-MM");
+          const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
 
-    for (const dataSessao of datasParaVerificar) {
-      if (dataSessao) {
-        try {
-          const data = new Date(dataSessao);
-          if (!isNaN(data.getTime())) {
-            // Usar uma comparação mais robusta que considera apenas ano e mês
-            const anoMesSessao = format(data, "yyyy-MM");
-            const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
-
-            if (anoMesSessao === anoMesSelecionado) {
-              return true;
-            }
+          if (anoMesSessao === anoMesSelecionado) {
+            return true;
           }
-        } catch (error) {
-          console.warn("Erro ao processar data da sessão:", dataSessao, error);
         }
+      } catch (error) {
+        console.warn(
+          "Erro ao processar data da sessão:",
+          sessao.agendamentoInfo.dataAgendamento,
+          error,
+        );
       }
     }
 
@@ -245,22 +232,6 @@ export default function Sessoes() {
 
   const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
 
-  // Função para formatar data com segurança
-  const formatSafeDate = (dateValue) => {
-    if (!dateValue) return "-";
-
-    try {
-      const date = new Date(dateValue);
-      // Verifica se a data é válida
-      if (isNaN(date.getTime())) {
-        return "Data inválida";
-      }
-      return dateFormatter.format(date);
-    } catch (error) {
-      return "Data inválida";
-    }
-  };
-
   // Filtrar sessões - com segurança para quando sessoes for null ou undefined
   const filteredSessoes = useMemo(
     () =>
@@ -291,49 +262,38 @@ export default function Sessoes() {
     return filteredSessoes.slice(startIndex, startIndex + SESSOES_PER_PAGE);
   }, [filteredSessoes, currentPage]);
 
-  // Faturamento total das sessões filtradas - com segurança
-  const faturamentoSessoesFiltradas = useMemo(() => {
-    return filteredSessoes.reduce(
-      (total, sessao) => total + (sessao.valorSessao || 0),
-      0,
-    );
-  }, [filteredSessoes]);
+  // Valor total das notas fiscais emitidas - com segurança
+  const valorNotasFiscaisEmitidas = useMemo(() => {
+    if (!Array.isArray(sessoes)) return 0;
 
-  // Calcular valor de repasse aos terapeutas para as sessões filtradas - com segurança
-  const valorRepasseTerapeutas = useMemo(() => {
-    return filteredSessoes.reduce((total, sessao) => {
-      // Verificar se temos as informações do terapeuta
-      if (!sessao.terapeutaInfo || !sessao.terapeutaInfo.dt_entrada)
-        return total;
+    // Filtrar pelo mês atual primeiro
+    const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-      // Calcular o repasse para esta sessão específica
-      const repasse = obterValorRepasse(sessao);
-      return total + repasse;
-    }, 0);
-  }, [filteredSessoes]);
+    // Depois filtrar por status "Nota Fiscal Emitida"
+    return sessoesMes
+      .filter((sessao) => sessao.statusSessao === "Nota Fiscal Emitida")
+      .reduce((total, sessao) => total + (sessao.valorSessao || 0), 0);
+  }, [sessoes, currentDate]);
 
-  // Calcular lucro da clínica (receita - repasse) apenas baseado no mês selecionado - com segurança
-  const lucroDaClinica = useMemo(() => {
-    if (!sessoes) return 0;
+  // Valor total das notas fiscais enviadas - com segurança
+  const valorNotasFiscaisEnviadas = useMemo(() => {
+    if (!Array.isArray(sessoes)) return 0;
 
-    // Filtrar sessões apenas pelo mês selecionado (ignorando outros filtros)
-    const sessoesDoMes = filterSessoesByMonth(sessoes, currentDate);
+    // Filtrar pelo mês atual primeiro
+    const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-    // Calcular faturamento total do mês
-    const faturamentoTotalMes = sessoesDoMes.reduce(
-      (total, sessao) => total + (sessao.valorSessao || 0),
-      0,
-    );
+    // Depois filtrar por status "Nota Fiscal Enviada"
+    return sessoesMes
+      .filter((sessao) => sessao.statusSessao === "Nota Fiscal Enviada")
+      .reduce((total, sessao) => {
+        // Verificar se temos as informações do terapeuta
+        if (!sessao.terapeutaInfo || !sessao.terapeutaInfo.dt_entrada)
+          return total;
 
-    // Calcular repasse total do mês
-    const repasseTotalMes = sessoesDoMes.reduce((total, sessao) => {
-      // Calcular o repasse para esta sessão específica
-      const repasse = obterValorRepasse(sessao);
-      return total + repasse;
-    }, 0);
-
-    // Lucro = Faturamento - Repasse
-    return faturamentoTotalMes - repasseTotalMes;
+        // Calcular o repasse para esta sessão específica
+        const repasse = obterValorRepasse(sessao);
+        return total + repasse;
+      }, 0);
   }, [sessoes, currentDate]);
 
   const sessoesPendentes = useMemo(() => {
@@ -345,6 +305,18 @@ export default function Sessoes() {
     // Depois filtrar por status pendente
     return sessoesMes.filter(
       (sessao) => sessao.statusSessao === "Pagamento Pendente",
+    ).length;
+  }, [sessoes, currentDate]);
+
+  const sessoesRealizadas = useMemo(() => {
+    if (!Array.isArray(sessoes)) return 0;
+
+    // Filtrar pelo mês atual primeiro
+    const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
+
+    // Depois filtrar por status realizado
+    return sessoesMes.filter(
+      (sessao) => sessao.statusSessao === "Pagamento Realizado",
     ).length;
   }, [sessoes, currentDate]);
 
@@ -421,42 +393,6 @@ export default function Sessoes() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <CalendarCheck size={24} className="text-green-500 flex-shrink-0" />
-            <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
-                Total de Sessões
-              </h3>
-              <span className="text-xl font-semibold">
-                {filteredSessoes.length}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <Users size={24} className="text-purple-500 flex-shrink-0" />
-            <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
-                <span>Faturamento</span>
-              </h3>
-              <span className="text-xl font-semibold">
-                R$ {faturamentoSessoesFiltradas.toFixed(2).replace(".", ",")}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <User size={24} className="text-blue-500 flex-shrink-0" />
-            <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
-                <span>Repasse</span>
-              </h3>
-              <span className="text-xl font-semibold">
-                R$ {valorRepasseTerapeutas.toFixed(2).replace(".", ",")}
-              </span>
-            </div>
-          </div>
-
           <div className="flex items-center p-4 bg-white rounded shadow justify-between">
             <div className="flex items-center min-w-0">
               <ChartPie
@@ -465,11 +401,14 @@ export default function Sessoes() {
               />
               <div className="min-w-0">
                 <h3 className="text-xs uppercase text-gray-500 truncate">
-                  <span className="hidden sm:inline">Lucro Mensal</span>
-                  <span className="sm:hidden">Lucro</span>
+                  <span className="hidden sm:inline">
+                    Pagamentos Realizados
+                  </span>
                 </h3>
                 <span className="text-md font-semibold">
-                  R$ {lucroDaClinica.toFixed(2).replace(".", ",")}
+                  <span className="text-xl font-semibold">
+                    {sessoesRealizadas}
+                  </span>
                 </span>
               </div>
             </div>
@@ -482,6 +421,45 @@ export default function Sessoes() {
             >
               <Info size={20} />
             </button>
+          </div>
+
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <FileText size={24} className="text-blue-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
+                <span>Nota Fiscal Emitida</span>
+              </h3>
+              <span className="text-xl font-semibold">
+                R$ {valorNotasFiscaisEmitidas.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <PaperPlaneTilt
+              size={24}
+              className="text-purple-500 flex-shrink-0"
+            />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
+                <span>Nota Fiscal Enviada</span>
+              </h3>
+              <span className="text-xl font-semibold">
+                R$ {valorNotasFiscaisEnviadas.toFixed(2).replace(".", ",")}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
+            <CalendarCheck size={24} className="text-green-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <h3 className="text-xs uppercase text-gray-500 truncate">
+                Total de Sessões
+              </h3>
+              <span className="text-xl font-semibold">
+                {filteredSessoes.length}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -743,27 +721,8 @@ export default function Sessoes() {
               <tbody className="divide-y divide-gray-200">
                 {paginatedSessoes.length > 0 ? (
                   paginatedSessoes.map((sessao) => {
-                    // Encontrar todas as datas válidas e dentro do mês selecionado
-                    const datasValidas = [
-                      sessao.dtSessao1,
-                      sessao.dtSessao2,
-                      sessao.dtSessao3,
-                      sessao.dtSessao4,
-                      sessao.dtSessao5,
-                      sessao.dtSessao6,
-                    ]
-                      .filter(Boolean)
-                      .filter((data) => {
-                        const dateObj = new Date(data);
-                        return isSameMonth(dateObj, currentDate);
-                      })
-                      .map((data) => formatSafeDate(data));
-
-                    // Exibir apenas a primeira data do mês atual, ou a primeira data válida
-                    const dataExibicao =
-                      datasValidas.length > 0
-                        ? datasValidas[0]
-                        : formatSafeDate(sessao.dtSessao1);
+                    // Usar a função helper para obter a data da sessão
+                    const dataExibicao = formatSessaoDate(sessao);
 
                     // Calcular valor de repasse para esta sessão
                     const valorRepasse = obterValorRepasse(sessao);

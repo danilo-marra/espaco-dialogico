@@ -31,6 +31,10 @@
     "lint:prettier:check": "prettier --check .",
     "lint:prettier:fix": "prettier --write .",
     "lint:eslint:check": "next lint --dir .",
+    "migrations:reset:production": "cross-env FORCE_RESET=CONFIRMAR node infra/scripts/reset-remote-migrations.js .env.production",
+    "migrations:reset:staging": "cross-env FORCE_RESET=CONFIRMAR node infra/scripts/reset-remote-migrations.js .env.staging",
+    "migrations:reset:production-safe": "node infra/scripts/reset-remote-migrations.js .env.production",
+    "migrations:reset:staging-safe": "node infra/scripts/reset-remote-migrations.js .env.staging",
     "commit": "cz",
     "prepare": "husky"
   },

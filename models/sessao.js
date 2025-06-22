@@ -337,15 +337,15 @@ function formatSessaoResult(row) {
     // Informações do agendamento
     agendamentoInfo: {
       id: row.agendamento_id,
-      data_agendamento: row.data_agendamento,
-      horario_agendamento: row.horario_agendamento,
-      local_agendamento: row.local_agendamento,
-      modalidade_agendamento: row.modalidade_agendamento,
-      tipo_agendamento: row.tipo_agendamento,
-      valor_agendamento: row.valor_agendamento
+      dataAgendamento: row.data_agendamento,
+      horarioAgendamento: row.horario_agendamento,
+      localAgendamento: row.local_agendamento,
+      modalidadeAgendamento: row.modalidade_agendamento,
+      tipoAgendamento: row.tipo_agendamento,
+      valorAgendamento: row.valor_agendamento
         ? parseFloat(row.valor_agendamento)
         : undefined,
-      status_agendamento: row.status_agendamento,
+      statusAgendamento: row.status_agendamento,
     },
   };
 }

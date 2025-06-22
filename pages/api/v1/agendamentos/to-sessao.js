@@ -76,7 +76,6 @@ async function postHandler(request, response) {
       statusSessao:
         statusSessaoMap[agendamentoData.statusAgendamento] ||
         "Pagamento Pendente",
-      dtSessao1: agendamentoData.dataAgendamento,
       agendamento_id: agendamentoData.id, // Relacionar a sessão ao agendamento
     };
 
@@ -87,11 +86,6 @@ async function postHandler(request, response) {
       result = await sessao.update(sessaoExistente.id, {
         ...sessaoData,
         // Preserva outros campos que não estão sendo atualizados
-        dtSessao2: sessaoExistente.dtSessao2,
-        dtSessao3: sessaoExistente.dtSessao3,
-        dtSessao4: sessaoExistente.dtSessao4,
-        dtSessao5: sessaoExistente.dtSessao5,
-        dtSessao6: sessaoExistente.dtSessao6,
         valorRepasse: sessaoExistente.valorRepasse,
       });
     }

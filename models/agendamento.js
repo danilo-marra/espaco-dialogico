@@ -526,7 +526,6 @@ async function createRecurrences({
             statusSessao: mapearStatusAgendamentoParaStatusSessao(
               novoAgendamento.statusAgendamento,
             ),
-            dtSessao1: novoAgendamento.dataAgendamento,
             agendamento_id: novoAgendamento.id,
           };
 
