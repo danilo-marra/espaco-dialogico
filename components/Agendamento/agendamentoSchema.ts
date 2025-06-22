@@ -113,4 +113,47 @@ export const agendamentoSchema = z
         "Dias da semana e Data fim da recorrência são obrigatórios para agendamentos recorrentes",
       path: ["diasDaSemana"],
     },
+  )
+  .refine(
+    (data) => {
+      // Validar se o período da recorrência não é muito longo
+      if (
+        data.periodicidade !== "Não repetir" &&
+        data.dataAgendamento &&
+        data.dataFimRecorrencia
+      ) {
+        const dataInicio = new Date(data.dataAgendamento);
+        const dataFim = new Date(data.dataFimRecorrencia);
+        const diferencaDias = Math.ceil(
+          (dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        return diferencaDias <= 365; // Máximo 1 ano
+      }
+      return true;
+    },
+    {
+      message: "O período de recorrência não pode ser superior a 1 ano",
+      path: ["dataFimRecorrencia"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Validar se a data fim não é anterior à data de início
+      if (
+        data.periodicidade !== "Não repetir" &&
+        data.dataAgendamento &&
+        data.dataFimRecorrencia
+      ) {
+        const dataInicio = new Date(data.dataAgendamento);
+        const dataFim = new Date(data.dataFimRecorrencia);
+
+        return dataFim > dataInicio;
+      }
+      return true;
+    },
+    {
+      message: "A data fim deve ser posterior à data de início",
+      path: ["dataFimRecorrencia"],
+    },
   );

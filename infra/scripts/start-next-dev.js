@@ -46,7 +46,6 @@ async function validateDatabase() {
 
   // Obtem as tabelas que devem existir com base nas migrações
   const expectedTables = extractTableNames();
-  console.log(`📋 Tabelas esperadas: ${expectedTables.join(", ")}`);
 
   const pool = new Pool({
     host: process.env.POSTGRES_HOST,
@@ -54,47 +53,91 @@ async function validateDatabase() {
     user: process.env.POSTGRES_USER,
     database: process.env.POSTGRES_DB,
     password: process.env.POSTGRES_PASSWORD,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
+    max: 10,
   });
 
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
     let needsMigration = false;
 
     // Verificar cada tabela esperada
     for (const table of expectedTables) {
-      const { rows } = await client.query(
-        `
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public'
-          AND table_name = $1
+      try {
+        const { rows } = await client.query(
+          `
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public'
+            AND table_name = $1
+          );
+        `,
+          [table],
         );
-      `,
-        [table],
-      );
 
-      const tableExists = rows[0].exists;
+        const tableExists = rows[0].exists;
 
-      if (!tableExists) {
-        console.log(`🚨 Tabela '${table}' não encontrada.`);
+        if (!tableExists) {
+          needsMigration = true;
+        }
+      } catch (queryError) {
+        console.error(
+          `❌ Erro ao verificar tabela '${table}':`,
+          queryError.message,
+        );
         needsMigration = true;
-      } else {
-        console.log(`✅ Tabela '${table}' verificada com sucesso.`);
       }
     }
 
     // Se alguma tabela estiver faltando, executa as migrações
     if (needsMigration) {
       console.log("🔄 Executando migrações para criar tabelas faltantes...");
-      execSync("npm run migrations:up", { stdio: "inherit" });
-      console.log("✅ Migrações aplicadas com sucesso!");
+      try {
+        execSync("npm run migrations:up", { stdio: "inherit" });
+        console.log("✅ Migrações aplicadas com sucesso!");
+      } catch (migrationError) {
+        console.error("❌ Erro ao executar migrações:", migrationError.message);
+        throw migrationError;
+      }
+    } else {
+      console.log("✅ Banco de dados verificado com sucesso!");
     }
-
-    client.release();
-    await pool.end();
   } catch (error) {
     console.error("❌ Erro ao verificar o banco de dados:", error.message);
+
+    // Tentar diagnóstico adicional
+    if (
+      error.message.includes("Connection terminated") ||
+      error.message.includes("ECONNREFUSED")
+    ) {
+      console.log("💡 Dicas para resolver o problema:");
+      console.log("   1. Verifique se o Docker está rodando");
+      console.log("   2. Execute: docker-compose up -d");
+      console.log(
+        "   3. Verifique as variáveis de ambiente no .env.development",
+      );
+      console.log(
+        "   4. Aguarde alguns segundos para o PostgreSQL inicializar",
+      );
+    }
+
     process.exit(1);
+  } finally {
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.warn("⚠️ Erro ao liberar conexão:", releaseError.message);
+      }
+    }
+
+    try {
+      await pool.end();
+    } catch (poolError) {
+      console.warn("⚠️ Erro ao fechar pool de conexões:", poolError.message);
+    }
   }
 }
 
@@ -106,10 +149,14 @@ async function checkDatabaseState() {
     user: process.env.POSTGRES_USER,
     database: process.env.POSTGRES_DB,
     password: process.env.POSTGRES_PASSWORD,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
+    max: 5,
   });
 
+  let client;
   try {
-    const client = await pool.connect();
+    client = await pool.connect();
 
     // Listar todas as tabelas existentes
     const { rows } = await client.query(`
@@ -119,16 +166,41 @@ async function checkDatabaseState() {
       ORDER BY tablename;
     `);
 
-    console.log("📊 Tabelas atuais no banco de dados:");
-    rows.forEach((row) => console.log(`   - ${row.tablename}`));
-
-    client.release();
-    await pool.end();
+    console.log("📊 Tabelas no banco de dados:");
+    if (rows.length === 0) {
+      console.log("   ⚠️ Nenhuma tabela encontrada no schema 'public'");
+    } else {
+      console.log(`   ${rows.length} tabelas encontradas`);
+    }
   } catch (error) {
     console.error(
       "⚠️ Não foi possível listar tabelas existentes:",
       error.message,
     );
+
+    if (
+      error.message.includes("Connection terminated") ||
+      error.message.includes("ECONNREFUSED")
+    ) {
+      console.log("💡 Problema de conexão detectado. Verifique se:");
+      console.log("   - O Docker está rodando");
+      console.log("   - O PostgreSQL está iniciado");
+      console.log("   - As variáveis de ambiente estão corretas");
+    }
+  } finally {
+    if (client) {
+      try {
+        client.release();
+      } catch (releaseError) {
+        console.warn("⚠️ Erro ao liberar conexão:", releaseError.message);
+      }
+    }
+
+    try {
+      await pool.end();
+    } catch (poolError) {
+      console.warn("⚠️ Erro ao fechar pool de conexões:", poolError.message);
+    }
   }
 }
 

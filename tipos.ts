@@ -40,8 +40,8 @@ export interface Sessao {
   agendamentoInfo?: Agendamento;
 
   // Campos mapeados do Agendamento
-  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar"; // Convertido de tipoAgendamento
-  valorSessao: number; // Valor copiado de valorAgendamento
+  tipoSessao: "Anamnese" | "Atendimento" | "Avaliação" | "Visitar Escolar";
+  valorSessao: number;
 
   // Campos específicos da sessão
   valorRepasse?: number;
@@ -50,14 +50,6 @@ export interface Sessao {
     | "Pagamento Realizado"
     | "Nota Fiscal Emitida"
     | "Nota Fiscal Enviada";
-
-  // Data da sessão (pode ser derivada de dataAgendamento)
-  dtSessao1: Date | string;
-  dtSessao2?: Date | string;
-  dtSessao3?: Date | string;
-  dtSessao4?: Date | string;
-  dtSessao5?: Date | string;
-  dtSessao6?: Date | string;
 
   // Datas de controle
   created_at?: string;
@@ -89,4 +81,29 @@ export interface Agendamento {
   periodicidade?: "Não repetir" | "Semanal" | "Quinzenal";
   diasDaSemana?: string[];
   dataFimRecorrencia?: Date | string | null;
+}
+
+export interface Transacao {
+  id: string;
+  tipo: "entrada" | "saida";
+  categoria: string;
+  descricao: string;
+  valor: number;
+  data: Date | string;
+  usuario_id: string;
+  observacoes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ResumoFinanceiro {
+  periodo: string; // "YYYY-MM" para mês/ano
+  receitaSessoes: number;
+  repasseTerapeutas: number;
+  entradasManuais: number;
+  saidasManuais: number;
+  totalEntradas: number;
+  totalSaidas: number;
+  saldoFinal: number;
+  quantidadeSessoes: number;
 }

@@ -204,10 +204,9 @@ async function seedAgendamentos() {
                 tipo_sessao,
                 valor_sessao,
                 status_sessao,
-                dt_sessao1,
                 agendamento_id
               )
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
+              VALUES ($1, $2, $3, $4, $5, $6)
             `,
             values: [
               agendamento.terapeuta_id,
@@ -217,7 +216,6 @@ async function seedAgendamentos() {
               mapearStatusAgendamentoParaStatusSessao(
                 agendamento.status_agendamento,
               ),
-              agendamento.data_agendamento,
               agendamento.id,
             ],
           });
@@ -352,10 +350,9 @@ async function seedAgendamentos() {
                   tipo_sessao,
                   valor_sessao,
                   status_sessao,
-                  dt_sessao1,
                   agendamento_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                VALUES ($1, $2, $3, $4, $5, $6)
               `,
               values: [
                 terapeuta_id,
@@ -363,7 +360,6 @@ async function seedAgendamentos() {
                 mapearTipoAgendamentoParaTipoSessao(tipo_agendamento),
                 valor_agendamento,
                 mapearStatusAgendamentoParaStatusSessao(status_agendamento),
-                data_agendamento,
                 agendamento_id,
               ],
             });

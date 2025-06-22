@@ -111,16 +111,6 @@ const Menu = () => {
             <hr />
             <li className="hover:text-blue-300 cursor-pointer">
               <Link
-                href="/dashboard/transacoes"
-                className="flex items-center space-x-2 w-full"
-              >
-                <Money size={24} />
-                <span>Transações</span>
-              </Link>
-            </li>
-            <hr />
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
                 href="/dashboard/pacientes"
                 className="flex items-center space-x-2 w-full"
               >
@@ -151,6 +141,16 @@ const Menu = () => {
             <hr />
             {userRole === "admin" && (
               <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/transacoes"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <Money size={24} />
+                    <span>Transações</span>
+                  </Link>
+                </li>
+                <hr />
                 <li className="hover:text-blue-300 cursor-pointer">
                   <Link
                     href="/dashboard/convites"

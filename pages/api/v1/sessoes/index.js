@@ -45,12 +45,7 @@ async function postHandler(request, response) {
       tipoSessao,
       valorSessao,
       statusSessao = "Pagamento Pendente",
-      dtSessao1,
-      dtSessao2,
-      dtSessao3,
-      dtSessao4,
-      dtSessao5,
-      dtSessao6,
+      agendamento_id,
     } = request.body;
 
     // Validação básica dos campos obrigatórios
@@ -102,12 +97,7 @@ async function postHandler(request, response) {
       tipoSessao,
       valorSessao,
       statusSessao,
-      dtSessao1: dtSessao1 || null,
-      dtSessao2: dtSessao2 || null,
-      dtSessao3: dtSessao3 || null,
-      dtSessao4: dtSessao4 || null,
-      dtSessao5: dtSessao5 || null,
-      dtSessao6: dtSessao6 || null,
+      agendamento_id,
     });
 
     return response.status(201).json(novaSessao);

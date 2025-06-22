@@ -63,12 +63,6 @@ export function EditarSessaoModal({
       valorSessao: sessao?.valorSessao,
       valorRepasse: sessao?.valorRepasse,
       statusSessao: sessao?.statusSessao,
-      dtSessao1: sessao?.dtSessao1 ? new Date(sessao.dtSessao1) : undefined,
-      dtSessao2: sessao?.dtSessao2 ? new Date(sessao.dtSessao2) : undefined,
-      dtSessao3: sessao?.dtSessao3 ? new Date(sessao.dtSessao3) : undefined,
-      dtSessao4: sessao?.dtSessao4 ? new Date(sessao.dtSessao4) : undefined,
-      dtSessao5: sessao?.dtSessao5 ? new Date(sessao.dtSessao5) : undefined,
-      dtSessao6: sessao?.dtSessao6 ? new Date(sessao.dtSessao6) : undefined,
     },
   });
 
@@ -101,9 +95,13 @@ export function EditarSessaoModal({
         }
       }
 
-      if (sessao.dtSessao1) {
+      if (sessao.agendamentoInfo?.dataAgendamento) {
         setSessionDateDisplay(
-          format(new Date(sessao.dtSessao1), "dd/MM/yyyy", { locale: ptBR }),
+          format(
+            new Date(sessao.agendamentoInfo.dataAgendamento),
+            "dd/MM/yyyy",
+            { locale: ptBR },
+          ),
         );
       }
 

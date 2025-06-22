@@ -63,7 +63,6 @@ async function postHandler(request, response) {
             agend.tipoAgendamento,
           ),
           valorSessao: agend.valorAgendamento,
-          dtSessao1: agend.dataAgendamento,
           statusSessao: mapearStatusAgendamentoParaStatusSessao(
             agend.statusAgendamento,
           ),
@@ -114,7 +113,6 @@ async function postHandler(request, response) {
           agendamentoData.tipoAgendamento,
         ),
         valorSessao: agendamentoData.valorAgendamento,
-        dtSessao1: agendamentoData.dataAgendamento,
         statusSessao: mapearStatusAgendamentoParaStatusSessao(
           agendamentoData.statusAgendamento,
         ),
@@ -142,7 +140,6 @@ async function postHandler(request, response) {
           agendamentoData.tipoAgendamento,
         ),
         valorSessao: agendamentoData.valorAgendamento,
-        dtSessao1: agendamentoData.dataAgendamento,
         statusSessao: mapearStatusAgendamentoParaStatusSessao(
           agendamentoData.statusAgendamento,
         ),

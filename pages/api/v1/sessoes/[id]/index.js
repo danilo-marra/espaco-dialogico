@@ -32,18 +32,8 @@ async function getHandler(request, response) {
 async function putHandler(request, response) {
   try {
     const id = request.query.id;
-    const {
-      tipoSessao,
-      valorSessao,
-      valorRepasse,
-      statusSessao,
-      dtSessao1,
-      dtSessao2,
-      dtSessao3,
-      dtSessao4,
-      dtSessao5,
-      dtSessao6,
-    } = request.body;
+    const { tipoSessao, valorSessao, valorRepasse, statusSessao } =
+      request.body;
 
     // Usar o método update do modelo
     const updatedSessao = await sessao.update(id, {
@@ -51,12 +41,6 @@ async function putHandler(request, response) {
       valorSessao,
       valorRepasse,
       statusSessao,
-      dtSessao1,
-      dtSessao2,
-      dtSessao3,
-      dtSessao4,
-      dtSessao5,
-      dtSessao6,
     });
 
     return response.status(200).json(updatedSessao);

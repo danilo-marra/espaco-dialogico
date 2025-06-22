@@ -27,14 +27,6 @@ export const SessaoEditSchema = z.object({
       required_error: "Selecione o status da sessão",
     },
   ),
-  dtSessao1: z.date({
-    required_error: "Informe a data da 1ª sessão",
-  }),
-  dtSessao2: z.date().nullable().optional(),
-  dtSessao3: z.date().nullable().optional(),
-  dtSessao4: z.date().nullable().optional(),
-  dtSessao5: z.date().nullable().optional(),
-  dtSessao6: z.date().nullable().optional(),
 });
 
 export type SessaoEditFormInputs = z.infer<typeof SessaoEditSchema>;
