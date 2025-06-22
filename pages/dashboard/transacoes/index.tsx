@@ -12,12 +12,16 @@ import {
   Note,
   PencilSimple,
   Trash,
+  User,
+  MagnifyingGlass,
+  Tag,
 } from "@phosphor-icons/react";
 import Head from "next/head";
 import Image from "next/image";
 import React, { useMemo, useState } from "react";
 import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTransacoes } from "hooks/useFetchTransacoes";
+import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, addMonths } from "date-fns";
@@ -39,6 +43,56 @@ import DeletarTransacaoModal from "../../../components/Transacao/DeletarTransaca
  * Isso garante consistência na manipulação de datas entre diferentes ambientes
  * e evita problemas de timezone que podem ocorrer com new Date() direto.
  */
+
+// Tipos de transação para filtro
+const TIPOS_TRANSACAO = ["Todos", "Receita", "Despesa"];
+
+// Função para filtrar transações com base nos critérios
+const filterTransacoes = (
+  transacoes: any[],
+  selectedTipo: string,
+  selectedTerapeuta: string,
+  searchPaciente: string,
+): any[] => {
+  if (!Array.isArray(transacoes)) {
+    return [];
+  }
+
+  return transacoes.filter((transacao) => {
+    // Filtrar por tipo
+    const matchesTipo =
+      selectedTipo === "Todos" ||
+      (selectedTipo === "Receita" && transacao.tipo === "entrada") ||
+      (selectedTipo === "Despesa" && transacao.tipo === "saida");
+
+    // Filtrar por terapeuta
+    let matchesTerapeuta = false;
+    if (selectedTerapeuta === "Todos") {
+      matchesTerapeuta = true;
+    } else {
+      // Verificar se a transação tem informações do terapeuta
+      const terapeutaId =
+        transacao.terapeuta?.id || transacao.terapeutaInfo?.id;
+      matchesTerapeuta =
+        terapeutaId && String(terapeutaId) === String(selectedTerapeuta);
+    }
+
+    // Filtrar por paciente (se houver busca)
+    let matchesPacienteSearch = false;
+    if (searchPaciente === "") {
+      matchesPacienteSearch = true;
+    } else {
+      // Verificar se a transação tem informações do paciente
+      const pacienteNome =
+        transacao.paciente?.nome || transacao.pacienteInfo?.nome;
+      matchesPacienteSearch =
+        pacienteNome &&
+        pacienteNome.toLowerCase().includes(searchPaciente.toLowerCase());
+    }
+
+    return matchesTipo && matchesTerapeuta && matchesPacienteSearch;
+  });
+};
 
 // Função para calcular repasse baseado no tempo de casa do terapeuta
 function calcularRepasse(
@@ -126,6 +180,11 @@ export default function Transacoes() {
   const [showDeletarTransacao, setShowDeletarTransacao] = useState(false);
   const [transacaoParaDeletar, setTransacaoParaDeletar] = useState<any>(null);
 
+  // Estados dos filtros
+  const [selectedTipo, setSelectedTipo] = useState("Todos");
+  const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
+  const [searchPaciente, setSearchPaciente] = useState("");
+
   // Buscar dados das sessões para calcular lucros e repasses
   const {
     sessoes,
@@ -141,6 +200,9 @@ export default function Transacoes() {
     isError: isErrorTransacoes,
     mutate: mutateTransacoes,
   } = useFetchTransacoes();
+
+  // Buscar dados de terapeutas para os filtros
+  const { terapeutas } = useFetchTerapeutas();
 
   // Filtrar transações manuais do mês atual (similar ao filtro de sessões)
   const transacoesManuais = useMemo(() => {
@@ -273,7 +335,7 @@ export default function Transacoes() {
   }, [sessoesDoMes]);
 
   // Combinar todas as transações e ordenar por data
-  const todasTransacoes = useMemo(() => {
+  const todasTransacoesSemFiltro = useMemo(() => {
     // Converter transações manuais para o formato correto (já filtradas pelo mês atual)
     const transacoesManuaisFormatadas = transacoesManuais.map((transacao) => ({
       ...transacao,
@@ -285,6 +347,36 @@ export default function Transacoes() {
       (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
     );
   }, [transacoesSessoes, transacoesManuais]);
+
+  // Aplicar filtros às transações
+  const todasTransacoes = useMemo(() => {
+    return filterTransacoes(
+      todasTransacoesSemFiltro,
+      selectedTipo,
+      selectedTerapeuta,
+      searchPaciente,
+    );
+  }, [
+    todasTransacoesSemFiltro,
+    selectedTipo,
+    selectedTerapeuta,
+    searchPaciente,
+  ]);
+
+  // Calcular totais das transações filtradas
+  const totaisFiltrados = useMemo(() => {
+    const entradas = todasTransacoes
+      .filter((t) => t.tipo === "entrada")
+      .reduce((total, t) => total + (Number(t.valor) || 0), 0);
+
+    const saidas = todasTransacoes
+      .filter((t) => t.tipo === "saida")
+      .reduce((total, t) => total + (Number(t.valor) || 0), 0);
+
+    const saldo = entradas - saidas;
+
+    return { entradas, saidas, saldo };
+  }, [todasTransacoes]);
 
   // Recalcular totais incluindo transações manuais do mês atual
   const entradasManuais = useMemo(() => {
@@ -416,6 +508,83 @@ export default function Transacoes() {
           >
             <CaretRight size={24} weight="fill" />
           </button>
+        </div>
+
+        {/* Filtros */}
+        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
+          {/* Filtro por Tipo */}
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <Tag size={24} className="text-gray-500" />
+              <label
+                htmlFor="tipo"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Tipo:
+              </label>
+            </div>
+            <select
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
+              name="tipo"
+              id="tipo"
+              value={selectedTipo}
+              onChange={(e) => setSelectedTipo(e.target.value)}
+            >
+              {TIPOS_TRANSACAO.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro por Terapeuta */}
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <User size={24} className="text-gray-500" />
+              <label
+                htmlFor="terapeuta"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Terapeuta:
+              </label>
+            </div>
+            <select
+              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
+              name="terapeuta"
+              id="terapeuta"
+              value={selectedTerapeuta}
+              onChange={(e) => setSelectedTerapeuta(e.target.value)}
+            >
+              <option value="Todos">Todos</option>
+              {terapeutas?.map((terapeuta) => (
+                <option key={terapeuta.id} value={terapeuta.id}>
+                  {terapeuta.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Busca por Paciente */}
+          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
+            <div className="flex items-center space-x-2 flex-shrink-0">
+              <MagnifyingGlass size={24} className="text-gray-500" />
+              <label
+                htmlFor="searchPaciente"
+                className="text-md font-medium text-gray-700 whitespace-nowrap"
+              >
+                Paciente:
+              </label>
+            </div>
+            <input
+              type="text"
+              id="searchPaciente"
+              className="w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
+              placeholder="Digite o nome do paciente"
+              value={searchPaciente}
+              onChange={(e) => setSearchPaciente(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* Cards de Resumo Financeiro */}
@@ -566,7 +735,12 @@ export default function Transacoes() {
               <h3 className="text-lg font-semibold">Transações do Período</h3>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">
-                  {todasTransacoes.length} transações encontradas
+                  {todasTransacoes.length} de {todasTransacoesSemFiltro.length}{" "}
+                  transações
+                  {(selectedTipo !== "Todos" ||
+                    selectedTerapeuta !== "Todos" ||
+                    searchPaciente !== "") &&
+                    " (filtradas)"}
                 </span>
               </div>
             </div>
@@ -632,9 +806,40 @@ export default function Transacoes() {
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="max-w-xs">
-                            <p className="font-medium truncate">
-                              {transacao.descricao}
-                            </p>
+                            {/* Verificar se é uma transação automática de sessão */}
+                            {"sessaoOriginal" in transacao ? (
+                              <div className="space-y-1">
+                                <p className="font-medium text-gray-900">
+                                  {transacao.tipo === "entrada"
+                                    ? "Atendimento"
+                                    : "Repasse"}
+                                </p>
+                                <div className="text-xs text-gray-600 space-y-0.5">
+                                  {"paciente" in transacao &&
+                                    transacao.paciente && (
+                                      <p>
+                                        <span className="font-medium">
+                                          Paciente:
+                                        </span>{" "}
+                                        {transacao.paciente.nome}
+                                      </p>
+                                    )}
+                                  {"terapeuta" in transacao &&
+                                    transacao.terapeuta && (
+                                      <p>
+                                        <span className="font-medium">
+                                          Terapeuta:
+                                        </span>{" "}
+                                        {transacao.terapeuta.nome}
+                                      </p>
+                                    )}
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="font-medium truncate">
+                                {transacao.descricao}
+                              </p>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -726,39 +931,50 @@ export default function Transacoes() {
 
           {/* Resumo da Tabela */}
           {todasTransacoes.length > 0 && (
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center space-x-4">
+            <div className="px-4 py-4 bg-gray-50 border-t border-gray-200 sm:px-6">
+              {/* Layout responsivo */}
+              <div className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                {/* Informações de contagem - ocultas em mobile quando há filtros ativos */}
+                <div
+                  className={`flex items-center space-x-4 text-sm ${
+                    selectedTipo !== "Todos" ||
+                    selectedTerapeuta !== "Todos" ||
+                    searchPaciente !== ""
+                      ? "hidden sm:flex"
+                      : "flex"
+                  }`}
+                >
                   <span className="text-gray-600">
-                    Total de {todasTransacoes.length} transações
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    ({sessoesDoMes.length * 2} automáticas +{" "}
-                    {transacoesManuais.length} manuais)
+                    {todasTransacoes.length} de{" "}
+                    {todasTransacoesSemFiltro.length} transações
+                    {(selectedTipo !== "Todos" ||
+                      selectedTerapeuta !== "Todos" ||
+                      searchPaciente !== "") &&
+                      " (filtradas)"}
                   </span>
                 </div>
-                <div className="flex items-center space-x-6">
-                  <div className="text-right">
-                    <span className="text-gray-500">Total Entradas: </span>
-                    <span className="font-semibold text-green-600">
-                      R$ {totalEntradas.toFixed(2).replace(".", ",")}
+
+                {/* Total filtrado - priorizado em mobile */}
+                {(selectedTipo !== "Todos" ||
+                  selectedTerapeuta !== "Todos" ||
+                  searchPaciente !== "") && (
+                  <div className="flex items-center justify-center text-base sm:text-right sm:justify-end">
+                    <span className="text-gray-500 mr-2 hidden sm:inline">
+                      Total filtrado:
                     </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-gray-500">Total Saídas: </span>
-                    <span className="font-semibold text-red-600">
-                      R$ {totalSaidas.toFixed(2).replace(".", ",")}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-gray-500">Saldo: </span>
+                    <span className="text-gray-500 mr-2 sm:hidden">Total:</span>
                     <span
-                      className={`font-semibold ${saldoFinal >= 0 ? "text-blue-600" : "text-red-600"}`}
+                      className={`font-semibold text-2xl sm:text-base ${totaisFiltrados.saldo >= 0 ? "text-blue-600" : "text-red-600"}`}
                     >
-                      R$ {saldoFinal.toFixed(2).replace(".", ",")}
+                      R${" "}
+                      {Math.abs(
+                        totaisFiltrados.entradas + totaisFiltrados.saidas,
+                      )
+                        .toFixed(2)
+                        .replace(".", ",")}
                     </span>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}

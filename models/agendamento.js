@@ -51,13 +51,19 @@ function formatDateForSQL(dateInput) {
 
 async function create(agendamentoData) {
   // Validações básicas
-  if (!agendamentoData.terapeuta_id) {
+  if (
+    !agendamentoData.terapeuta_id ||
+    agendamentoData.terapeuta_id.toString().trim() === ""
+  ) {
     throw new ValidationError({
       message: "ID do terapeuta é obrigatório",
     });
   }
 
-  if (!agendamentoData.paciente_id) {
+  if (
+    !agendamentoData.paciente_id ||
+    agendamentoData.paciente_id.toString().trim() === ""
+  ) {
     throw new ValidationError({
       message: "ID do paciente é obrigatório",
     });
@@ -66,6 +72,24 @@ async function create(agendamentoData) {
   if (!agendamentoData.dataAgendamento) {
     throw new ValidationError({
       message: "Data do agendamento é obrigatória",
+    });
+  }
+
+  // Validar se os IDs são UUIDs válidos
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  if (!uuidRegex.test(agendamentoData.terapeuta_id)) {
+    throw new ValidationError({
+      message:
+        "ID do terapeuta deve ser um UUID válido. Verifique se o terapeuta foi selecionado corretamente.",
+    });
+  }
+
+  if (!uuidRegex.test(agendamentoData.paciente_id)) {
+    throw new ValidationError({
+      message:
+        "ID do paciente deve ser um UUID válido. Verifique se o paciente foi selecionado corretamente.",
     });
   }
 
@@ -497,54 +521,141 @@ async function createRecurrences({
     }
   }
 
-  // Criar um agendamento para cada data
-  for (const data of dataAgendamentos) {
-    try {
-      // Formatar a data de forma segura para o formato esperado pelo banco
+  // Criar um agendamento para cada data usando transação otimizada
+  if (dataAgendamentos.length === 0) {
+    console.warn(
+      "Nenhuma data de agendamento foi gerada com os critérios fornecidos",
+    );
+    return createdAgendamentos;
+  }
+
+  // Limitar o número máximo de agendamentos para evitar timeout
+  const MAX_AGENDAMENTOS = 50;
+  if (dataAgendamentos.length > MAX_AGENDAMENTOS) {
+    throw new ValidationError({
+      message: `Número de agendamentos muito alto (${dataAgendamentos.length}). Máximo permitido: ${MAX_AGENDAMENTOS}. Reduza o período da recorrência.`,
+    });
+  }
+
+  // Debug: verificar se o agendamentoBase tem terapeuta_id
+  console.log(`Criando ${dataAgendamentos.length} agendamentos recorrentes...`);
+
+  // Verificar se terapeuta_id existe no agendamentoBase
+  if (!agendamentoBase.terapeuta_id) {
+    throw new ValidationError({
+      message: "agendamentoBase deve conter terapeuta_id",
+    });
+  }
+
+  // Usar transação para melhor performance e consistência
+  try {
+    await database.query({ text: "BEGIN" });
+
+    // Preparar arrays para inserção em lote
+    const agendamentosParaInserir = dataAgendamentos.map((data) => {
       const dataFormatada = formatDateForSQL(data);
 
-      const agendamento = {
-        ...agendamentoBase,
-        recurrenceId: recurrenceId,
+      // Criar uma cópia profunda e explícita do agendamentoBase
+      const agendamentoCompleto = {
+        paciente_id: agendamentoBase.paciente_id,
+        terapeuta_id: agendamentoBase.terapeuta_id,
         dataAgendamento: dataFormatada,
+        horarioAgendamento: agendamentoBase.horarioAgendamento,
+        localAgendamento: agendamentoBase.localAgendamento,
+        modalidadeAgendamento: agendamentoBase.modalidadeAgendamento,
+        tipoAgendamento: agendamentoBase.tipoAgendamento,
+        valorAgendamento: agendamentoBase.valorAgendamento,
+        statusAgendamento: agendamentoBase.statusAgendamento,
+        observacoesAgendamento: agendamentoBase.observacoesAgendamento,
+        recurrenceId: recurrenceId,
       };
 
-      const novoAgendamento = await create(agendamento);
-      createdAgendamentos.push(novoAgendamento);
+      // Debug: verificar se cada agendamento mantém o terapeuta_id
+      console.log(`Preparando agendamento para ${dataFormatada}`);
 
-      // Só criar sessão se o agendamento não estiver cancelado
-      if (novoAgendamento.statusAgendamento !== "Cancelado") {
+      // Validação adicional antes de retornar
+      if (!agendamentoCompleto.terapeuta_id) {
+        console.error(
+          "ERRO: terapeuta_id perdido durante processamento de recorrência",
+        );
+        throw new ValidationError({
+          message: `Erro interno: terapeuta_id perdido durante processamento de recorrência para data ${dataFormatada}`,
+        });
+      }
+
+      if (!agendamentoCompleto.paciente_id) {
+        console.error(
+          "ERRO: paciente_id perdido durante processamento de recorrência",
+        );
+        throw new ValidationError({
+          message: `Erro interno: paciente_id perdido durante processamento de recorrência para data ${dataFormatada}`,
+        });
+      }
+
+      return agendamentoCompleto;
+    });
+
+    // Inserir agendamentos em lote usando múltiplas queries otimizadas
+    for (let i = 0; i < agendamentosParaInserir.length; i += 10) {
+      const lote = agendamentosParaInserir.slice(i, i + 10);
+
+      for (const agendamento of lote) {
         try {
-          // Mapear os campos do agendamento para os campos da sessão
-          const sessaoData = {
-            terapeuta_id: novoAgendamento.terapeuta_id,
-            paciente_id: novoAgendamento.paciente_id,
-            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-              novoAgendamento.tipoAgendamento,
-            ),
-            valorSessao: novoAgendamento.valorAgendamento,
-            statusSessao: mapearStatusAgendamentoParaStatusSessao(
-              novoAgendamento.statusAgendamento,
-            ),
-            agendamento_id: novoAgendamento.id,
-          };
+          const novoAgendamento = await create(agendamento);
+          createdAgendamentos.push(novoAgendamento);
 
-          // Criar a sessão
-          await sessao.create(sessaoData);
-        } catch (error) {
+          // Criar sessão correspondente se o agendamento não estiver cancelado
+          if (novoAgendamento.statusAgendamento !== "Cancelado") {
+            try {
+              const sessaoData = {
+                terapeuta_id: novoAgendamento.terapeuta_id,
+                paciente_id: novoAgendamento.paciente_id,
+                tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+                  novoAgendamento.tipoAgendamento,
+                ),
+                valorSessao: novoAgendamento.valorAgendamento,
+                statusSessao: mapearStatusAgendamentoParaStatusSessao(
+                  novoAgendamento.statusAgendamento,
+                ),
+                agendamento_id: novoAgendamento.id,
+              };
+
+              await sessao.create(sessaoData);
+            } catch (sessaoError) {
+              console.error(
+                `Erro ao criar sessão para agendamento ${novoAgendamento.id}:`,
+                sessaoError,
+              );
+              // Não falhar a transação por erro na sessão
+            }
+          }
+        } catch (agendamentoError) {
           console.error(
-            `Erro ao criar sessão para o agendamento ${novoAgendamento.id}:`,
-            error,
+            `Erro ao criar agendamento para ${agendamento.dataAgendamento}:`,
+            agendamentoError.message,
           );
-          // Não falhar a criação do agendamento se houver erro na sessão
+          // Se um agendamento falhar, continuar com os outros
         }
       }
-    } catch (error) {
-      console.error(
-        `Erro ao criar agendamento para ${formatDateForSQL(data)}: ${error.message}`,
-      );
-      // Continuar criando os próximos agendamentos mesmo se houver erro
+
+      // Log de progresso para lotes grandes
+      if (agendamentosParaInserir.length > 20) {
+        console.log(
+          `Processados ${Math.min(i + 10, agendamentosParaInserir.length)} de ${agendamentosParaInserir.length} agendamentos`,
+        );
+      }
     }
+
+    await database.query({ text: "COMMIT" });
+    console.log(
+      `✅ ${createdAgendamentos.length} agendamentos recorrentes criados com sucesso`,
+    );
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("Erro durante a criação de agendamentos recorrentes:", error);
+    throw new ValidationError({
+      message: `Erro ao criar agendamentos recorrentes: ${error.message}`,
+    });
   }
 
   return createdAgendamentos;

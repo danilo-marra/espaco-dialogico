@@ -122,6 +122,37 @@ export function NovoAgendamentoModal({
   const selectedTerapeutaId = watch("terapeuta_id");
   const selectedModalidade = watch("modalidadeAgendamento");
   const selectedPeriodicidade = watch("periodicidade");
+  const selectedDataAgendamento = watch("dataAgendamento");
+  const selectedDataFimRecorrencia = watch("dataFimRecorrencia");
+  const selectedDiasDaSemana = watch("diasDaSemana");
+
+  // Função para calcular número estimado de agendamentos
+  const calcularNumeroEstimadoAgendamentos = () => {
+    if (
+      selectedPeriodicidade === "Não repetir" ||
+      !selectedDataAgendamento ||
+      !selectedDataFimRecorrencia ||
+      !selectedDiasDaSemana ||
+      selectedDiasDaSemana.length === 0
+    ) {
+      return 0;
+    }
+
+    const dataInicio = new Date(selectedDataAgendamento);
+    const dataFim = new Date(selectedDataFimRecorrencia);
+    const diferencaDias = Math.ceil(
+      (dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (diferencaDias <= 0) return 0;
+
+    const intervaloDias = selectedPeriodicidade === "Semanal" ? 7 : 14;
+    const numeroDeSemanas = Math.ceil(diferencaDias / intervaloDias);
+
+    return numeroDeSemanas * selectedDiasDaSemana.length;
+  };
+
+  const numeroEstimado = calcularNumeroEstimadoAgendamentos();
 
   // Limpar o paciente selecionado quando mudar de terapeuta
   useEffect(() => {
@@ -198,19 +229,38 @@ export function NovoAgendamentoModal({
           data.dataFimRecorrencia as Date,
         );
 
-        // Preparar objeto base de agendamento
+        // Preparar objeto base de agendamento - usando estrutura mais explícita
         const agendamentoBase = {
-          paciente_id: data.paciente_id,
-          terapeuta_id: data.terapeuta_id,
+          paciente_id: String(data.paciente_id || ""),
+          terapeuta_id: String(data.terapeuta_id || ""),
           dataAgendamento: formattedDataAgendamento,
-          horarioAgendamento: data.horarioAgendamento,
-          localAgendamento: data.localAgendamento,
-          modalidadeAgendamento: data.modalidadeAgendamento,
-          tipoAgendamento: data.tipoAgendamento,
-          valorAgendamento: data.valorAgendamento,
-          statusAgendamento: data.statusAgendamento,
-          observacoesAgendamento: data.observacoesAgendamento,
+          horarioAgendamento: String(data.horarioAgendamento || ""),
+          localAgendamento: String(data.localAgendamento || ""),
+          modalidadeAgendamento: String(data.modalidadeAgendamento || ""),
+          tipoAgendamento: String(data.tipoAgendamento || ""),
+          valorAgendamento: Number(data.valorAgendamento || 0),
+          statusAgendamento: String(data.statusAgendamento || ""),
+          observacoesAgendamento: String(data.observacoesAgendamento || ""),
         };
+
+        // Verificar se terapeuta_id e paciente_id estão presentes
+        if (
+          !agendamentoBase.terapeuta_id ||
+          agendamentoBase.terapeuta_id.trim() === ""
+        ) {
+          toast.error("Erro: Selecione um terapeuta");
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (
+          !agendamentoBase.paciente_id ||
+          agendamentoBase.paciente_id.trim() === ""
+        ) {
+          toast.error("Erro: Selecione um paciente");
+          setIsSubmitting(false);
+          return;
+        }
 
         // Usando o Redux action para agendamentos recorrentes
         await dispatch(
@@ -606,6 +656,43 @@ export function NovoAgendamentoModal({
                 <span className="text-red-500 text-sm">
                   {errors.dataFimRecorrencia.message?.toString()}
                 </span>
+              )}
+
+              {/* Exibir número estimado de agendamentos */}
+              {numeroEstimado > 0 && (
+                <div
+                  className={`mt-2 p-2 rounded text-sm ${
+                    numeroEstimado > 50
+                      ? "bg-red-100 text-red-700 border border-red-300"
+                      : numeroEstimado > 20
+                        ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
+                        : "bg-blue-100 text-blue-700 border border-blue-300"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="font-medium">
+                      Serão criados aproximadamente {numeroEstimado}{" "}
+                      agendamentos
+                    </span>
+                  </div>
+                  {numeroEstimado > 50 && (
+                    <div className="mt-1 text-xs">
+                      ⚠️ Número alto de agendamentos pode causar lentidão.
+                      Considere reduzir o período.
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

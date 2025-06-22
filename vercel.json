@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "pages/api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["gru1"]
+}
