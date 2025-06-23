@@ -217,7 +217,7 @@ describe("POST /api/v1/terapeutas", () => {
       expect(response.status).toBe(401); // Unauthorized
 
       const responseBody = await response.json();
-      expect(responseBody.error).toBe("Token de autenticação não fornecido");
+      expect(responseBody.error).toBe("Não autorizado");
     });
   });
 });

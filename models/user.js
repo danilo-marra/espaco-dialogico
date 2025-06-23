@@ -159,8 +159,8 @@ async function create(userInputValues) {
   }
 
   async function runInsertQuery(userInputValues) {
-    // Incluir o role com o valor padrão "user" se não for especificado
-    const role = userInputValues.role || "user";
+    // Incluir o role com o valor padrão "terapeuta" se não for especificado
+    const role = userInputValues.role || "terapeuta";
 
     // Verificar se a coluna 'name' existe na tabela
     const tableInfoResults = await database.query({

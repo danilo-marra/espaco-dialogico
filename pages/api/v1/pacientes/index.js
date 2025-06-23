@@ -2,7 +2,7 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import paciente from "models/paciente.js";
 import { formidable } from "formidable";
-import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 // Configuração para desativar o bodyParser padrão do Next.js para uploads
 export const config = {
@@ -17,8 +17,8 @@ function getFormValue(field) {
 
 const router = createRouter();
 
-// Aplicar middleware de autenticação para proteger as rotas
-router.use(authMiddleware);
+// Aplicar middleware de autenticação e autorização para proteger as rotas
+router.use(requirePermission("pacientes"));
 
 router.get(getAllHandler);
 router.post(postHandler);

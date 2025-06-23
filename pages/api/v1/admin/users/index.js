@@ -1,12 +1,12 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import user from "models/user.js";
-import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 const router = createRouter();
 
-// Aplicar middleware de autenticação
-router.use(authMiddleware);
+// Aplicar middleware de autenticação e autorização
+router.use(requirePermission("usuarios"));
 router.get(getHandler);
 
 export default router.handler(controller.errorHandlers);
@@ -18,13 +18,6 @@ async function getHandler(request, response) {
     if (!loggedUser) {
       return response.status(401).json({
         error: "Usuário não autenticado",
-      });
-    }
-
-    // Verificar se o usuário é administrador
-    if (loggedUser.role !== "admin") {
-      return response.status(403).json({
-        error: "Acesso restrito a administradores",
       });
     }
 

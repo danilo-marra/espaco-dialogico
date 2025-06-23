@@ -24,7 +24,7 @@ describe("useAuth hook", () => {
     id: 1,
     username: "testuser",
     email: "test@example.com",
-    role: "user",
+    role: "terapeuta",
     name: "Test User",
   };
 

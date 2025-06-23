@@ -209,14 +209,45 @@ async function startNextDev() {
   await checkDatabaseState();
 
   console.log("🚀 Iniciando o servidor Next.js...");
-  const nextProcess = spawn("next", ["dev"], { stdio: "inherit", shell: true });
+  const nextProcess = spawn("next", ["dev"], {
+    stdio: "inherit",
+    shell: true,
+    env: {
+      ...process.env,
+      FORCE_COLOR: "1",
+    },
+  });
 
   nextProcess.on("error", (error) => {
     console.error("❌ Erro ao iniciar Next.js:", error);
+
+    if (
+      error.message.includes("EPERM") ||
+      error.message.includes("operation not permitted")
+    ) {
+      console.log("💡 Erro de permissão detectado. Tente executar:");
+      console.log("   npm run dev:fix-permissions");
+      console.log("   E depois execute novamente o comando.");
+    }
+
     process.exit(1);
   });
 
+  // Timeout para detectar travamento
+  const startupTimeout = setTimeout(() => {
+    console.log("⚠️ Next.js está demorando muito para iniciar...");
+    console.log("💡 Isso pode ser um problema de permissão ou cache.");
+    console.log(
+      "💡 Tente parar (Ctrl+C) e executar: npm run dev:fix-permissions",
+    );
+  }, 60000); // 60 segundos
+
+  nextProcess.on("spawn", () => {
+    clearTimeout(startupTimeout);
+  });
+
   process.on("SIGINT", () => {
+    clearTimeout(startupTimeout);
     nextProcess.kill("SIGINT");
     process.exit(0);
   });

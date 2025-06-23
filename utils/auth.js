@@ -19,7 +19,7 @@ export function generateToken(user) {
       id: user.id,
       username: user.username,
       email: user.email,
-      role: user.role || "user", // Adicionando a propriedade role ao token
+      role: user.role || "terapeuta", // Adicionando a propriedade role ao token
     },
     secret,
     { expiresIn: "7d" },

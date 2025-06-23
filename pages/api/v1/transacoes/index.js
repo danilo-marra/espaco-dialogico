@@ -1,27 +1,13 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import transacao from "models/transacao.js";
-import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 // Criar o router
 const router = createRouter();
 
-// Aplicar middleware de autenticação para proteger as rotas
-router.use(authMiddleware);
-
-// Middleware para verificar se o usuário é admin
-function adminMiddleware(request, response, next) {
-  if (request.user.role !== "admin") {
-    return response.status(403).json({
-      error:
-        "Acesso negado. Apenas administradores podem gerenciar transações.",
-    });
-  }
-  return next();
-}
-
-// Aplicar middleware de admin
-router.use(adminMiddleware);
+// Aplicar middleware de autenticação e autorização para proteger as rotas
+router.use(requirePermission("transacoes"));
 
 // Definir os handlers para cada método HTTP
 router.get(getHandler);

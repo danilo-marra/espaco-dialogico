@@ -59,7 +59,7 @@ server.use(
           id: "invite-1234",
           code: "ABC123XYZ",
           email: "new@example.com",
-          role: "user",
+          role: "terapeuta",
           created_at: new Date().toISOString(),
           expires_at: new Date(
             Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -85,7 +85,7 @@ server.use(
           id: "new-invite-id",
           code: "NEWCODE123",
           email: req.body.email || "invited@example.com",
-          role: req.body.role || "user",
+          role: req.body.role || "terapeuta",
           created_at: new Date().toISOString(),
           expires_at: new Date(
             Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -178,7 +178,7 @@ describe("Sistema de Convites", () => {
             id: "new-invite-id",
             code: "NEWCODE123",
             email: "invited@example.com",
-            role: "user",
+            role: "terapeuta",
             created_at: new Date().toISOString(),
             expires_at: new Date(
               Date.now() + 7 * 24 * 60 * 60 * 1000,
@@ -227,7 +227,7 @@ describe("Sistema de Convites", () => {
       },
       body: JSON.stringify({
         email: "invited@example.com",
-        role: "user",
+        role: "terapeuta",
         expiresInDays: 7,
       }),
     });
@@ -236,7 +236,7 @@ describe("Sistema de Convites", () => {
     const data = await response.json();
     expect(data.code).toBe("NEWCODE123");
     expect(data.email).toBe("invited@example.com");
-    expect(data.role).toBe("user");
+    expect(data.role).toBe("terapeuta");
 
     // Teste com token de usuário comum (deve falhar)
     const userToken = "Bearer user-jwt-token-1234567890";
@@ -249,7 +249,7 @@ describe("Sistema de Convites", () => {
       },
       body: JSON.stringify({
         email: "invited@example.com",
-        role: "user",
+        role: "terapeuta",
         expiresInDays: 7,
       }),
     });

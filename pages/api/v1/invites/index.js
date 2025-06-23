@@ -2,12 +2,12 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import invite from "models/invite.js";
 import user from "models/user.js";
-import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 const router = createRouter();
 
-// Aplicar o middleware de autenticação a todas as rotas
-router.use(authMiddleware);
+// Aplicar middleware de autenticação e autorização para proteger as rotas
+router.use(requirePermission("convites"));
 router.get(getHandler);
 router.post(postHandler);
 
@@ -15,14 +15,6 @@ export default router.handler(controller.errorHandlers);
 
 // Listar todos os convites
 async function getHandler(request, response) {
-  // Verificar se o usuário é um administrador
-  if (request.user.role !== "admin") {
-    return response.status(403).json({
-      error: "Acesso negado",
-      action: "Apenas administradores podem listar convites",
-    });
-  }
-
   try {
     const invites = await invite.getAll();
     return response.status(200).json(invites);
