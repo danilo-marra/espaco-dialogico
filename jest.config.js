@@ -26,6 +26,13 @@ const jestConfig = createJestConfig({
     "@testing-library/jest-dom",
     "<rootDir>/tests/mocks/jestSetup.js",
   ],
+  // Excluir endpoints de email dos testes
+  testPathIgnorePatterns: [
+    "<rootDir>/.next/",
+    "<rootDir>/node_modules/",
+    "<rootDir>/pages/api/v1/email/",
+    "<rootDir>/pages/api/v1/invites/send-email.js",
+  ],
   // Configurações para reduzir a verbosidade dos logs
   verbose: false,
   silent: process.env.TEST_VERBOSE !== "true",

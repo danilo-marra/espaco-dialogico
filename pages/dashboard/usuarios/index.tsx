@@ -244,10 +244,16 @@ export default function UsersPage() {
                           className={`${
                             user.role === "admin"
                               ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
+                              : user.role === "secretaria"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
                           } px-2 py-1 rounded-full text-xs font-medium`}
                         >
-                          {user.role === "admin" ? "Administrador" : "Usuário"}
+                          {user.role === "admin"
+                            ? "Administrador"
+                            : user.role === "secretaria"
+                              ? "Secretaria"
+                              : "Terapeuta"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -360,7 +366,8 @@ export default function UsersPage() {
                   }
                   className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
                 >
-                  <option value="user">Usuário</option>
+                  <option value="terapeuta">Terapeuta</option>
+                  <option value="secretaria">Secretaria</option>
                   <option value="admin">Administrador</option>
                 </select>
               </div>

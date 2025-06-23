@@ -184,7 +184,7 @@ const Menu = () => {
                     className="flex items-center space-x-2 w-full"
                   >
                     <User size={24} />
-                    <span>Usuários</span>
+                    <span>Gerenciar Usuários</span>
                   </Link>
                 </li>
                 <hr />
