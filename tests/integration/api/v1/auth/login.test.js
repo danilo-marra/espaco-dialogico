@@ -5,7 +5,7 @@ import database from "infra/database.js";
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 // Função auxiliar para criar um convite diretamente no banco de dados
-async function createInvite(email = null, role = "user") {
+async function createInvite(email = null, role = "terapeuta") {
   const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
@@ -35,7 +35,7 @@ describe("POST /api/v1/auth/login", () => {
 
     beforeEach(async () => {
       // Criar convites reais no banco de dados
-      userInvite = await createInvite(null, "user");
+      userInvite = await createInvite(null, "terapeuta");
       adminInvite = await createInvite(null, "admin");
 
       // Criar usuário comum para teste
@@ -114,7 +114,7 @@ describe("POST /api/v1/auth/login", () => {
       expect(responseBody.user).toHaveProperty("id");
       expect(responseBody.user.username).toBe("usuario_teste");
       expect(responseBody.user.email).toBe("usuario.teste@exemplo.com");
-      expect(responseBody.user.role).toBe("user");
+      expect(responseBody.user.role).toBe("terapeuta");
 
       // A senha não deve estar presente nos dados do usuário
       expect(responseBody.user).not.toHaveProperty("password");

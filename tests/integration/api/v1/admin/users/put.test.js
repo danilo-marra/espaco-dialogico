@@ -7,7 +7,7 @@ import { fail } from "@jest/globals";
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 // Função auxiliar para criar um usuário de teste
-async function createTestUser(username, email, password, role = "user") {
+async function createTestUser(username, email, password, role = "terapeuta") {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await database.query({
     text: `
@@ -63,7 +63,7 @@ describe("PUT /api/v1/admin/users/[userId]", () => {
       `user_${timestamp}`,
       `user_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do admin
@@ -121,7 +121,7 @@ describe("PUT /api/v1/admin/users/[userId]", () => {
       `user_pwd_${timestamp}`,
       `user_pwd_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do admin
@@ -170,7 +170,7 @@ describe("PUT /api/v1/admin/users/[userId]", () => {
       `user_rej_${timestamp}`,
       `user_rej_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do usuário regular (não admin)
@@ -262,7 +262,7 @@ describe("PUT /api/v1/admin/users/[userId]", () => {
       `user_pwd_short_${timestamp}`,
       `user_pwd_short_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do admin
@@ -307,7 +307,7 @@ describe("PUT /api/v1/admin/users/[userId]", () => {
       `user_nodata_${timestamp}`,
       `user_nodata_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do admin

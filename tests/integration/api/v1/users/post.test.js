@@ -6,7 +6,7 @@ import database from "infra/database.js";
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 // Função auxiliar para criar um convite diretamente no banco de dados
-async function createInvite(email = null, role = "user") {
+async function createInvite(email = null, role = "terapeuta") {
   const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
@@ -61,7 +61,7 @@ describe("POST /api/v1/users", () => {
       id: responseBody.id,
       username: "test_user",
       email: "test@example.com",
-      role: "user", // Deveria receber a role do convite (user)
+      role: "terapeuta", // Deveria receber a role do convite (terapeuta)
       created_at: responseBody.created_at,
       updated_at: responseBody.updated_at,
     });
@@ -73,8 +73,8 @@ describe("POST /api/v1/users", () => {
   });
 
   test("Creating user with different role with invite code", async () => {
-    // Criar um convite para moderador
-    const invite = await createInvite(null, "moderator");
+    // Criar um convite para secretaria
+    const invite = await createInvite(null, "secretaria");
 
     // Usar o convite para criar um usuário
     const response = await fetch(`http://localhost:${port}/api/v1/users`, {
@@ -83,8 +83,8 @@ describe("POST /api/v1/users", () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        username: "moderator_user",
-        email: "moderator@example.com",
+        username: "secretaria_user",
+        email: "secretaria@example.com",
         password: "senha123",
         inviteCode: invite.code,
       }),
@@ -93,8 +93,8 @@ describe("POST /api/v1/users", () => {
     expect(response.status).toBe(201);
 
     const responseBody = await response.json();
-    expect(responseBody.role).toBe("moderator");
-    expect(responseBody.username).toBe("moderator_user");
+    expect(responseBody.role).toBe("secretaria");
+    expect(responseBody.username).toBe("secretaria_user");
     expect(responseBody.password).toBeUndefined();
   });
 

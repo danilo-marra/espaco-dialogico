@@ -6,7 +6,7 @@ import database from "infra/database.js";
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 // Função auxiliar para criar um convite diretamente no banco de dados
-async function createInvite(email = null, role = "user") {
+async function createInvite(email = null, role = "terapeuta") {
   const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
@@ -129,7 +129,7 @@ describe("GET /api/v1/users/[username]", () => {
         id: response2Body.id,
         username: "MesmoCase",
         email: "mesmo.case@example.com",
-        role: "user", // Verificando o role padrão
+        role: "terapeuta", // Verificando o role padrão
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });
@@ -182,7 +182,7 @@ describe("GET /api/v1/users/[username]", () => {
         id: response2Body.id,
         username: "CaseDiferente",
         email: "case.diferente@example.com",
-        role: "user", // Verificando o role padrão
+        role: "terapeuta", // Verificando o role padrão
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });

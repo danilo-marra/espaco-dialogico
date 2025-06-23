@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 // Função auxiliar para criar um usuário de teste
-async function createTestUser(username, email, password, role = "user") {
+async function createTestUser(username, email, password, role = "terapeuta") {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await database.query({
     text: `
@@ -62,7 +62,7 @@ describe("DELETE /api/v1/admin/users/[userId]", () => {
       `user_${timestamp}`,
       `user_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do admin
@@ -157,14 +157,14 @@ describe("DELETE /api/v1/admin/users/[userId]", () => {
       `user1_rej_${timestamp}`,
       `user1_rej_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     const regularUser2 = await createTestUser(
       `user2_rej_${timestamp}`,
       `user2_rej_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Obter token de autenticação do usuário regular (não admin)
@@ -273,7 +273,7 @@ describe("DELETE /api/v1/admin/users/[userId]", () => {
       `user_auth_${timestamp}`,
       `user_auth_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Realizar a requisição DELETE sem token
@@ -306,7 +306,7 @@ describe("DELETE /api/v1/admin/users/[userId]", () => {
       `user_bad_token_${timestamp}`,
       `user_bad_token_${timestamp}@test.com`,
       "senha123456",
-      "user",
+      "terapeuta",
     );
 
     // 2. Usar um token inválido

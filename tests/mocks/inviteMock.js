@@ -10,7 +10,7 @@ const inviteMock = {
         id: "test-invite-id",
         code: validInviteCode,
         email: null, // Não restringe email
-        role: "user",
+        role: "terapeuta",
         used: false,
         expires_at: new Date(Date.now() + 86400000).toISOString(), // Expira em 24h
         created_at: new Date().toISOString(),
