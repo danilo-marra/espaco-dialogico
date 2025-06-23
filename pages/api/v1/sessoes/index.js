@@ -1,13 +1,13 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import sessao from "models/sessao.js";
-import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 // Criar o router
 const router = createRouter();
 
-// Aplicar middleware de autenticação para proteger as rotas
-router.use(authMiddleware);
+// Aplicar middleware de autenticação e autorização para proteger as rotas
+router.use(requirePermission("sessoes"));
 
 // Definir os handlers para cada método HTTP
 router.get(getHandler);

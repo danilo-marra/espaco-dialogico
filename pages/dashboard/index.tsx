@@ -1,12 +1,27 @@
 import Head from "next/head";
-import useAuth from "../../hooks/useAuth";
+import { useEffect } from "react";
 import { useRouter } from "next/router";
+import useAuth from "../../hooks/useAuth";
+import { usePermissions } from "../../hooks/usePermissions";
+import { DashboardCharts } from "../../components/Dashboard/DashboardCharts";
+import { DashboardSummary } from "../../components/Dashboard/DashboardSummary";
+import { DashboardAlerts } from "../../components/Dashboard/DashboardAlerts";
+import { QuickMetrics } from "../../components/Dashboard/QuickMetrics";
+import PermissionGuard from "../../components/PermissionGuard";
 
 export default function Dashboard() {
   const { loading } = useAuth();
+  const { userRole, isLoading } = usePermissions();
   const router = useRouter();
 
-  if (loading) {
+  // Redirecionar usuários comuns para a agenda
+  useEffect(() => {
+    if (!isLoading && (userRole === "terapeuta" || userRole === "secretaria")) {
+      router.replace("/dashboard/agenda");
+    }
+  }, [userRole, isLoading, router]);
+
+  if (loading || isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -17,51 +32,44 @@ export default function Dashboard() {
     );
   }
 
+  // Se é usuário comum, não renderizar o conteúdo (será redirecionado)
+  if (userRole === "terapeuta" || userRole === "secretaria") {
+    return null;
+  }
+
   return (
     <>
       <Head>
         <title>Dashboard - Espaço Dialógico</title>
       </Head>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4 text-azul">Dashboard</h1>
-        <div className="bg-white rounded-md shadow p-4 mb-6">
-          <p>Use o menu lateral para navegar pelo sistema.</p>
+        <h1 className="text-2xl font-bold mb-6 text-azul">Dashboard</h1>
+
+        {/* Métricas rápidas - apenas para admins */}
+        <PermissionGuard resource="usuarios">
+          <div className="mb-8">
+            <QuickMetrics />
+          </div>
+        </PermissionGuard>
+
+        {/* Seção de alertas importantes */}
+        <div className="mb-8">
+          <DashboardAlerts />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-bold mb-2 text-azul">Terapeutas</h2>
-            <p className="text-gray-600">Gerencie os terapeutas do sistema</p>
-            <button
-              onClick={() => router.push("/dashboard/terapeutas")}
-              className="mt-4 px-4 py-2 bg-azul hover:bg-azul/75 text-white rounded-md"
-            >
-              Ver Terapeutas
-            </button>
+        {/* Seção de resumo executivo - apenas para admins */}
+        <PermissionGuard resource="transacoes">
+          <div className="mb-8">
+            <DashboardSummary />
           </div>
+        </PermissionGuard>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-bold mb-2 text-azul">Pacientes</h2>
-            <p className="text-gray-600">Gerencie os pacientes do sistema</p>
-            <button
-              onClick={() => router.push("/dashboard/pacientes")}
-              className="mt-4 px-4 py-2 bg-azul hover:bg-azul/75 text-white rounded-md"
-            >
-              Ver Pacientes
-            </button>
+        {/* Seção de gráficos e estatísticas - apenas para admins */}
+        <PermissionGuard resource="usuarios">
+          <div className="mb-8">
+            <DashboardCharts />
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-bold mb-2 text-azul">Agenda</h2>
-            <p className="text-gray-600">Gerencie as sessões e compromissos</p>
-            <button
-              onClick={() => router.push("/dashboard/agenda")}
-              className="mt-4 px-4 py-2 bg-azul hover:bg-azul/75 text-white rounded-md"
-            >
-              Ver Agenda
-            </button>
-          </div>
-        </div>
+        </PermissionGuard>
       </div>
     </>
   );

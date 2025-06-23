@@ -15,11 +15,12 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { usePermissions } from "../hooks/usePermissions";
 
 const Menu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
+  const { hasPermission, checkCurrentRoutePermission } = usePermissions();
 
   useEffect(() => {
     const handleRouteChange = () => {
@@ -28,21 +29,13 @@ const Menu = () => {
 
     router.events.on("routeChangeComplete", handleRouteChange);
 
-    // Recuperar o papel do usuário do localStorage
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        setUserRole(user.role || "user");
-      }
-    } catch (error) {
-      console.error("Erro ao recuperar dados do usuário:", error);
-    }
+    // Verificar permissões da rota atual
+    checkCurrentRoutePermission();
 
     return () => {
       router.events.off("routeChangeComplete", handleRouteChange);
     };
-  }, [router.events]);
+  }, [router.events, checkCurrentRoutePermission]);
 
   const handleLogout = () => {
     // Remover dados de autenticação do localStorage
@@ -99,47 +92,63 @@ const Menu = () => {
               </Link>
             </li>
             <hr />
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
-                href="/dashboard/agenda"
-                className="flex items-center space-x-2 w-full"
-              >
-                <CalendarBlank size={24} />
-                <span>Agenda</span>
-              </Link>
-            </li>
-            <hr />
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
-                href="/dashboard/pacientes"
-                className="flex items-center space-x-2 w-full"
-              >
-                <Person size={24} />
-                <span>Pacientes</span>
-              </Link>
-            </li>
-            <hr />
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
-                href="/dashboard/sessoes"
-                className="flex items-center space-x-2 w-full"
-              >
-                <CalendarCheck size={24} />
-                <span>Sessões</span>
-              </Link>
-            </li>
-            <hr />
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
-                href="/dashboard/terapeutas"
-                className="flex items-center space-x-2 w-full"
-              >
-                <UsersThree size={24} />
-                <span>Terapeutas</span>
-              </Link>
-            </li>
-            <hr />
-            {userRole === "admin" && (
+            {hasPermission("agendamentos") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/agenda"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <CalendarBlank size={24} />
+                    <span>Agenda</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("pacientes") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/pacientes"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <Person size={24} />
+                    <span>Pacientes</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("sessoes") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/sessoes"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <CalendarCheck size={24} />
+                    <span>Sessões</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("terapeutas") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/terapeutas"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <UsersThree size={24} />
+                    <span>Terapeutas</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("transacoes") && (
               <>
                 <li className="hover:text-blue-300 cursor-pointer">
                   <Link
@@ -151,6 +160,10 @@ const Menu = () => {
                   </Link>
                 </li>
                 <hr />
+              </>
+            )}
+            {hasPermission("convites") && (
+              <>
                 <li className="hover:text-blue-300 cursor-pointer">
                   <Link
                     href="/dashboard/convites"
@@ -161,6 +174,10 @@ const Menu = () => {
                   </Link>
                 </li>
                 <hr />
+              </>
+            )}
+            {hasPermission("usuarios") && (
+              <>
                 <li className="hover:text-blue-300 cursor-pointer">
                   <Link
                     href="/dashboard/usuarios"
@@ -173,16 +190,20 @@ const Menu = () => {
                 <hr />
               </>
             )}
-            <li className="hover:text-blue-300 cursor-pointer">
-              <Link
-                href="/dashboard/perfil"
-                className="flex items-center space-x-2 w-full"
-              >
-                <Person size={24} />
-                <span>Meu Perfil</span>
-              </Link>
-            </li>
-            <hr />
+            {hasPermission("perfil") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/perfil"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <Person size={24} />
+                    <span>Meu Perfil</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
             <li className="hover:text-blue-300 cursor-pointer mt-6">
               <button
                 onClick={handleLogout}
