@@ -133,18 +133,13 @@ function obterValorRepasse(sessao: any): number {
 }
 
 // Função para filtrar sessões apenas pelo mês (usando data do agendamento)
-// e excluir sessões com status "Pagamento Pendente"
+// Agora todas as sessões são incluídas, independentemente do status
 const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
   if (!Array.isArray(sessoes)) {
     return [];
   }
 
   return sessoes.filter((sessao) => {
-    // Filtrar apenas sessões que não estão com "Pagamento Pendente"
-    if (sessao.statusSessao === "Pagamento Pendente") {
-      return false;
-    }
-
     // Usar a data do agendamento associado
     const dataAgendamento = sessao.agendamentoInfo?.dataAgendamento;
 
@@ -286,8 +281,8 @@ export default function Transacoes() {
 
   const transacoesSessoes = useMemo(() => {
     return sessoesDoMes.flatMap((sessao) => {
-      // Nota: Apenas sessões com status diferente de "Pagamento Pendente"
-      // são incluídas no dashboard financeiro
+      // Nota: Todas as sessões agora são incluídas no dashboard financeiro
+      // independentemente do status de pagamento
       const repasse = obterValorRepasse(sessao);
 
       // Usar a data do agendamento associado

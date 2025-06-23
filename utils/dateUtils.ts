@@ -233,22 +233,23 @@ export function formatSessaoDate(sessao: any): string {
 
 /**
  * Filtrar sessões por status de pagamento
- * Útil para incluir apenas sessões pagas nas transações
+ * Nota: Função removida - agora todas as sessões aparecem nas transações
+ * Mantida para compatibilidade mas retorna todas as sessões
  */
 export function filterSessoesPagas(sessoes: any[]): any[] {
   if (!Array.isArray(sessoes)) {
     return [];
   }
 
-  return sessoes.filter((sessao) => {
-    // Incluir apenas sessões que NÃO estão com "Pagamento Pendente"
-    return sessao.statusSessao !== "Pagamento Pendente";
-  });
+  // Retorna todas as sessões - filtro de status removido
+  return sessoes;
 }
 
 /**
  * Verificar se uma sessão deve aparecer nas transações financeiras
+ * Nota: Função removida - agora todas as sessões aparecem nas transações
  */
-export function sessaoDeveAparecerNasTransacoes(sessao: any): boolean {
-  return sessao?.statusSessao !== "Pagamento Pendente";
+export function sessaoDeveAparecerNasTransacoes(_sessao: any): boolean {
+  // Retorna sempre true - todas as sessões devem aparecer
+  return true;
 }
