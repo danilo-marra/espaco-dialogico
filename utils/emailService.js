@@ -3,12 +3,29 @@ import { generateInviteLink } from "./getBaseUrl.js";
 
 // Configuração do transportador de email com melhorias anti-spam
 function createEmailTransporter() {
+  console.log("🔧 Configurando transportador de email...");
+
+  // Verificar variáveis de ambiente
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.error(
+      "❌ Variáveis de ambiente EMAIL_USER ou EMAIL_PASSWORD não definidas",
+    );
+    throw new Error("Configuração de email incompleta");
+  }
+
+  console.log("✅ Variáveis de ambiente encontradas:", {
+    EMAIL_USER: process.env.EMAIL_USER,
+    EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
+      ? "[DEFINIDA]"
+      : "[NÃO DEFINIDA]",
+  });
+
   // Configuração para Gmail com configurações anti-spam
-  const transporter = nodemailer.createTransporter({
+  const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER, // seu email
-      pass: process.env.EMAIL_PASSWORD, // senha de app do Gmail
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
     },
     // Configurações para melhorar deliverability
     pool: true,
@@ -202,8 +219,12 @@ function createInviteEmailTemplate(
 
 // Função para enviar email de convite
 async function sendInviteEmail(inviteData, senderName = "Sistema") {
+  console.log("📧 Iniciando envio de email de convite...");
+  console.log("📊 Dados recebidos:", { ...inviteData, code: inviteData.code });
+
   try {
     const transporter = createEmailTransporter();
+    console.log("✅ Transportador criado com sucesso");
 
     const { email, code, role, expires_at } = inviteData;
 
@@ -211,6 +232,7 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
       throw new Error("Email do destinatário é obrigatório");
     }
 
+    console.log("🎨 Gerando template de email...");
     const emailTemplate = createInviteEmailTemplate(
       code,
       email,
@@ -220,6 +242,7 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
     );
 
     const inviteLink = generateInviteLink(code);
+    console.log("🔗 Link de convite gerado:", inviteLink);
 
     const mailOptions = {
       from: {
@@ -258,7 +281,9 @@ Se você não esperava este convite, pode ignorar este email.
       },
     };
 
+    console.log("📨 Enviando email...");
     const result = await transporter.sendMail(mailOptions);
+    console.log("✅ Email enviado com sucesso:", result.messageId);
 
     return {
       success: true,
@@ -266,10 +291,21 @@ Se você não esperava este convite, pode ignorar este email.
       message: "Email enviado com sucesso",
     };
   } catch (error) {
+    console.error("❌ Erro detalhado no emailService:", error);
+    console.error("📋 Stack trace:", error.stack);
+    console.error("🔧 Configurações de email:", {
+      EMAIL_USER: process.env.EMAIL_USER ? "✅ Definida" : "❌ Não definida",
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
+        ? "✅ Definida"
+        : "❌ Não definida",
+      service: "gmail",
+    });
+
     return {
       success: false,
       error: error.message,
       message: "Falha ao enviar email",
+      details: error.stack,
     };
   }
 }

@@ -100,6 +100,7 @@ export default function ConvitesPage() {
       if (email && email.trim()) {
         try {
           await sendInviteEmail(newInvite.id, email);
+          // Apenas um toast quando o email é enviado com sucesso
           toast.success(`Convite criado e enviado para ${email}!`);
         } catch (emailError) {
           toast.success("Convite criado com sucesso!");
@@ -198,16 +199,11 @@ export default function ConvitesPage() {
       }
 
       await response.json();
-      toast.success(`Email enviado com sucesso para ${inviteEmail}`);
+      // Remover toast daqui para evitar duplicação quando chamado do handleCreateInvite
+      // toast.success(`Email enviado com sucesso para ${inviteEmail}`);
 
       // Atualizar a lista de convites para refletir o envio
       fetchInvites();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível enviar o email",
-      );
     } finally {
       setSendingEmail(null);
     }
@@ -229,6 +225,20 @@ export default function ConvitesPage() {
       <Head>
         <title>Gerenciar Convites - Espaço Dialógico</title>
       </Head>
+
+      {/* Overlay de carregamento */}
+      {isCreatingInvite && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+            <div className="w-12 h-12 border-4 border-t-azul rounded-full animate-spin mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {email ? "Criando e enviando convite..." : "Criando convite..."}
+            </h3>
+            <p className="text-gray-600">Por favor, aguarde...</p>
+          </div>
+        </div>
+      )}
+
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4 text-azul">
           Gerenciar Convites
@@ -424,9 +434,23 @@ export default function ConvitesPage() {
                                 </button>
                                 {invite.email && (
                                   <button
-                                    onClick={() =>
-                                      sendInviteEmail(invite.id, invite.email)
-                                    }
+                                    onClick={async () => {
+                                      try {
+                                        await sendInviteEmail(
+                                          invite.id,
+                                          invite.email,
+                                        );
+                                        toast.success(
+                                          `Email enviado com sucesso para ${invite.email}`,
+                                        );
+                                      } catch (error) {
+                                        toast.error(
+                                          error instanceof Error
+                                            ? error.message
+                                            : "Não foi possível enviar o email",
+                                        );
+                                      }
+                                    }}
                                     className="text-green-600 hover:text-green-800 flex items-center space-x-1"
                                     title="Enviar convite por email"
                                     disabled={sendingEmail === invite.id}

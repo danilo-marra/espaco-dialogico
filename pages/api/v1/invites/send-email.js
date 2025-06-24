@@ -137,11 +137,26 @@ export default async function handler(request, response) {
 
     return response.status(200).json(successResponse);
   } catch (error) {
+    console.error("❌ Erro detalhado no envio de email:", error);
+    console.error("📋 Stack trace:", error.stack);
+    console.error("🔧 Variáveis de ambiente disponíveis:", {
+      EMAIL_USER: process.env.EMAIL_USER ? "✅ Definida" : "❌ Não definida",
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
+        ? "✅ Definida"
+        : "❌ Não definida",
+      NODE_ENV: process.env.NODE_ENV,
+    });
+
     return response.status(500).json({
       error: "Erro interno do servidor",
       message: "Ocorreu um erro ao processar a solicitação",
       details:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
+        process.env.NODE_ENV === "development"
+          ? {
+              error: error.message,
+              stack: error.stack,
+            }
+          : "Detalhes não disponíveis em produção",
     });
   }
 }
