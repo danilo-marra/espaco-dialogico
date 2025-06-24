@@ -1,14 +1,42 @@
 import nodemailer from "nodemailer";
 import { generateInviteLink } from "./getBaseUrl.js";
 
-// Configuração do transportador de email
+// Configuração do transportador de email com melhorias anti-spam
 function createEmailTransporter() {
-  // Configuração para Gmail (você pode alterar para outros provedores)
+  console.log("🔧 Configurando transportador de email...");
+
+  // Verificar variáveis de ambiente
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
+    console.error(
+      "❌ Variáveis de ambiente EMAIL_USER ou EMAIL_PASSWORD não definidas",
+    );
+    throw new Error("Configuração de email incompleta");
+  }
+
+  console.log("✅ Variáveis de ambiente encontradas:", {
+    EMAIL_USER: process.env.EMAIL_USER,
+    EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
+      ? "[DEFINIDA]"
+      : "[NÃO DEFINIDA]",
+  });
+
+  // Configuração para Gmail com configurações anti-spam
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER, // seu email
-      pass: process.env.EMAIL_PASSWORD, // senha de app do Gmail
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+    // Configurações para melhorar deliverability
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 10,
+    rateLimit: 5, // máximo 5 emails por segundo
+    // Headers padrão para evitar spam
+    headers: {
+      "X-Priority": "3",
+      "X-MSMail-Priority": "Normal",
+      Importance: "Normal",
     },
   });
 
@@ -191,8 +219,12 @@ function createInviteEmailTemplate(
 
 // Função para enviar email de convite
 async function sendInviteEmail(inviteData, senderName = "Sistema") {
+  console.log("📧 Iniciando envio de email de convite...");
+  console.log("📊 Dados recebidos:", { ...inviteData, code: inviteData.code });
+
   try {
     const transporter = createEmailTransporter();
+    console.log("✅ Transportador criado com sucesso");
 
     const { email, code, role, expires_at } = inviteData;
 
@@ -200,6 +232,7 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
       throw new Error("Email do destinatário é obrigatório");
     }
 
+    console.log("🎨 Gerando template de email...");
     const emailTemplate = createInviteEmailTemplate(
       code,
       email,
@@ -209,10 +242,11 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
     );
 
     const inviteLink = generateInviteLink(code);
+    console.log("🔗 Link de convite gerado:", inviteLink);
 
     const mailOptions = {
       from: {
-        name: "Espaço Dialógico",
+        name: "Espaço Dialógico - Sistema",
         address: process.env.EMAIL_USER,
       },
       to: email,
@@ -229,9 +263,27 @@ Para aceitar o convite, acesse: ${inviteLink}
 
 Se você não esperava este convite, pode ignorar este email.
       `.trim(),
+      // Headers adicionais para evitar spam no Outlook/Hotmail
+      headers: {
+        "Reply-To": process.env.EMAIL_USER,
+        "Return-Path": process.env.EMAIL_USER,
+        "X-Mailer": "Espaço Dialógico v1.0",
+        "X-Priority": "3",
+        "X-MSMail-Priority": "Normal",
+        Importance: "Normal",
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=Unsubscribe>`,
+        "Message-ID": `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@espacodialogico.com.br>`,
+      },
+      // Configurações de envelope
+      envelope: {
+        from: process.env.EMAIL_USER,
+        to: email,
+      },
     };
 
+    console.log("📨 Enviando email...");
     const result = await transporter.sendMail(mailOptions);
+    console.log("✅ Email enviado com sucesso:", result.messageId);
 
     return {
       success: true,
@@ -239,10 +291,21 @@ Se você não esperava este convite, pode ignorar este email.
       message: "Email enviado com sucesso",
     };
   } catch (error) {
+    console.error("❌ Erro detalhado no emailService:", error);
+    console.error("📋 Stack trace:", error.stack);
+    console.error("🔧 Configurações de email:", {
+      EMAIL_USER: process.env.EMAIL_USER ? "✅ Definida" : "❌ Não definida",
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
+        ? "✅ Definida"
+        : "❌ Não definida",
+      service: "gmail",
+    });
+
     return {
       success: false,
       error: error.message,
       message: "Falha ao enviar email",
+      details: error.stack,
     };
   }
 }
