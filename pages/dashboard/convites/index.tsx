@@ -4,7 +4,7 @@ import Head from "next/head";
 import useAuth from "../../../hooks/useAuth";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X } from "@phosphor-icons/react";
+import { X, EnvelopeSimple } from "@phosphor-icons/react";
 
 interface Invite {
   id: string;
@@ -26,9 +26,10 @@ export default function ConvitesPage() {
   const [isLoadingInvites, setIsLoadingInvites] = useState(true);
   const [isCreatingInvite, setIsCreatingInvite] = useState(false);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("user");
+  const [role, setRole] = useState("terapeuta");
   const [expiresIn, setExpiresIn] = useState("7");
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   // Função para buscar todos os convites
   const fetchInvites = async () => {
@@ -94,7 +95,22 @@ export default function ConvitesPage() {
 
       const newInvite = await response.json();
       setInvites([newInvite, ...invites]);
-      toast.success("Convite criado com sucesso!");
+
+      // Enviar email automaticamente se um email foi fornecido
+      if (email && email.trim()) {
+        try {
+          await sendInviteEmail(newInvite.id, email);
+          toast.success(`Convite criado e enviado para ${email}!`);
+        } catch (emailError) {
+          toast.success("Convite criado com sucesso!");
+          toast.warning(
+            "Email não pôde ser enviado automaticamente. Use o botão de envelope na tabela.",
+          );
+        }
+      } else {
+        toast.success("Convite criado com sucesso!");
+      }
+
       setEmail("");
     } catch (error) {
       console.error(error);
@@ -152,6 +168,51 @@ export default function ConvitesPage() {
     );
   };
 
+  // Função para enviar email com convite
+  const sendInviteEmail = async (inviteId: string, inviteEmail: string) => {
+    if (!inviteEmail) {
+      toast.error("Este convite não possui um email associado");
+      return;
+    }
+
+    setSendingEmail(inviteId);
+
+    try {
+      const token = localStorage.getItem("authToken");
+      const requestData = {
+        inviteId: inviteId,
+      };
+
+      const response = await fetch("/api/v1/invites/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao enviar email");
+      }
+
+      await response.json();
+      toast.success(`Email enviado com sucesso para ${inviteEmail}`);
+
+      // Atualizar a lista de convites para refletir o envio
+      fetchInvites();
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar o email",
+      );
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -191,6 +252,10 @@ export default function ConvitesPage() {
                 placeholder="Digite o email do convidado"
                 required
               />
+              <p className="text-sm text-gray-600 mt-1">
+                💡 Se você informar um email, o convite será enviado
+                automaticamente
+              </p>
             </div>
 
             <div>
@@ -203,7 +268,8 @@ export default function ConvitesPage() {
                 onChange={(e) => setRole(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4"
               >
-                <option value="user">Usuário</option>
+                <option value="terapeuta">Terapeuta</option>
+                <option value="secretaria">Secretaria</option>
                 <option value="admin">Administrador</option>
               </select>
             </div>
@@ -231,7 +297,11 @@ export default function ConvitesPage() {
               className="bg-azul text-white px-4 py-2 rounded hover:bg-azul/80"
               disabled={isCreatingInvite}
             >
-              {isCreatingInvite ? "Gerando..." : "Gerar Convite"}
+              {isCreatingInvite
+                ? "Gerando..."
+                : email
+                  ? "Gerar e Enviar Convite"
+                  : "Gerar Convite"}
             </button>
           </form>
         </div>
@@ -296,12 +366,16 @@ export default function ConvitesPage() {
                           className={`${
                             invite.role === "admin"
                               ? "bg-purple-100 text-purple-800"
-                              : "bg-blue-100 text-blue-800"
+                              : invite.role === "secretaria"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
                           } px-2 py-1 rounded-full text-xs font-medium`}
                         >
                           {invite.role === "admin"
                             ? "Administrador"
-                            : "Usuário"}
+                            : invite.role === "secretaria"
+                              ? "Secretaria"
+                              : "Terapeuta"}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -338,15 +412,33 @@ export default function ConvitesPage() {
                         <div className="flex justify-start space-x-2">
                           {!invite.used &&
                             new Date(invite.expires_at) >= new Date() && (
-                              <button
-                                onClick={() => copyInviteLink(invite.code)}
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Copiar link de convite"
-                              >
-                                {copySuccess === invite.code
-                                  ? "Copiado!"
-                                  : "Copiar link"}
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => copyInviteLink(invite.code)}
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Copiar link de convite"
+                                >
+                                  {copySuccess === invite.code
+                                    ? "Copiado!"
+                                    : "Copiar link"}
+                                </button>
+                                {invite.email && (
+                                  <button
+                                    onClick={() =>
+                                      sendInviteEmail(invite.id, invite.email)
+                                    }
+                                    className="text-green-600 hover:text-green-800 flex items-center space-x-1"
+                                    title="Enviar convite por email"
+                                    disabled={sendingEmail === invite.id}
+                                  >
+                                    {sendingEmail === invite.id ? (
+                                      <div className="w-4 h-4 border-2 border-t-green-600 rounded-full animate-spin"></div>
+                                    ) : (
+                                      <EnvelopeSimple size={18} />
+                                    )}
+                                  </button>
+                                )}
+                              </>
                             )}
                           <button
                             onClick={() => handleDeleteInvite(invite.id)}
