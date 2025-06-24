@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { generateInviteLink } from "./getBaseUrl.js";
 
 // Configuração do transportador de email
 function createEmailTransporter() {
@@ -22,8 +23,7 @@ function createInviteEmailTemplate(
   expiresAt,
   role,
 ) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-  const inviteLink = `${baseUrl}/register?code=${inviteCode}`;
+  const inviteLink = generateInviteLink(inviteCode);
 
   const roleNames = {
     terapeuta: "Terapeuta",
@@ -208,6 +208,8 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
       role,
     );
 
+    const inviteLink = generateInviteLink(code);
+
     const mailOptions = {
       from: {
         name: "Espaço Dialógico",
@@ -223,7 +225,7 @@ Código do convite: ${code}
 Função: ${role}
 Expira em: ${new Date(expires_at).toLocaleDateString("pt-BR")}
 
-Para aceitar o convite, acesse: ${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/register?code=${code}
+Para aceitar o convite, acesse: ${inviteLink}
 
 Se você não esperava este convite, pode ignorar este email.
       `.trim(),
