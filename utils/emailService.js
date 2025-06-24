@@ -1,14 +1,25 @@
 import nodemailer from "nodemailer";
 import { generateInviteLink } from "./getBaseUrl.js";
 
-// Configuração do transportador de email
+// Configuração do transportador de email com melhorias anti-spam
 function createEmailTransporter() {
-  // Configuração para Gmail (você pode alterar para outros provedores)
-  const transporter = nodemailer.createTransport({
+  // Configuração para Gmail com configurações anti-spam
+  const transporter = nodemailer.createTransporter({
     service: "gmail",
     auth: {
       user: process.env.EMAIL_USER, // seu email
       pass: process.env.EMAIL_PASSWORD, // senha de app do Gmail
+    },
+    // Configurações para melhorar deliverability
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 10,
+    rateLimit: 5, // máximo 5 emails por segundo
+    // Headers padrão para evitar spam
+    headers: {
+      "X-Priority": "3",
+      "X-MSMail-Priority": "Normal",
+      Importance: "Normal",
     },
   });
 
@@ -212,7 +223,7 @@ async function sendInviteEmail(inviteData, senderName = "Sistema") {
 
     const mailOptions = {
       from: {
-        name: "Espaço Dialógico",
+        name: "Espaço Dialógico - Sistema",
         address: process.env.EMAIL_USER,
       },
       to: email,
@@ -229,6 +240,22 @@ Para aceitar o convite, acesse: ${inviteLink}
 
 Se você não esperava este convite, pode ignorar este email.
       `.trim(),
+      // Headers adicionais para evitar spam no Outlook/Hotmail
+      headers: {
+        "Reply-To": process.env.EMAIL_USER,
+        "Return-Path": process.env.EMAIL_USER,
+        "X-Mailer": "Espaço Dialógico v1.0",
+        "X-Priority": "3",
+        "X-MSMail-Priority": "Normal",
+        Importance: "Normal",
+        "List-Unsubscribe": `<mailto:${process.env.EMAIL_USER}?subject=Unsubscribe>`,
+        "Message-ID": `<${Date.now()}.${Math.random().toString(36).substr(2, 9)}@espacodialogico.com.br>`,
+      },
+      // Configurações de envelope
+      envelope: {
+        from: process.env.EMAIL_USER,
+        to: email,
+      },
     };
 
     const result = await transporter.sendMail(mailOptions);
