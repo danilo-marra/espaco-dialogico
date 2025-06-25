@@ -40,8 +40,8 @@ export function DeletarPacienteModal({
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-gray-500/25 fixed inset-0" />
-        <Dialog.Content className="fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[500px] translate-x-[-50%] translate-y-[-50%] rounded-md bg-white p-6">
+        <Dialog.Overlay className="bg-gray-500/25 fixed inset-0 z-50" />
+        <Dialog.Content className="fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[500px] translate-x-[-50%] translate-y-[-50%] rounded-md bg-white p-6 z-50">
           <Dialog.Title className="text-xl font-medium mb-4">
             Confirmar Exclusão
           </Dialog.Title>

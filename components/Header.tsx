@@ -37,6 +37,22 @@ const Header = () => {
   // Prioriza o nome do usuário, se disponível
   const displayName = user?.name || user?.username || "Usuário";
 
+  // Função para obter saudação baseada no horário do Brasil (GMT-3)
+  const getGreeting = () => {
+    const now = new Date();
+    // Converte para o fuso horário do Brasil (GMT-3)
+    const brasilTime = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const hour = brasilTime.getUTCHours();
+
+    if (hour >= 5 && hour < 12) {
+      return "Bom dia";
+    } else if (hour >= 12 && hour < 18) {
+      return "Boa tarde";
+    } else {
+      return "Boa noite";
+    }
+  };
+
   return (
     <header
       data-testid="header-component"
@@ -44,7 +60,7 @@ const Header = () => {
     >
       <div>
         <p className="text-xl hidden md:block">
-          Bem vindo,
+          {getGreeting()},
           <span className="font-bold text-2xl"> {displayName}</span>
         </p>
       </div>
