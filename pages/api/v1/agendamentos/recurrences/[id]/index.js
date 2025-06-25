@@ -1,6 +1,7 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
+import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
 import withTimeout from "utils/withTimeout.js";
 
@@ -21,7 +22,7 @@ async function postHandler(req, res) {
 
   try {
     const { id: recurrenceId } = req.query;
-    const { agendamentoBase, diasDaSemana, dataFimRecorrencia, periodicidade } =
+    let { agendamentoBase, diasDaSemana, dataFimRecorrencia, periodicidade } =
       req.body;
 
     // Validar os dados necessários
@@ -69,6 +70,33 @@ async function postHandler(req, res) {
       });
     }
 
+    // Calcular o número estimado de agendamentos que serão criados
+    const intervaloDias = periodicidade === "Semanal" ? 7 : 14;
+    const numeroDeSemanas = Math.ceil(diferencaDias / intervaloDias);
+    const numeroEstimado = numeroDeSemanas * diasDaSemana.length;
+
+    // Limitar a 35 agendamentos máximo
+    const LIMITE_MAXIMO_AGENDAMENTOS = 35;
+    let numeroAgendamentosAjustado = numeroEstimado;
+
+    if (numeroEstimado > LIMITE_MAXIMO_AGENDAMENTOS) {
+      // Calcular nova data fim para não exceder 35 agendamentos
+      const semanasPermitidas = Math.floor(
+        LIMITE_MAXIMO_AGENDAMENTOS / diasDaSemana.length,
+      );
+      const diasPermitidos = semanasPermitidas * intervaloDias;
+      const novaDataFim = new Date(dataInicio);
+      novaDataFim.setDate(dataInicio.getDate() + diasPermitidos);
+
+      // Atualizar a data fim da recorrência
+      dataFimRecorrencia = novaDataFim.toISOString().split("T")[0];
+      numeroAgendamentosAjustado = LIMITE_MAXIMO_AGENDAMENTOS;
+
+      console.log(
+        `⚠️ Limite de agendamentos ajustado: ${numeroEstimado} → ${numeroAgendamentosAjustado}`,
+      );
+    }
+
     console.log(
       `Iniciando criação de agendamentos recorrentes. Período: ${diferencaDias} dias`,
     );
@@ -111,6 +139,72 @@ async function postHandler(req, res) {
 
     console.log(`Agendamentos criados em ${duration}ms`);
 
+    // Criar sessões para todos os agendamentos recorrentes criados
+    console.log("🔄 Criando sessões para os agendamentos recorrentes...");
+    let sessoesCreated = 0;
+
+    try {
+      for (const agendamentoCreated of agendamentosRecorrentes) {
+        // Só criar sessão se o agendamento não estiver cancelado
+        if (agendamentoCreated.statusAgendamento !== "Cancelado") {
+          // Mapear tipos de agendamento para tipos de sessão
+          const mapearTipoAgendamentoParaTipoSessao = (tipoAgendamento) => {
+            switch (tipoAgendamento) {
+              case "Sessão":
+                return "Atendimento";
+              case "Orientação Parental":
+                return "Atendimento";
+              case "Visita Escolar":
+                return "Visitar Escolar";
+              case "Supervisão":
+                return "Atendimento";
+              case "Outros":
+                return "Atendimento";
+              default:
+                return "Atendimento";
+            }
+          };
+
+          // Mapear status de agendamento para status de sessão
+          const mapearStatusAgendamentoParaStatusSessao = (
+            statusAgendamento,
+          ) => {
+            switch (statusAgendamento) {
+              case "Confirmado":
+                return "Pagamento Pendente";
+              case "Remarcado":
+                return "Pagamento Pendente";
+              default:
+                return "Pagamento Pendente";
+            }
+          };
+
+          const sessaoData = {
+            terapeuta_id: agendamentoCreated.terapeutaId,
+            paciente_id: agendamentoCreated.pacienteId,
+            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+              agendamentoCreated.tipoAgendamento,
+            ),
+            valorSessao: agendamentoCreated.valorAgendamento,
+            statusSessao: mapearStatusAgendamentoParaStatusSessao(
+              agendamentoCreated.statusAgendamento,
+            ),
+            agendamento_id: agendamentoCreated.id,
+          };
+
+          await sessao.create(sessaoData);
+          sessoesCreated++;
+        }
+      }
+
+      console.log(
+        `✅ ${sessoesCreated} sessões criadas com sucesso para os agendamentos recorrentes`,
+      );
+    } catch (error) {
+      console.error("⚠️ Erro ao criar algumas sessões:", error.message);
+      // Não falhar o processo inteiro se houver erro na criação das sessões
+    }
+
     // Retornar a resposta com status 201 (Created) e os agendamentos criados
     return res.status(201).json({
       message: `${agendamentosRecorrentes.length} agendamentos recorrentes criados com sucesso`,
@@ -118,6 +212,10 @@ async function postHandler(req, res) {
       metadata: {
         duration: `${duration}ms`,
         count: agendamentosRecorrentes.length,
+        sessoesCreated: sessoesCreated,
+        numeroOriginalEstimado: numeroEstimado,
+        numeroFinalCriado: agendamentosRecorrentes.length,
+        limiteLabelizado: numeroEstimado > LIMITE_MAXIMO_AGENDAMENTOS,
       },
     });
   } catch (error) {
@@ -176,6 +274,9 @@ async function putHandler(req, res) {
             novoDiaSemana,
           );
 
+        // Atualizar sessões correspondentes aos agendamentos atualizados
+        await atualizarSessoesDeAgendamentos(atualizados, agendamentoData);
+
         return res.status(200).json({
           message: `${atualizados.length} agendamentos recorrentes atualizados com novo dia da semana`,
           data: atualizados,
@@ -186,6 +287,9 @@ async function putHandler(req, res) {
           recurrenceId,
           agendamentoData,
         );
+
+        // Atualizar sessões correspondentes aos agendamentos atualizados
+        await atualizarSessoesDeAgendamentos(atualizados, agendamentoData);
 
         return res.status(200).json({
           message: `${atualizados.length} agendamentos recorrentes atualizados com sucesso`,
@@ -213,12 +317,42 @@ async function deleteHandler(req, res) {
   try {
     const { id: recurrenceId } = req.query;
 
+    // Primeiro, buscar todos os agendamentos que serão excluídos para excluir suas sessões
+    const agendamentosParaExcluir =
+      await agendamento.getAgendamentoByRecurrenceId(recurrenceId);
+
+    // Excluir sessões associadas aos agendamentos
+    console.log(
+      "🗑️ Excluindo sessões associadas aos agendamentos recorrentes...",
+    );
+    let sessoesExcluidas = 0;
+
+    try {
+      for (const agendamentoItem of agendamentosParaExcluir) {
+        // Buscar e excluir sessões associadas a este agendamento
+        const sessoesAssociadas = await sessao.getFiltered({
+          agendamento_id: agendamentoItem.id,
+        });
+
+        for (const sessaoItem of sessoesAssociadas) {
+          await sessao.remove(sessaoItem.id);
+          sessoesExcluidas++;
+        }
+      }
+
+      console.log(`✅ ${sessoesExcluidas} sessões excluídas com sucesso`);
+    } catch (error) {
+      console.error("⚠️ Erro ao excluir algumas sessões:", error.message);
+      // Continuar com a exclusão dos agendamentos mesmo se houver erro nas sessões
+    }
+
     // Excluir todos os agendamentos com o mesmo ID de recorrência
     const resultado = await agendamento.removeAllByRecurrenceId(recurrenceId);
 
     return res.status(200).json({
       message: `${resultado.count} agendamentos recorrentes excluídos com sucesso`,
       count: resultado.count,
+      sessoesExcluidas: sessoesExcluidas,
     });
   } catch (error) {
     console.error("Erro ao excluir agendamentos recorrentes:", error);
@@ -231,3 +365,87 @@ async function deleteHandler(req, res) {
 
 // Exportar o handler com tratamento de erros e timeout aumentado para staging
 export default withTimeout(router.handler(controller.errorHandlers), 55000);
+
+// Função auxiliar para atualizar sessões associadas aos agendamentos
+async function atualizarSessoesDeAgendamentos(
+  agendamentosAtualizados,
+  agendamentoData,
+) {
+  console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
+  let sessoesAtualizadas = 0;
+
+  try {
+    for (const agendamentoAtualizado of agendamentosAtualizados) {
+      // Buscar sessões associadas a este agendamento
+      const sessoesAssociadas = await sessao.getFiltered({
+        agendamento_id: agendamentoAtualizado.id,
+      });
+
+      for (const sessaoAssociada of sessoesAssociadas) {
+        // Preparar dados para atualização da sessão
+        const sessaoUpdateData = {};
+
+        // Mapear campos do agendamento para a sessão se foram alterados
+        if (agendamentoData.tipoAgendamento) {
+          sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
+            agendamentoData.tipoAgendamento,
+          );
+        }
+
+        if (agendamentoData.valorAgendamento !== undefined) {
+          sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
+        }
+
+        if (agendamentoData.statusAgendamento) {
+          sessaoUpdateData.statusSessao =
+            mapearStatusAgendamentoParaStatusSessao(
+              agendamentoData.statusAgendamento,
+            );
+        }
+
+        // Se há dados para atualizar, fazer a atualização
+        if (Object.keys(sessaoUpdateData).length > 0) {
+          await sessao.update(sessaoAssociada.id, sessaoUpdateData);
+          sessoesAtualizadas++;
+        }
+      }
+    }
+
+    console.log(`✅ ${sessoesAtualizadas} sessões atualizadas com sucesso`);
+  } catch (error) {
+    console.error("⚠️ Erro ao atualizar algumas sessões:", error.message);
+    // Não falhar o processo se houver erro na atualização das sessões
+  }
+
+  return sessoesAtualizadas;
+}
+
+// Função auxiliar para mapear tipos de agendamento para tipos de sessão
+function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
+  switch (tipoAgendamento) {
+    case "Sessão":
+      return "Atendimento";
+    case "Orientação Parental":
+      return "Atendimento";
+    case "Visita Escolar":
+      return "Visitar Escolar";
+    case "Supervisão":
+      return "Atendimento";
+    case "Outros":
+      return "Atendimento";
+    default:
+      return "Atendimento";
+  }
+}
+
+// Função auxiliar para mapear status de agendamento para status de sessão
+function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
+  switch (statusAgendamento) {
+    case "Confirmado":
+      return "Pagamento Pendente";
+    case "Remarcado":
+      return "Pagamento Pendente";
+    default:
+      return "Pagamento Pendente";
+  }
+}

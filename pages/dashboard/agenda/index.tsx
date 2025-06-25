@@ -45,6 +45,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "sonner";
 import { AgendaSemSala } from "components/Agendamento/AgendaSemSala";
 import { parseAnyDate, formatDateForAPI } from "utils/dateUtils";
+import useAuth from "hooks/useAuth";
+import { RoleBasedInfo } from "components/RoleBasedInfo";
 
 // Tipo de visualização
 type ViewMode = "semanal" | "mensal" | "terapeuta";
@@ -54,8 +56,8 @@ type PeriodMode = "semana" | "mes" | "personalizado";
 
 export default function Agenda() {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState<ViewMode>("semanal");
-  const [periodMode, setPeriodMode] = useState<PeriodMode>("semana");
+  const [viewMode, setViewMode] = useState<ViewMode>("mensal");
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("mes");
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [searchPaciente, setSearchPaciente] = useState("");
   const [customPeriodStart, setCustomPeriodStart] = useState<Date | null>(null);
@@ -86,6 +88,10 @@ export default function Agenda() {
   const [draggedAgendamento, setDraggedAgendamento] =
     useState<Agendamento | null>(null);
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null);
+
+  // Auth context para verificar permissões
+  const { user } = useAuth();
+  const userRole = user?.role || "terapeuta";
 
   // Fetch data
   const { agendamentos, isLoading, isError, mutate, updateAgendamento } =
@@ -530,10 +536,46 @@ export default function Agenda() {
 
   // Handlers para ações de agendamento
   const handleEditAgendamento = (agendamento: Agendamento) => {
+    // Para terapeutas, verificar se é seu próprio agendamento
+    if (userRole === "terapeuta") {
+      // Buscar o terapeuta associado ao usuário logado via user_id
+      const currentUserTerapeuta = terapeutas?.find(
+        (t) => t.user_id === user?.id?.toString(),
+      );
+
+      if (
+        !currentUserTerapeuta ||
+        agendamento.terapeuta_id !== currentUserTerapeuta.id
+      ) {
+        toast.error(
+          "Você só pode editar agendamentos de seus próprios pacientes",
+        );
+        return;
+      }
+    }
+
     setAgendamentoEditando(agendamento);
   };
 
   const handleDeleteClick = (agendamento: Agendamento) => {
+    // Para terapeutas, verificar se é seu próprio agendamento
+    if (userRole === "terapeuta") {
+      // Buscar o terapeuta associado ao usuário logado via user_id
+      const currentUserTerapeuta = terapeutas?.find(
+        (t) => t.user_id === user?.id?.toString(),
+      );
+
+      if (
+        !currentUserTerapeuta ||
+        agendamento.terapeuta_id !== currentUserTerapeuta.id
+      ) {
+        toast.error(
+          "Você só pode excluir agendamentos de seus próprios pacientes",
+        );
+        return;
+      }
+    }
+
     setAgendamentoDeletando(agendamento);
   };
 
@@ -561,6 +603,23 @@ export default function Agenda() {
 
   // Handlers para drag and drop (remarcação rápida)
   const handleDragStart = (agendamento: Agendamento) => {
+    // Para terapeutas, verificar se é seu próprio agendamento
+    if (userRole === "terapeuta") {
+      const currentUserTerapeuta = terapeutas?.find(
+        (t) => t.user_id === user?.id?.toString(),
+      );
+
+      if (
+        !currentUserTerapeuta ||
+        agendamento.terapeuta_id !== currentUserTerapeuta.id
+      ) {
+        toast.error(
+          "Você só pode remarcar agendamentos de seus próprios pacientes",
+        );
+        return;
+      }
+    }
+
     setDraggedAgendamento(agendamento);
   };
 
@@ -572,6 +631,25 @@ export default function Agenda() {
   const handleDrop = async (e: React.DragEvent, date: Date) => {
     e.preventDefault();
     if (!draggedAgendamento) return;
+
+    // Verificar novamente as permissões (por precaução)
+    if (userRole === "terapeuta") {
+      const currentUserTerapeuta = terapeutas?.find(
+        (t) => t.user_id === user?.id?.toString(),
+      );
+
+      if (
+        !currentUserTerapeuta ||
+        draggedAgendamento.terapeuta_id !== currentUserTerapeuta.id
+      ) {
+        toast.error(
+          "Você só pode remarcar agendamentos de seus próprios pacientes",
+        );
+        setDraggedAgendamento(null);
+        setDragOverDate(null);
+        return;
+      }
+    }
 
     try {
       // Formatar a data para o formato esperado pela API (YYYY-MM-DD)
@@ -643,7 +721,10 @@ export default function Agenda() {
       <main className="flex-1 bg-gray-100 p-4 min-w-0 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
-          <h1 className="text-xl font-semibold sm:text-2xl">Agenda</h1>
+          <div className="flex flex-col space-y-3">
+            <h1 className="text-xl font-semibold sm:text-2xl">Agenda</h1>
+            <RoleBasedInfo userRole={userRole} className="max-w-md" />
+          </div>
           <Dialog.Root
             open={isNewAgendamentoOpen}
             onOpenChange={setIsNewAgendamentoOpen}

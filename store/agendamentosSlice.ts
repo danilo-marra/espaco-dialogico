@@ -35,7 +35,17 @@ export const addAgendamento = createAsyncThunk<Agendamento, any>(
 
 // Thunk para adicionar agendamentos recorrentes
 export const addAgendamentoRecorrente = createAsyncThunk<
-  { data: Agendamento[] },
+  {
+    data: Agendamento[];
+    metadata?: {
+      duration?: string;
+      count?: number;
+      sessoesCreated?: number;
+      numeroOriginalEstimado?: number;
+      numeroFinalCriado?: number;
+      limiteLabelizado?: boolean;
+    };
+  },
   {
     recurrenceId: string;
     agendamentoBase: any;

@@ -3,12 +3,18 @@ import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
 import { requirePermission } from "utils/roleMiddleware.js";
+import {
+  requireTerapeutaAccess,
+  applyTerapeutaFilters,
+  terapeutaTemAcessoPaciente,
+} from "utils/terapeutaMiddleware.js";
 
 // Criar o router
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
 router.use(requirePermission("agendamentos"));
+router.use(requireTerapeutaAccess());
 
 // Definir os handlers para cada método HTTP
 router.get(getHandler);
@@ -16,26 +22,44 @@ router.post(postHandler);
 
 // Handler para obter os agendamentos
 async function getHandler(req, res) {
-  // Verificar se há filtros na query string
-  const { terapeuta_id, paciente_id, status, dataInicio, dataFim } = req.query;
+  try {
+    // Verificar se há filtros na query string
+    const { terapeuta_id, paciente_id, status, dataInicio, dataFim } =
+      req.query;
 
-  let agendamentos;
+    const userRole = req.user.role || "terapeuta";
+    const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
 
-  // Se existirem filtros, usar getFiltered, caso contrário, usar getAll
-  if (terapeuta_id || paciente_id || status || dataInicio || dataFim) {
-    agendamentos = await agendamento.getFiltered({
+    // Aplicar filtros baseados na role do usuário
+    const filters = applyTerapeutaFilters(userRole, currentTerapeutaId, {
       terapeuta_id,
       paciente_id,
       status,
       dataInicio,
       dataFim,
     });
-  } else {
-    agendamentos = await agendamento.getAll();
-  }
 
-  // Retornar a resposta com status 200 (OK)
-  res.status(200).json(agendamentos);
+    let agendamentos;
+
+    // Se existirem filtros, usar getFiltered, caso contrário, usar getAll
+    if (Object.keys(filters).some((key) => filters[key])) {
+      agendamentos = await agendamento.getFiltered(filters);
+    } else {
+      agendamentos = await agendamento.getAll();
+    }
+
+    // REMOVIDO: Filtro que limitava terapeutas a ver apenas seus agendamentos
+    // Agora terapeutas podem ver todos os agendamentos, mas só editar os próprios
+
+    // Retornar a resposta com status 200 (OK)
+    res.status(200).json(agendamentos);
+  } catch (error) {
+    console.error("Erro ao buscar agendamentos:", error);
+    res.status(500).json({
+      error: "Erro ao buscar agendamentos",
+      message: error.message,
+    });
+  }
 }
 
 // Handler para criar um novo agendamento
@@ -43,6 +67,36 @@ async function postHandler(req, res) {
   try {
     // Extrair os dados do corpo da requisição
     const agendamentoData = req.body;
+
+    const userRole = req.user.role || "terapeuta";
+    const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
+
+    // Para terapeutas, verificar se estão tentando criar agendamento para seus próprios pacientes
+    if (userRole === "terapeuta") {
+      if (!currentTerapeutaId) {
+        return res.status(403).json({
+          error: "Acesso negado",
+          message: "Terapeuta não encontrado no sistema",
+        });
+      }
+
+      // Verificar se o terapeuta tem acesso ao paciente
+      const temAcesso = await terapeutaTemAcessoPaciente(
+        currentTerapeutaId,
+        agendamentoData.paciente_id,
+      );
+
+      if (!temAcesso) {
+        return res.status(403).json({
+          error: "Acesso negado",
+          message:
+            "Você só pode criar agendamentos para seus próprios pacientes",
+        });
+      }
+
+      // Garantir que o terapeuta_id do agendamento seja o do usuário logado
+      agendamentoData.terapeuta_id = currentTerapeutaId;
+    }
 
     // Verificar se já existe agendamento com mesmas características
     // Isso evita duplicações por múltiplos envios do formulário

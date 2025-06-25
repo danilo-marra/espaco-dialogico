@@ -15,7 +15,10 @@ export const useFetchSessoes = () => {
       revalidateOnFocus: true, // Revalidar quando o usuário voltar à aba
       revalidateIfStale: true, // Revalidar dados antigos automaticamente
       revalidateOnReconnect: true, // Revalidar quando a conexão for restabelecida
-      dedupingInterval: 2000, // Tempo mínimo entre requisições (2 segundos)
+      dedupingInterval: 1000, // Reduzido para 1 segundo para melhor responsividade
+      refreshInterval: 0, // Não atualizar automaticamente por tempo
+      errorRetryInterval: 5000, // Tentar novamente após erro em 5 segundos
+      focusThrottleInterval: 1000, // Limitar revalidação por foco a 1 segundo
     },
   );
   return {

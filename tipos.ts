@@ -7,6 +7,7 @@ export interface Terapeuta {
   endereco: string;
   dt_entrada: Date | string;
   chave_pix: string;
+  user_id?: string | null; // ID do usuário associado (para vincular com o sistema de login)
   created_at?: string;
   updated_at?: string;
 }

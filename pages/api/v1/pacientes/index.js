@@ -3,6 +3,7 @@ import controller from "infra/controller.js";
 import paciente from "models/paciente.js";
 import { formidable } from "formidable";
 import { requirePermission } from "utils/roleMiddleware.js";
+import { requireTerapeutaAccess } from "utils/terapeutaMiddleware.js";
 
 // Configuração para desativar o bodyParser padrão do Next.js para uploads
 export const config = {
@@ -19,6 +20,7 @@ const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
 router.use(requirePermission("pacientes"));
+router.use(requireTerapeutaAccess());
 
 router.get(getAllHandler);
 router.post(postHandler);
@@ -27,7 +29,20 @@ export default router.handler(controller.errorHandlers);
 
 async function getAllHandler(request, response) {
   try {
-    const pacientes = await paciente.getAll();
+    // Verificar se é um terapeuta e filtrar adequadamente
+    const userRole = request.user?.role;
+    const terapeutaId = request.terapeutaId; // Vem do middleware terapeutaMiddleware
+
+    let pacientes;
+
+    // Se for terapeuta, buscar apenas seus pacientes
+    if (userRole === "terapeuta" && terapeutaId) {
+      pacientes = await paciente.getByTerapeutaId(terapeutaId);
+    } else {
+      // Admin e secretaria veem todos os pacientes
+      pacientes = await paciente.getAll();
+    }
+
     return response.status(200).json(pacientes);
   } catch (error) {
     console.error("Erro ao buscar pacientes:", error);
@@ -50,8 +65,6 @@ async function postHandler(request, response) {
         resolve([fields, files]);
       });
     });
-
-    console.log("Campos recebidos do formulário:", fields);
 
     // Preparar objeto paciente para inserção com os campos corretos
     const pacienteData = {
@@ -85,8 +98,6 @@ async function postHandler(request, response) {
         throw new Error(`Campo obrigatório não preenchido: ${field}`);
       }
     }
-
-    console.log("Dados do paciente formatados para inserção:", pacienteData);
 
     // Criar paciente no banco de dados
     const novoPaciente = await paciente.create(pacienteData);

@@ -10,6 +10,8 @@ import { deleteAgendamento, fetchAgendamentos } from "store/agendamentosSlice";
 import { toast } from "sonner";
 import { parseAnyDate } from "utils/dateUtils";
 import { Switch } from "@headlessui/react";
+import useAuth from "../../hooks/useAuth";
+import { mutate } from "swr"; // Importar mutate global do SWR
 
 interface DeletarAgendamentoModalProps {
   agendamento: Agendamento;
@@ -26,7 +28,12 @@ export function DeletarAgendamentoModal({
 }: DeletarAgendamentoModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingMessage, setDeletingMessage] = useState("");
   const [deletarRecorrencia, setDeletarRecorrencia] = useState(false);
+
+  // Verificar dados do usuário para informações role-based
+  const { user } = useAuth();
+  const isUserTerapeuta = user?.role === "terapeuta";
 
   // Formatar a data para exibição
   const dataFormatada = format(
@@ -41,6 +48,8 @@ export function DeletarAgendamentoModal({
 
       // Se for um agendamento recorrente e o usuário escolheu deletar todos
       if (agendamento.recurrenceId && deletarRecorrencia) {
+        setDeletingMessage("Excluindo todos os agendamentos da recorrência...");
+
         await dispatch(
           deleteAgendamento({
             id: agendamento.id,
@@ -49,12 +58,19 @@ export function DeletarAgendamentoModal({
           }),
         ).unwrap();
       } else {
+        setDeletingMessage("Excluindo agendamento...");
+
         // Deletar apenas o agendamento atual
         await dispatch(deleteAgendamento(agendamento.id)).unwrap();
       }
 
+      setDeletingMessage("Atualizando dados...");
+
       // Recarregar dados após exclusão
       dispatch(fetchAgendamentos());
+
+      // Invalidar cache de sessões para garantir sincronização com dashboard de transações
+      await mutate("/sessoes");
 
       // Notifica o componente pai do sucesso da operação
       onSuccess?.(!!agendamento.recurrenceId && deletarRecorrencia);
@@ -67,6 +83,7 @@ export function DeletarAgendamentoModal({
       );
     } finally {
       setIsDeleting(false);
+      setDeletingMessage("");
     }
   }
 
@@ -93,6 +110,15 @@ export function DeletarAgendamentoModal({
                 Esta ação não pode ser desfeita.
               </p>
             </div>
+
+            {isUserTerapeuta && (
+              <div className="bg-blue-50 p-4 rounded-md border border-blue-200 mb-4">
+                <p className="text-blue-800 text-sm">
+                  Como terapeuta, você só pode excluir seus próprios
+                  agendamentos.
+                </p>
+              </div>
+            )}
 
             <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
               <h3 className="font-medium mb-2">Detalhes do agendamento:</h3>
@@ -168,10 +194,17 @@ export function DeletarAgendamentoModal({
             <button
               type="button"
               onClick={handleDeleteAgendamento}
-              className="bg-red-500 px-5 py-3 rounded-md font-semibold text-white hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="bg-red-500 px-5 py-3 rounded-md font-semibold text-white hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-300 min-w-[120px] flex items-center justify-center"
               disabled={isDeleting}
             >
-              {isDeleting ? "Excluindo..." : "Excluir"}
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {deletingMessage || "Excluindo..."}
+                </>
+              ) : (
+                "Excluir"
+              )}
             </button>
           </footer>
         </Dialog.Content>

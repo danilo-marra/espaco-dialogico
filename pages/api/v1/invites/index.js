@@ -66,7 +66,7 @@ async function postHandler(request, response) {
     // Se o usuário não existe, criar o convite sem o createdBy
     const newInvite = await invite.create({
       email,
-      role: role || "user",
+      role: role || "secretaria",
       expiresInDays: parseInt(expiresInDays, 10) || 7,
       createdBy: userExists ? userRecord.id || userId : null,
     });
