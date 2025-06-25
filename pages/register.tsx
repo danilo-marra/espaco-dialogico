@@ -12,14 +12,68 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [inviteInfo, setInviteInfo] = useState<{
+    email: string | null;
+    role: string;
+  } | null>(null);
+  const [isLoadingInvite, setIsLoadingInvite] = useState(false);
   const router = useRouter();
+
+  // Função para buscar informações do convite
+  const fetchInviteInfo = async (code: string) => {
+    if (!code) return;
+
+    setIsLoadingInvite(true);
+    try {
+      const response = await fetch(`/api/v1/invites/info/${code}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setInviteInfo(data);
+        // Se o convite tem um email específico, pré-preencher o campo
+        if (data.email) {
+          setEmail(data.email);
+        }
+      } else {
+        // Se há erro no convite, mostrar mensagem
+        toast.error(data.error || "Código de convite inválido");
+        setInviteInfo(null);
+        setEmail("");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar informações do convite:", error);
+      toast.error("Erro ao validar código de convite");
+      setInviteInfo(null);
+      setEmail("");
+    } finally {
+      setIsLoadingInvite(false);
+    }
+  };
 
   useEffect(() => {
     const { code } = router.query;
     if (code && typeof code === "string") {
       setInviteCode(code);
+      fetchInviteInfo(code);
     }
   }, [router.query]);
+
+  // Função para lidar com mudanças no código de convite
+  const handleInviteCodeChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setInviteCode(upperValue);
+
+    // Se o código tem 8 caracteres (tamanho padrão), buscar informações
+    if (upperValue.length === 8) {
+      fetchInviteInfo(upperValue);
+    } else {
+      // Limpar informações se código incompleto
+      setInviteInfo(null);
+      if (!inviteInfo?.email) {
+        setEmail("");
+      }
+    }
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,10 +163,20 @@ export default function Register() {
                 name="inviteCode"
                 type="text"
                 value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                onChange={(e) => handleInviteCodeChange(e.target.value)}
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
                 required
               />
+              {isLoadingInvite && (
+                <p className="text-xs text-blue-500 mt-1">
+                  Validando código de convite...
+                </p>
+              )}
+              {inviteInfo && (
+                <p className="text-xs text-green-600 mt-1">
+                  ✅ Código válido - Convite para {inviteInfo.role}
+                </p>
+              )}
             </div>
 
             <div>
@@ -128,11 +192,16 @@ export default function Register() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                readOnly={!!inviteInfo?.email}
+                className={`shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] ${
+                  inviteInfo?.email ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                Você usará o email para fazer login no sistema
+                {inviteInfo?.email
+                  ? "Este email foi pré-definido no convite e não pode ser alterado"
+                  : "Você usará o email para fazer login no sistema"}
               </p>
             </div>
 

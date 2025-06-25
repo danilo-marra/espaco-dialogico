@@ -2,6 +2,7 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
+import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 import {
   requireTerapeutaAccess,
@@ -13,6 +14,7 @@ import {
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
+router.use(authMiddleware);
 router.use(requirePermission("agendamentos"));
 router.use(requireTerapeutaAccess());
 
@@ -76,7 +78,8 @@ async function postHandler(req, res) {
       if (!currentTerapeutaId) {
         return res.status(403).json({
           error: "Acesso negado",
-          message: "Terapeuta não encontrado no sistema",
+          message:
+            "Terapeuta não tem registro válido no sistema. Entre em contato com a administração.",
         });
       }
 

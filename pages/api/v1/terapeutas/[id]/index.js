@@ -95,7 +95,32 @@ async function putHandler(request, response) {
     return response.status(200).json(updatedTerapeuta);
   } catch (error) {
     console.error("Erro ao atualizar terapeuta:", error);
-    return response.status(500).json({ error: "Erro ao atualizar terapeuta" });
+
+    // Tratamento específico de erros
+    if (error.name === "ValidationError") {
+      return response.status(400).json({
+        name: error.name,
+        message: error.message,
+        action: error.action || "Verifique os dados e tente novamente.",
+        status_code: 400,
+      });
+    }
+
+    if (error.name === "NotFoundError") {
+      return response.status(404).json({
+        name: error.name,
+        message: error.message,
+        action: error.action || "Verifique o ID e tente novamente.",
+        status_code: 404,
+      });
+    }
+
+    return response.status(500).json({
+      name: "InternalServerError",
+      message: "Erro interno do servidor",
+      action: "Tente novamente ou entre em contato com o suporte.",
+      status_code: 500,
+    });
   }
 }
 

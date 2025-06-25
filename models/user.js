@@ -356,6 +356,27 @@ async function deleteUser(username) {
   }
 }
 
+// Excluir usuário por ID (para rollback)
+async function deleteById(userId) {
+  const results = await database.query({
+    text: `
+      DELETE FROM users
+      WHERE id = $1
+      RETURNING id, username, email
+    `,
+    values: [userId],
+  });
+
+  if (results.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Usuário não encontrado para exclusão",
+      action: "Verifique se o ID está correto",
+    });
+  }
+
+  return results.rows[0];
+}
+
 const user = {
   getAll,
   create,
@@ -364,6 +385,7 @@ const user = {
   findById,
   update,
   delete: deleteUser,
+  deleteById,
 };
 
 export default user;

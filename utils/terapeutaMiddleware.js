@@ -64,13 +64,16 @@ export function requireTerapeutaAccess() {
       });
 
       if (terapeutaResult.rows.length === 0) {
-        return res.status(403).json({
-          error: "Acesso negado",
-          message:
-            "Usuário não é um terapeuta válido no sistema ou não está associado a nenhum terapeuta",
-          details:
-            "Para acessar como terapeuta, é necessário ter um registro de terapeuta vinculado ao usuário",
-        });
+        console.warn(
+          `Usuário ${userId} com role terapeuta não tem registro na tabela terapeutas`,
+        );
+
+        // ALTERADO: Permitir acesso mesmo sem registro de terapeuta
+        // Isso pode acontecer quando o terapeuta ainda não foi completamente configurado
+        req.terapeutaId = null; // Indicar que não tem terapeuta associado
+
+        // Continuar com a requisição, mas a API poderá aplicar filtros restritivos
+        return next();
       }
 
       const terapeutaId = terapeutaResult.rows[0].id;

@@ -94,8 +94,11 @@ export function NovoAgendamentoModal({
   const isTerapeuta = user?.role === "terapeuta";
 
   // Para terapeutas, usar dados específicos
-  const { terapeuta: currentTerapeuta, pacientes: terapeutaPacientes } =
-    useTerapeutaData();
+  const {
+    terapeuta: currentTerapeuta,
+    pacientes: terapeutaPacientes,
+    isLoading: terapeutaDataLoading,
+  } = useTerapeutaData();
 
   // Para admin/secretaria, usar dados completos
   const { pacientes: allPacientes } = useFetchPacientes();
@@ -380,7 +383,9 @@ export function NovoAgendamentoModal({
               {isTerapeuta ? (
                 // Para terapeutas, mostrar apenas o nome (read-only)
                 <div className="border rounded p-2 bg-gray-100 text-gray-700">
-                  {currentTerapeuta?.nome || "Carregando..."}
+                  {terapeutaDataLoading
+                    ? "Carregando dados do terapeuta..."
+                    : currentTerapeuta?.nome || "Terapeuta não encontrado"}
                 </div>
               ) : (
                 // Para admin/secretaria, mostrar seleção completa
