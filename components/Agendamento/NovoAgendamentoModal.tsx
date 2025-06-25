@@ -339,10 +339,14 @@ export function NovoAgendamentoModal({
             `${result.metadata.numeroFinalCriado} agendamentos criados (limitado a máximo de 35)`,
             { duration: 5000 },
           );
+          // Para limitação, não chamar onSuccess() para evitar toast duplo
+          // Apenas fechar modal (o componente pai fará o mutate quando necessário)
+          onClose();
+        } else {
+          // Para casos normais, chamar onSuccess() para que o pai exiba o toast padrão
+          onSuccess();
+          onClose();
         }
-
-        onSuccess(); // O componente pai será responsável pelo toast
-        onClose();
       }
     } catch (error) {
       // Melhor tratamento de erro

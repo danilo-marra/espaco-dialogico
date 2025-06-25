@@ -582,7 +582,9 @@ async function atualizarSessoesDeAgendamentosOtimizado(
 
       for (const sessaoAssociada of sessoesAssociadas) {
         // Preparar dados para atualização da sessão
-        const sessaoUpdateData = {};
+        const sessaoUpdateData = {
+          id: sessaoAssociada.id, // ID é necessário para updateBatch
+        };
 
         // Mapear campos do agendamento para a sessão se foram alterados
         if (agendamentoData.tipoAgendamento) {
@@ -602,55 +604,42 @@ async function atualizarSessoesDeAgendamentosOtimizado(
             );
         }
 
-        // Se há dados para atualizar, adicionar à lista
-        if (Object.keys(sessaoUpdateData).length > 0) {
-          sessoesParaAtualizar.push({
-            id: sessaoAssociada.id,
-            updateData: sessaoUpdateData,
-          });
+        // Se há dados para atualizar (além do ID), adicionar à lista
+        if (Object.keys(sessaoUpdateData).length > 1) {
+          sessoesParaAtualizar.push(sessaoUpdateData);
         }
       }
     }
 
+    if (sessoesParaAtualizar.length === 0) {
+      console.log("✅ Nenhuma sessão precisa ser atualizada");
+      return 0;
+    }
+
     console.log(
-      `🚀 BATCH: Atualizando ${sessoesParaAtualizar.length} sessões em lote...`,
+      `🚀 BATCH: Preparando para atualizar ${sessoesParaAtualizar.length} sessões...`,
     );
 
-    // Atualizar sessões em lote (chunks de 10 para evitar timeout)
-    const BATCH_SIZE = 10;
-
-    for (let i = 0; i < sessoesParaAtualizar.length; i += BATCH_SIZE) {
-      const chunk = sessoesParaAtualizar.slice(i, i + BATCH_SIZE);
-
-      // Log apenas para chunks grandes
-      if (sessoesParaAtualizar.length > BATCH_SIZE) {
-        console.log(
-          `🚀 BATCH: Atualizando sessões ${i + 1}-${Math.min(i + BATCH_SIZE, sessoesParaAtualizar.length)}/${sessoesParaAtualizar.length}...`,
-        );
-      }
-
-      // Processar chunk atual em paralelo
-      const updatePromises = chunk.map(({ id, updateData }) =>
-        sessao.update(id, updateData),
+    try {
+      // Usar o novo método updateBatch para atualizar todas as sessões de uma vez
+      sessoesAtualizadas = await sessao.updateBatch(sessoesParaAtualizar);
+    } catch (error) {
+      console.error(
+        `⚠️ Erro ao atualizar em lote, tentando fallback individual:`,
+        error.message,
       );
 
-      try {
-        await Promise.all(updatePromises);
-        sessoesAtualizadas += chunk.length;
-      } catch (error) {
-        console.error(`⚠️ Erro ao atualizar chunk de sessões:`, error.message);
-
-        // Fallback: tentar individual para o chunk que falhou
-        for (const { id, updateData } of chunk) {
-          try {
-            await sessao.update(id, updateData);
-            sessoesAtualizadas++;
-          } catch (individualError) {
-            console.error(
-              `❌ Erro ao atualizar sessão individual ${id}:`,
-              individualError.message,
-            );
-          }
+      // Fallback: tentar individual para todas as sessões
+      for (const sessaoData of sessoesParaAtualizar) {
+        try {
+          const { id, ...updateData } = sessaoData;
+          await sessao.update(id, updateData);
+          sessoesAtualizadas++;
+        } catch (individualError) {
+          console.error(
+            `❌ Erro ao atualizar sessão individual ${sessaoData.id}:`,
+            individualError.message,
+          );
         }
       }
     }
