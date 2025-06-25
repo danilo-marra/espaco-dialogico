@@ -437,6 +437,102 @@ async function createBatch(sessoesData) {
   }
 }
 
+async function updateBatch(sessoesData) {
+  if (!sessoesData || sessoesData.length === 0) {
+    console.warn("Nenhuma sessão para atualizar");
+    return 0;
+  }
+
+  try {
+    await database.query({ text: "BEGIN" });
+
+    let totalSessoesUpdated = 0;
+
+    // Para lotes grandes, dividir em chunks menores para evitar timeout
+    const BATCH_SIZE = 10; // Mantém consistência com createBatch
+
+    for (let i = 0; i < sessoesData.length; i += BATCH_SIZE) {
+      const chunk = sessoesData.slice(i, i + BATCH_SIZE);
+
+      // Log apenas para o primeiro chunk ou chunks grandes
+      if (i === 0 || sessoesData.length > BATCH_SIZE) {
+        console.log(
+          `🚀 BATCH: Atualizando ${chunk.length} sessões (${i + 1}-${i + chunk.length}/${sessoesData.length})...`,
+        );
+      }
+
+      // Atualizar cada sessão do chunk usando UPDATE com WHERE
+      for (const sessaoData of chunk) {
+        if (!sessaoData.id) {
+          console.warn("ID da sessão não fornecido, pulando...");
+          continue;
+        }
+
+        // Construir campos de atualização dinamicamente
+        const updateFields = [];
+        const values = [];
+        let valueIndex = 1;
+
+        if (sessaoData.tipoSessao !== undefined) {
+          updateFields.push(`tipo_sessao = $${valueIndex++}`);
+          values.push(sessaoData.tipoSessao);
+        }
+
+        if (sessaoData.valorSessao !== undefined) {
+          updateFields.push(`valor_sessao = $${valueIndex++}`);
+          values.push(sessaoData.valorSessao);
+        }
+
+        if (sessaoData.valorRepasse !== undefined) {
+          updateFields.push(`valor_repasse = $${valueIndex++}`);
+          values.push(sessaoData.valorRepasse);
+        }
+
+        if (sessaoData.statusSessao !== undefined) {
+          updateFields.push(`status_sessao = $${valueIndex++}`);
+          values.push(sessaoData.statusSessao);
+        }
+
+        // Se não há campos para atualizar, pular esta sessão
+        if (updateFields.length === 0) {
+          continue;
+        }
+
+        // Adicionar o ID no final para o WHERE
+        values.push(sessaoData.id);
+
+        const result = await database.query({
+          text: `
+            UPDATE sessoes 
+            SET ${updateFields.join(", ")}, updated_at = NOW()
+            WHERE id = $${valueIndex}
+            RETURNING id
+          `,
+          values: values,
+        });
+
+        if (result.rowCount > 0) {
+          totalSessoesUpdated++;
+        }
+      }
+    }
+
+    await database.query({ text: "COMMIT" });
+
+    console.log(
+      `✅ BATCH: ${totalSessoesUpdated} sessões atualizadas com sucesso`,
+    );
+
+    return totalSessoesUpdated;
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("Erro ao atualizar sessões em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao atualizar sessões em lote: ${error.message}`,
+    });
+  }
+}
+
 const sessao = {
   create,
   createBatch,
@@ -444,6 +540,7 @@ const sessao = {
   getById,
   getFiltered,
   update,
+  updateBatch,
   remove,
 };
 
