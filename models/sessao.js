@@ -295,6 +295,87 @@ async function remove(id) {
   return true;
 }
 
+// Função otimizada para remover múltiplas sessões em lote por agendamento_id
+async function removeBatchByAgendamentosIds(agendamentoIds) {
+  try {
+    if (!Array.isArray(agendamentoIds) || agendamentoIds.length === 0) {
+      console.log("✅ BATCH: Nenhuma sessão para excluir");
+      return 0;
+    }
+
+    console.log(
+      `🗑️ BATCH: Excluindo sessões de ${agendamentoIds.length} agendamentos...`,
+    );
+
+    await database.query({ text: "BEGIN" });
+
+    // Construir placeholders para IN clause
+    const placeholders = agendamentoIds
+      .map((_, index) => `$${index + 1}`)
+      .join(", ");
+
+    // Excluir todas as sessões em uma única query
+    const result = await database.query({
+      text: `DELETE FROM sessoes WHERE agendamento_id IN (${placeholders})`,
+      values: agendamentoIds,
+    });
+
+    await database.query({ text: "COMMIT" });
+
+    const sessoesExcluidas = result.rowCount || 0;
+    console.log(`✅ BATCH: ${sessoesExcluidas} sessões excluídas com sucesso`);
+
+    return sessoesExcluidas;
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("❌ BATCH: Erro ao excluir sessões em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao excluir sessões em lote: ${error.message}`,
+    });
+  }
+}
+
+// Função alternativa para remover sessões por lista de IDs diretos
+async function removeBatchByIds(sessaoIds) {
+  try {
+    if (!Array.isArray(sessaoIds) || sessaoIds.length === 0) {
+      console.log("✅ BATCH: Nenhuma sessão para excluir");
+      return 0;
+    }
+
+    console.log(`🗑️ BATCH: Excluindo ${sessaoIds.length} sessões por ID...`);
+
+    await database.query({ text: "BEGIN" });
+
+    // Dividir em chunks para evitar limitações de SQL
+    const BATCH_SIZE = 100;
+    let totalExcluidas = 0;
+
+    for (let i = 0; i < sessaoIds.length; i += BATCH_SIZE) {
+      const chunk = sessaoIds.slice(i, i + BATCH_SIZE);
+      const placeholders = chunk.map((_, index) => `$${index + 1}`).join(", ");
+
+      const result = await database.query({
+        text: `DELETE FROM sessoes WHERE id IN (${placeholders})`,
+        values: chunk,
+      });
+
+      totalExcluidas += result.rowCount || 0;
+    }
+
+    await database.query({ text: "COMMIT" });
+
+    console.log(`✅ BATCH: ${totalExcluidas} sessões excluídas com sucesso`);
+    return totalExcluidas;
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("❌ BATCH: Erro ao excluir sessões em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao excluir sessões em lote: ${error.message}`,
+    });
+  }
+}
+
 function formatSessaoResult(row) {
   return {
     id: row.id,
@@ -542,6 +623,8 @@ const sessao = {
   update,
   updateBatch,
   remove,
+  removeBatchByAgendamentosIds,
+  removeBatchByIds,
 };
 
 export default sessao;

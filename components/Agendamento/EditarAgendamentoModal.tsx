@@ -90,6 +90,9 @@ export function EditarAgendamentoModal({
     useState<Agendamento | null>(null);
   const [isLoadingAgendamento, setIsLoadingAgendamento] = useState(false);
   const [formInitialized, setFormInitialized] = useState(false); // Nova flag para controlar inicialização
+  const [numeroRecorrencias, setNumeroRecorrencias] = useState<number>(0); // Estado para número de recorrências
+  const [progressPercentage, setProgressPercentage] = useState<number>(0); // Estado para barra de progresso
+  const [showProgress, setShowProgress] = useState<boolean>(false); // Estado para mostrar/ocultar barra de progresso
 
   // Buscar todos os agendamentos do Redux para ter dados atualizados
   const agendamentos = useSelector(
@@ -207,8 +210,36 @@ export function EditarAgendamentoModal({
       // Limpar o estado quando o modal fechar
       setAgendamentoAtualizado(null);
       setFormInitialized(false); // Reset da flag quando o modal fechar
+      setNumeroRecorrencias(0); // Reset do número de recorrências
     }
   }, [open, agendamento?.id, agendamentos, agendamento]);
+
+  // Buscar número de recorrências quando há recurrenceId
+  useEffect(() => {
+    const agendamentoToUse = agendamentoAtualizado || agendamento;
+
+    if (open && agendamentoToUse?.recurrenceId) {
+      axiosInstance
+        .get(`/agendamentos/recurrences/${agendamentoToUse.recurrenceId}`)
+        .then((response) => {
+          if (Array.isArray(response.data)) {
+            setNumeroRecorrencias(response.data.length);
+          } else {
+            setNumeroRecorrencias(0);
+          }
+        })
+        .catch((error) => {
+          console.error("Erro ao buscar número de recorrências:", error);
+          // Se não conseguir buscar, tentar contar pelos agendamentos carregados
+          const agendamentosRecorrentes = agendamentos.filter(
+            (a) => a.recurrenceId === agendamentoToUse.recurrenceId,
+          );
+          setNumeroRecorrencias(agendamentosRecorrentes.length);
+        });
+    } else if (!open || !agendamentoToUse?.recurrenceId) {
+      setNumeroRecorrencias(0);
+    }
+  }, [open, agendamentoAtualizado, agendamento, agendamentos]);
 
   // Efeito adicional para garantir que o modal seja reinicializado quando abrir
   useEffect(() => {
@@ -376,6 +407,16 @@ export function EditarAgendamentoModal({
     setIsSubmitting(true);
     setLoadingMessage("Preparando atualização...");
 
+    // Se for edição de recorrência, mostrar barra de progresso
+    const agendamentoToUse = agendamentoAtualizado || agendamento;
+    const isRecurrenceUpdate =
+      agendamentoToUse.recurrenceId && editarRecorrencia;
+
+    if (isRecurrenceUpdate) {
+      setShowProgress(true);
+      setProgressPercentage(10);
+    }
+
     try {
       // Formatar a data para o formato esperado pela API
       const formattedData = {
@@ -383,10 +424,8 @@ export function EditarAgendamentoModal({
         dataAgendamento: formatDateForAPI(data.dataAgendamento),
       };
 
-      // Se o agendamento tem recorrência e o usuário optou por editar todas as recorrências
-      const agendamentoToUse = agendamentoAtualizado || agendamento;
-
-      if (agendamentoToUse.recurrenceId && editarRecorrencia) {
+      if (isRecurrenceUpdate) {
+        setProgressPercentage(25);
         setLoadingMessage(
           alterarDiaSemana
             ? "Atualizando todos os agendamentos recorrentes com novo dia da semana..."
@@ -401,6 +440,8 @@ export function EditarAgendamentoModal({
           ...(alterarDiaSemana && { novoDiaSemana }),
         };
 
+        setProgressPercentage(50);
+
         // Enviar uma requisição para atualizar todos os agendamentos com o mesmo recurrenceId
         await dispatch(
           updateAgendamento({
@@ -409,6 +450,7 @@ export function EditarAgendamentoModal({
           }),
         ).unwrap();
 
+        setProgressPercentage(75);
         setLoadingMessage("Atualizando sessões correspondentes...");
 
         // Atualizar a sessão correspondente (se existir)
@@ -455,6 +497,9 @@ export function EditarAgendamentoModal({
         }
       }
 
+      if (isRecurrenceUpdate) {
+        setProgressPercentage(90);
+      }
       setLoadingMessage("Finalizando...");
 
       // Recarregar dados após salvar
@@ -462,6 +507,10 @@ export function EditarAgendamentoModal({
 
       // Invalidar cache de sessões para garantir sincronização com dashboard de transações
       await mutate("/sessoes");
+
+      if (isRecurrenceUpdate) {
+        setProgressPercentage(100);
+      }
 
       // Callback de sucesso e fechamento do modal
       onSuccess();
@@ -477,6 +526,8 @@ export function EditarAgendamentoModal({
     } finally {
       setIsSubmitting(false);
       setLoadingMessage("");
+      setShowProgress(false);
+      setProgressPercentage(0);
     }
   };
 
@@ -495,6 +546,29 @@ export function EditarAgendamentoModal({
           >
             <X size={24} weight="bold" />
           </Dialog.Close>
+
+          {/* Barra de progresso para edição de recorrências */}
+          {showProgress && (
+            <div className="mb-6 bg-gray-100 rounded-lg p-4 border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Processando agendamentos recorrentes...
+                </span>
+                <span className="text-sm text-gray-500">
+                  {progressPercentage}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-azul h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
+              {loadingMessage && (
+                <p className="text-xs text-gray-600 mt-2">{loadingMessage}</p>
+              )}
+            </div>
+          )}
 
           {isLoadingAgendamento ? (
             <div className="flex justify-center items-center h-40">
@@ -813,7 +887,9 @@ export function EditarAgendamentoModal({
                 <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-md">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-amber-800">
-                      Este é um agendamento recorrente
+                      {numeroRecorrencias > 0
+                        ? `Este é um agendamento com ${numeroRecorrencias} recorrências`
+                        : "Este é um agendamento recorrente"}
                     </span>
                     <div className="flex items-center space-x-2">
                       <span className="text-sm text-gray-600">

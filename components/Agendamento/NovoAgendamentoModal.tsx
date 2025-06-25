@@ -89,6 +89,8 @@ export function NovoAgendamentoModal({
   const [loadingMessage, setLoadingMessage] = useState("");
   const [selectedDiasSemana, setSelectedDiasSemana] = useState<DiaSemana[]>([]);
   const [valorInput, setValorInput] = useState<string>("");
+  const [progressPercentage, setProgressPercentage] = useState<number>(0); // Estado para barra de progresso
+  const [showProgress, setShowProgress] = useState<boolean>(false); // Estado para mostrar/ocultar barra de progresso
 
   const { user } = useAuth();
   const isTerapeuta = user?.role === "terapeuta";
@@ -261,12 +263,18 @@ export function NovoAgendamentoModal({
       }
       // Caso contrário, cria agendamentos recorrentes
       else {
+        // Ativar barra de progresso para agendamentos recorrentes
+        setShowProgress(true);
+        setProgressPercentage(10);
+
         setLoadingMessage(
           `Criando ${numeroEstimado} agendamentos recorrentes...`,
         );
 
         // Criar um ID único para a recorrência
         const recurrenceId = crypto.randomUUID();
+
+        setProgressPercentage(25);
 
         // Formatar as datas para ISO string
         const formattedDataAgendamento = formatDateForAPI(data.dataAgendamento);
@@ -296,6 +304,8 @@ export function NovoAgendamentoModal({
           toast.error("Erro: Selecione um terapeuta");
           setIsSubmitting(false);
           setLoadingMessage("");
+          setShowProgress(false);
+          setProgressPercentage(0);
           return;
         }
 
@@ -306,8 +316,12 @@ export function NovoAgendamentoModal({
           toast.error("Erro: Selecione um paciente");
           setIsSubmitting(false);
           setLoadingMessage("");
+          setShowProgress(false);
+          setProgressPercentage(0);
           return;
         }
+
+        setProgressPercentage(50);
 
         // Usando o Redux action para agendamentos recorrentes
         const result = await dispatch(
@@ -320,11 +334,13 @@ export function NovoAgendamentoModal({
           }),
         ).unwrap();
 
+        setProgressPercentage(75);
         setLoadingMessage("Criando sessões correspondentes...");
 
         // Aguardar um pouco para mostrar a mensagem
         await new Promise((resolve) => setTimeout(resolve, 500));
 
+        setProgressPercentage(90);
         setLoadingMessage("Finalizando...");
 
         // Reiniciar o formulário e chamar callbacks sem exibir toast
@@ -332,6 +348,8 @@ export function NovoAgendamentoModal({
 
         // Revalidar manualmente os dados de sessões
         mutate("/sessoes");
+
+        setProgressPercentage(100);
 
         // Mostrar mensagem personalizada se houve limitação
         if (result.metadata?.limiteLabelizado) {
@@ -359,6 +377,8 @@ export function NovoAgendamentoModal({
     } finally {
       setIsSubmitting(false);
       setLoadingMessage("");
+      setShowProgress(false);
+      setProgressPercentage(0);
     }
   };
 
@@ -376,6 +396,29 @@ export function NovoAgendamentoModal({
         >
           <X size={24} weight="bold" />
         </Dialog.Close>
+
+        {/* Barra de progresso para criação de recorrências */}
+        {showProgress && (
+          <div className="mb-6 bg-gray-100 rounded-lg p-4 border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Criando agendamentos recorrentes...
+              </span>
+              <span className="text-sm text-gray-500">
+                {progressPercentage}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-azul h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+            {loadingMessage && (
+              <p className="text-xs text-gray-600 mt-2">{loadingMessage}</p>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

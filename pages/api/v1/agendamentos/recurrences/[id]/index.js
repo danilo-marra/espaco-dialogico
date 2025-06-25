@@ -12,9 +12,35 @@ const router = createRouter();
 router.use(authMiddleware);
 
 // Definir os handlers para cada método HTTP
+router.get(getHandler);
 router.post(postHandler);
 router.put(putHandler);
 router.delete(deleteHandler);
+
+// Handler para buscar todos os agendamentos de uma recorrência
+async function getHandler(req, res) {
+  try {
+    const { id: recurrenceId } = req.query;
+
+    // Buscar todos os agendamentos com o mesmo ID de recorrência
+    const agendamentosRecorrentes =
+      await agendamento.getAgendamentoByRecurrenceId(recurrenceId);
+
+    if (agendamentosRecorrentes.length === 0) {
+      return res.status(404).json({
+        message: "Nenhum agendamento encontrado com este ID de recorrência",
+      });
+    }
+
+    return res.status(200).json(agendamentosRecorrentes);
+  } catch (error) {
+    console.error("Erro ao buscar agendamentos recorrentes:", error);
+    return res.status(500).json({
+      message: "Erro ao buscar agendamentos recorrentes",
+      error: error.message,
+    });
+  }
+}
 
 // Handler para criar agendamentos recorrentes
 async function postHandler(req, res) {
@@ -342,6 +368,7 @@ async function putHandler(req, res) {
       delete agendamentoData.novoDiaSemana;
 
       let atualizados;
+      const updateStartTime = Date.now();
 
       // Se for para alterar o dia da semana, usar função específica
       if (novoDiaSemana !== undefined && novoDiaSemana !== null) {
@@ -349,57 +376,84 @@ async function putHandler(req, res) {
           `Atualizando agendamentos recorrentes com novo dia da semana: ${novoDiaSemana}`,
         );
 
-        atualizados = await agendamento.updateAllByRecurrenceIdWithNewWeekday(
-          recurrenceId,
-          agendamentoData,
-          novoDiaSemana,
-        );
+        if (isProduction || isStaging) {
+          console.log(
+            "🏭 Usando método otimizado para atualização com novo dia da semana",
+          );
+          atualizados = await updateAllByRecurrenceIdWithNewWeekdayOptimized(
+            recurrenceId,
+            agendamentoData,
+            novoDiaSemana,
+          );
+        } else {
+          console.log("🔧 Usando método padrão para atualização");
+          atualizados = await agendamento.updateAllByRecurrenceIdWithNewWeekday(
+            recurrenceId,
+            agendamentoData,
+            novoDiaSemana,
+          );
+        }
       } else {
         console.log(
           "Atualizando agendamentos recorrentes sem alterar dia da semana",
         );
 
-        // Atualizar todos os agendamentos com o mesmo ID de recorrência sem alterar dia
-        atualizados = await agendamento.updateAllByRecurrenceId(
-          recurrenceId,
-          agendamentoData,
-        );
+        if (isProduction || isStaging) {
+          console.log(
+            "🏭 Usando método otimizado para atualização de agendamentos recorrentes",
+          );
+          atualizados = await updateAllByRecurrenceIdOptimized(
+            recurrenceId,
+            agendamentoData,
+          );
+        } else {
+          console.log("🔧 Usando método padrão para atualização");
+          atualizados = await agendamento.updateAllByRecurrenceId(
+            recurrenceId,
+            agendamentoData,
+          );
+        }
       }
 
-      const agendamentosEndTime = Date.now();
-      const agendamentosDuration = agendamentosEndTime - startTime;
-      console.log(`Agendamentos atualizados em ${agendamentosDuration}ms`);
+      const updateEndTime = Date.now();
+      const updateDuration = updateEndTime - updateStartTime;
+      console.log(`Agendamentos atualizados em ${updateDuration}ms`);
 
       // Atualizar sessões correspondentes aos agendamentos atualizados com otimização
       console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
       const sessaoStartTime = Date.now();
 
       let sessoesAtualizadas;
-      if (isProduction || isStaging) {
+      try {
+        if (isProduction || isStaging) {
+          console.log(
+            "🏭 Usando atualização otimizada de sessões para staging/produção",
+          );
+          sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
+            atualizados,
+            agendamentoData,
+          );
+        } else {
+          console.log("🔧 Usando atualização padrão de sessões");
+          sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
+            atualizados,
+            agendamentoData,
+          );
+        }
+
+        const sessaoEndTime = Date.now();
+        const sessaoDuration = sessaoEndTime - sessaoStartTime;
         console.log(
-          "🏭 Usando atualização otimizada de sessões para staging/produção",
+          `✅ ${sessoesAtualizadas} sessões atualizadas em ${sessaoDuration}ms`,
         );
-        sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
-          atualizados,
-          agendamentoData,
-        );
-      } else {
-        console.log(
-          "🔧 Usando atualização individual de sessões para desenvolvimento",
-        );
-        sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
-          atualizados,
-          agendamentoData,
-        );
+      } catch (error) {
+        console.error("Erro ao atualizar sessões:", error);
+        // Não falhar a atualização se houver erro nas sessões
+        sessoesAtualizadas = 0;
       }
 
-      const sessaoEndTime = Date.now();
-      const sessaoDuration = sessaoEndTime - sessaoStartTime;
-      const totalDuration = sessaoEndTime - startTime;
-
-      console.log(
-        `✅ ${sessoesAtualizadas} sessões atualizadas em ${sessaoDuration}ms`,
-      );
+      const endTime = Date.now();
+      const totalDuration = endTime - startTime;
       console.log(`Processo total concluído em ${totalDuration}ms`);
 
       const message =
@@ -414,8 +468,8 @@ async function putHandler(req, res) {
           agendamentosAtualizados: atualizados.length,
           sessoesAtualizadas: sessoesAtualizadas,
           duration: `${totalDuration}ms`,
-          agendamentosDuration: `${agendamentosDuration}ms`,
-          sessoesDuration: `${sessaoDuration}ms`,
+          agendamentosDuration: `${updateDuration}ms`,
+          sessoesDuration: sessaoStartTime ? Date.now() - sessaoStartTime : 0,
         },
       });
     } else {
@@ -445,51 +499,130 @@ async function putHandler(req, res) {
 
 // Handler para excluir todos os agendamentos de uma recorrência
 async function deleteHandler(req, res) {
+  const startTime = Date.now();
+
   try {
     const { id: recurrenceId } = req.query;
+
+    console.log(
+      `🗑️ Iniciando exclusão de agendamentos recorrentes: ${recurrenceId}`,
+    );
 
     // Primeiro, buscar todos os agendamentos que serão excluídos para excluir suas sessões
     const agendamentosParaExcluir =
       await agendamento.getAgendamentoByRecurrenceId(recurrenceId);
 
-    // Excluir sessões associadas aos agendamentos
+    if (agendamentosParaExcluir.length === 0) {
+      return res.status(404).json({
+        message: "Nenhum agendamento encontrado com este ID de recorrência",
+      });
+    }
+
     console.log(
-      "🗑️ Excluindo sessões associadas aos agendamentos recorrentes...",
+      `🗑️ Excluindo sessões associadas aos ${agendamentosParaExcluir.length} agendamentos recorrentes...`,
     );
+
+    // Detectar ambiente para usar otimizações
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.VERCEL_ENV === "production";
+    const isStaging = process.env.VERCEL_ENV === "preview";
+
     let sessoesExcluidas = 0;
+    const sessaoStartTime = Date.now();
 
     try {
-      for (const agendamentoItem of agendamentosParaExcluir) {
-        // Buscar e excluir sessões associadas a este agendamento
-        const sessoesAssociadas = await sessao.getFiltered({
-          agendamento_id: agendamentoItem.id,
-        });
+      if (isProduction || isStaging) {
+        console.log(
+          "🏭 Usando exclusão otimizada de sessões para staging/produção",
+        );
 
-        for (const sessaoItem of sessoesAssociadas) {
-          await sessao.remove(sessaoItem.id);
-          sessoesExcluidas++;
+        // Usar método otimizado: excluir todas as sessões de uma vez por agendamento_id
+        const agendamentoIds = agendamentosParaExcluir.map((ag) => ag.id);
+        sessoesExcluidas =
+          await sessao.removeBatchByAgendamentosIds(agendamentoIds);
+      } else {
+        console.log(
+          "🔧 Usando exclusão individual de sessões para desenvolvimento",
+        );
+
+        // Método original para desenvolvimento
+        for (const agendamentoItem of agendamentosParaExcluir) {
+          // Buscar e excluir sessões associadas a este agendamento
+          const sessoesAssociadas = await sessao.getFiltered({
+            agendamento_id: agendamentoItem.id,
+          });
+
+          for (const sessaoItem of sessoesAssociadas) {
+            await sessao.remove(sessaoItem.id);
+            sessoesExcluidas++;
+          }
         }
       }
 
+      const sessaoEndTime = Date.now();
+      const _sessaoDuration = sessaoEndTime - sessaoStartTime;
       console.log(`✅ ${sessoesExcluidas} sessões excluídas com sucesso`);
     } catch (error) {
-      console.error("⚠️ Erro ao excluir algumas sessões:", error.message);
+      const sessaoEndTime = Date.now();
+      const _sessaoDuration = sessaoEndTime - sessaoStartTime;
+      console.error(
+        `⚠️ Erro ao excluir algumas sessões após ${_sessaoDuration}ms:`,
+        error.message,
+      );
       // Continuar com a exclusão dos agendamentos mesmo se houver erro nas sessões
     }
 
     // Excluir todos os agendamentos com o mesmo ID de recorrência
+    console.log(
+      `🗑️ Excluindo ${agendamentosParaExcluir.length} agendamentos recorrentes...`,
+    );
+    const agendamentoStartTime = Date.now();
     const resultado = await agendamento.removeAllByRecurrenceId(recurrenceId);
+    const agendamentoEndTime = Date.now();
+    const agendamentoDuration = agendamentoEndTime - agendamentoStartTime;
+
+    const endTime = Date.now();
+    const totalDuration = endTime - startTime;
+
+    console.log(
+      `✅ ${resultado.count} agendamentos excluídos em ${agendamentoDuration}ms`,
+    );
+    console.log(
+      `✅ Processo de exclusão concluído em ${totalDuration}ms - startTime: ${startTime}, endTime: ${endTime}`,
+    );
 
     return res.status(200).json({
       message: `${resultado.count} agendamentos recorrentes excluídos com sucesso`,
       count: resultado.count,
       sessoesExcluidas: sessoesExcluidas,
+      metadata: {
+        totalDuration: `${totalDuration}ms`,
+        agendamentosDuration: `${agendamentoDuration}ms`,
+        sessoesDuration: sessaoStartTime ? Date.now() - sessaoStartTime : 0,
+        agendamentosExcluidos: resultado.count,
+        sessoesExcluidas: sessoesExcluidas,
+        ambiente: isProduction
+          ? "production"
+          : isStaging
+            ? "staging"
+            : "development",
+      },
     });
   } catch (error) {
-    console.error("Erro ao excluir agendamentos recorrentes:", error);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    console.error(
+      `❌ Erro ao excluir agendamentos recorrentes após ${duration}ms:`,
+      error,
+    );
     return res.status(500).json({
       message: "Erro ao excluir agendamentos recorrentes",
       error: error.message,
+      metadata: {
+        duration: `${duration}ms`,
+      },
     });
   }
 }
@@ -653,6 +786,271 @@ async function atualizarSessoesDeAgendamentosOtimizado(
   }
 
   return sessoesAtualizadas;
+}
+
+// Função otimizada para atualizar agendamentos recorrentes (sem alterar dia da semana)
+async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
+  const database = (await import("infra/database.js")).default;
+
+  console.log("🚀 BATCH: Atualizando agendamentos recorrentes em lote...");
+
+  // Função auxiliar para adicionar campos
+  function addField(fieldsToUpdate, values, paramCounter, fieldName, value) {
+    if (value !== undefined && value !== null) {
+      fieldsToUpdate.push(`${fieldName} = $${paramCounter}`);
+      values.push(value);
+      return paramCounter + 1;
+    }
+    return paramCounter;
+  }
+
+  try {
+    await database.query({ text: "BEGIN" });
+
+    // Preparar campos para atualização
+    const fieldsToUpdate = [];
+    const values = [recurrenceId];
+    let paramCounter = 2;
+
+    // Adicionar campos a serem atualizados
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "paciente_id",
+      agendamentoData.paciente_id,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "terapeuta_id",
+      agendamentoData.terapeuta_id,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "horario_agendamento",
+      agendamentoData.horarioAgendamento,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "local_agendamento",
+      agendamentoData.localAgendamento,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "modalidade_agendamento",
+      agendamentoData.modalidadeAgendamento,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "tipo_agendamento",
+      agendamentoData.tipoAgendamento,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "valor_agendamento",
+      agendamentoData.valorAgendamento,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "status_agendamento",
+      agendamentoData.statusAgendamento,
+    );
+    addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "observacoes_agendamento",
+      agendamentoData.observacoesAgendamento,
+    );
+
+    if (fieldsToUpdate.length === 0) {
+      console.log("⚠️ Nenhum campo para atualizar");
+      await database.query({ text: "COMMIT" });
+      return [];
+    }
+
+    // Atualização em uma única query
+    const result = await database.query({
+      text: `
+        UPDATE agendamentos
+        SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
+        WHERE recurrence_id = $1
+        RETURNING *
+      `,
+      values: values,
+    });
+
+    await database.query({ text: "COMMIT" });
+
+    console.log(
+      `✅ BATCH: ${result.rows.length} agendamentos atualizados com sucesso`,
+    );
+
+    // Retornar os agendamentos atualizados no formato esperado
+    return result.rows.map((row) => ({
+      id: row.id,
+      terapeutaId: row.terapeuta_id,
+      pacienteId: row.paciente_id,
+      recurrenceId: row.recurrence_id,
+      dataAgendamento: row.data_agendamento,
+      horarioAgendamento: row.horario_agendamento,
+      localAgendamento: row.local_agendamento,
+      modalidadeAgendamento: row.modalidade_agendamento,
+      tipoAgendamento: row.tipo_agendamento,
+      valorAgendamento: row.valor_agendamento,
+      statusAgendamento: row.status_agendamento,
+      observacoesAgendamento: row.observacoes_agendamento,
+    }));
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("❌ BATCH: Erro ao atualizar agendamentos:", error);
+    throw error;
+  }
+}
+
+// Função otimizada para atualizar agendamentos recorrentes com novo dia da semana
+async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
+  recurrenceId,
+  agendamentoData,
+  novoDiaSemana,
+) {
+  const database = (await import("infra/database.js")).default;
+  const { format } = await import("date-fns");
+
+  console.log("🚀 BATCH: Atualizando agendamentos com novo dia da semana...");
+
+  try {
+    await database.query({ text: "BEGIN" });
+
+    // Primeiro, buscar todos os agendamentos da recorrência
+    const agendamentosResult = await database.query({
+      text: "SELECT * FROM agendamentos WHERE recurrence_id = $1 ORDER BY data_agendamento",
+      values: [recurrenceId],
+    });
+
+    if (agendamentosResult.rows.length === 0) {
+      throw new Error("Nenhum agendamento encontrado com este recurrence_id");
+    }
+
+    // Preparar dados para atualização em lote
+    const updateCases = [];
+    const updateValues = [];
+    const agendamentoIds = [];
+    let paramCounter = 1;
+
+    agendamentosResult.rows.forEach((agendamento) => {
+      // Calcular nova data baseada no novo dia da semana
+      const dataAtual = new Date(agendamento.data_agendamento);
+      const diaSemanaAtual = dataAtual.getDay();
+      const diferenca = novoDiaSemana - diaSemanaAtual;
+
+      const novaData = new Date(dataAtual);
+      novaData.setDate(dataAtual.getDate() + diferenca);
+      const novaDataFormatada = format(novaData, "yyyy-MM-dd");
+
+      // Adicionar CASE para cada campo a ser atualizado
+      updateCases.push(`WHEN id = $${paramCounter} THEN $${paramCounter + 1}`);
+      updateValues.push(agendamento.id, novaDataFormatada);
+      agendamentoIds.push(agendamento.id);
+      paramCounter += 2;
+    });
+
+    // Adicionar outros campos se necessário
+    const otherFields = [];
+    if (agendamentoData.horarioAgendamento) {
+      otherFields.push(`horario_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.horarioAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.localAgendamento) {
+      otherFields.push(`local_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.localAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.modalidadeAgendamento) {
+      otherFields.push(`modalidade_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.modalidadeAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.tipoAgendamento) {
+      otherFields.push(`tipo_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.tipoAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.valorAgendamento) {
+      otherFields.push(`valor_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.valorAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.statusAgendamento) {
+      otherFields.push(`status_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.statusAgendamento);
+      paramCounter++;
+    }
+    if (agendamentoData.observacoesAgendamento) {
+      otherFields.push(`observacoes_agendamento = $${paramCounter}`);
+      updateValues.push(agendamentoData.observacoesAgendamento);
+      paramCounter++;
+    }
+
+    // Construir query com CASE WHEN para atualização em lote
+    const otherFieldsSQL =
+      otherFields.length > 0 ? `, ${otherFields.join(", ")}` : "";
+    const placeholdersList = agendamentoIds
+      .map((_, index) => `$${(index + 1) * 2 - 1}`)
+      .join(", ");
+
+    const result = await database.query({
+      text: `
+        UPDATE agendamentos
+        SET data_agendamento = CASE ${updateCases.join(" ")} END,
+            updated_at = NOW()
+            ${otherFieldsSQL}
+        WHERE id IN (${placeholdersList})
+        RETURNING *
+      `,
+      values: updateValues,
+    });
+
+    await database.query({ text: "COMMIT" });
+
+    console.log(
+      `✅ BATCH: ${result.rows.length} agendamentos atualizados com novo dia da semana`,
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      terapeutaId: row.terapeuta_id,
+      pacienteId: row.paciente_id,
+      recurrenceId: row.recurrence_id,
+      dataAgendamento: row.data_agendamento,
+      horarioAgendamento: row.horario_agendamento,
+      localAgendamento: row.local_agendamento,
+      modalidadeAgendamento: row.modalidade_agendamento,
+      tipoAgendamento: row.tipo_agendamento,
+      valorAgendamento: row.valor_agendamento,
+      statusAgendamento: row.status_agendamento,
+      observacoesAgendamento: row.observacoes_agendamento,
+    }));
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("❌ BATCH: Erro ao atualizar com novo dia da semana:", error);
+    throw error;
+  }
 }
 
 // Função auxiliar para mapear tipos de agendamento para tipos de sessão

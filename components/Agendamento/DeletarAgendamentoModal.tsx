@@ -30,6 +30,8 @@ export function DeletarAgendamentoModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletingMessage, setDeletingMessage] = useState("");
   const [deletarRecorrencia, setDeletarRecorrencia] = useState(false);
+  const [progressPercentage, setProgressPercentage] = useState<number>(0); // Estado para barra de progresso
+  const [showProgress, setShowProgress] = useState<boolean>(false); // Estado para mostrar/ocultar barra de progresso
 
   // Verificar dados do usuário para informações role-based
   const { user } = useAuth();
@@ -48,7 +50,12 @@ export function DeletarAgendamentoModal({
 
       // Se for um agendamento recorrente e o usuário escolheu deletar todos
       if (agendamento.recurrenceId && deletarRecorrencia) {
+        // Ativar barra de progresso para exclusão de recorrências
+        setShowProgress(true);
+        setProgressPercentage(10);
         setDeletingMessage("Excluindo todos os agendamentos da recorrência...");
+
+        setProgressPercentage(25);
 
         await dispatch(
           deleteAgendamento({
@@ -57,6 +64,8 @@ export function DeletarAgendamentoModal({
             recurrenceId: agendamento.recurrenceId,
           }),
         ).unwrap();
+
+        setProgressPercentage(75);
       } else {
         setDeletingMessage("Excluindo agendamento...");
 
@@ -64,6 +73,9 @@ export function DeletarAgendamentoModal({
         await dispatch(deleteAgendamento(agendamento.id)).unwrap();
       }
 
+      if (agendamento.recurrenceId && deletarRecorrencia) {
+        setProgressPercentage(90);
+      }
       setDeletingMessage("Atualizando dados...");
 
       // Recarregar dados após exclusão
@@ -71,6 +83,10 @@ export function DeletarAgendamentoModal({
 
       // Invalidar cache de sessões para garantir sincronização com dashboard de transações
       await mutate("/sessoes");
+
+      if (agendamento.recurrenceId && deletarRecorrencia) {
+        setProgressPercentage(100);
+      }
 
       // Notifica o componente pai do sucesso da operação
       onSuccess?.(!!agendamento.recurrenceId && deletarRecorrencia);
@@ -84,6 +100,8 @@ export function DeletarAgendamentoModal({
     } finally {
       setIsDeleting(false);
       setDeletingMessage("");
+      setShowProgress(false);
+      setProgressPercentage(0);
     }
   }
 
@@ -99,6 +117,29 @@ export function DeletarAgendamentoModal({
           <Dialog.Close className="absolute right-6 top-6 bg-transparent text-gray-500 hover:text-gray-800">
             <X size={24} weight="bold" />
           </Dialog.Close>
+
+          {/* Barra de progresso para exclusão de recorrências */}
+          {showProgress && (
+            <div className="mb-6 bg-gray-100 rounded-lg p-4 border">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Excluindo agendamentos recorrentes...
+                </span>
+                <span className="text-sm text-gray-500">
+                  {progressPercentage}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-azul h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
+              {deletingMessage && (
+                <p className="text-xs text-gray-600 mt-2">{deletingMessage}</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-4 mb-6">
             <p className="mb-4">
