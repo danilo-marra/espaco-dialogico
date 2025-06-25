@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { useFetchPacientes } from "../../hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "../../hooks/useFetchTerapeutas";
+import { useTerapeutaData } from "../../hooks/useTerapeutaData";
+import useAuth from "../../hooks/useAuth";
 import { X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import DatePicker, { registerLocale } from "react-datepicker";
@@ -19,6 +21,7 @@ import { maskPrice } from "utils/formatter";
 import { Switch } from "@headlessui/react";
 import { formatDateForAPI, parseAnyDate } from "utils/dateUtils";
 import axiosInstance from "utils/api";
+import { mutate } from "swr"; // Importar mutate global do SWR
 
 // Registrar locale pt-BR
 registerLocale("pt-BR", ptBR);
@@ -78,6 +81,7 @@ export function EditarAgendamentoModal({
 }: EditarAgendamentoModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [valorInput, setValorInput] = useState<string>("");
   const [editarRecorrencia, setEditarRecorrencia] = useState(false);
   const [alterarDiaSemana, setAlterarDiaSemana] = useState(false);
@@ -85,14 +89,57 @@ export function EditarAgendamentoModal({
   const [agendamentoAtualizado, setAgendamentoAtualizado] =
     useState<Agendamento | null>(null);
   const [isLoadingAgendamento, setIsLoadingAgendamento] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false); // Nova flag para controlar inicialização
 
   // Buscar todos os agendamentos do Redux para ter dados atualizados
   const agendamentos = useSelector(
     (state: RootState) => state.agendamentos.data,
   );
 
-  const { pacientes } = useFetchPacientes();
+  // Buscar dados baseado no role do usuário
+  const { user } = useAuth();
+  const isUserTerapeuta = user?.role === "terapeuta";
+
+  // Se for terapeuta, usar dados filtrados; senão usar todos os dados
+  const {
+    terapeuta: currentTerapeuta,
+    pacientes: terapeutaPacientes,
+    isLoading: terapeutaDataLoading,
+  } = useTerapeutaData();
+
+  const { pacientes: allPacientes } = useFetchPacientes();
   const { terapeutas } = useFetchTerapeutas();
+
+  // Determinar quais pacientes mostrar baseado no role
+  const pacientes = isUserTerapeuta ? terapeutaPacientes : allPacientes;
+
+  // Debug específico para terapeuta
+  useEffect(() => {
+    if (isUserTerapeuta) {
+      console.log("🧑‍⚕️ DEBUG TERAPEUTA:");
+      console.log("- currentTerapeuta:", currentTerapeuta);
+      console.log("- terapeutaPacientes:", terapeutaPacientes?.length);
+      console.log("- terapeutaDataLoading:", terapeutaDataLoading);
+      console.log("- user email:", user?.email);
+      console.log("- user id:", user?.id);
+      console.log("- user:", user);
+    } else {
+      console.log("👨‍💼 DEBUG ADMIN:");
+      console.log("- allPacientes:", allPacientes?.length);
+      console.log("- terapeutas:", terapeutas?.length);
+    }
+  }, [
+    isUserTerapeuta,
+    currentTerapeuta,
+    terapeutaPacientes,
+    terapeutaDataLoading,
+    allPacientes,
+    terapeutas,
+    user,
+  ]);
+
+  // Para terapeutas, aguardar a associação do terapeuta antes de prosseguir
+  const terapeutaAssociado = isUserTerapeuta ? currentTerapeuta : true;
 
   // Configuração do formulário com zod e react-hook-form
   const {
@@ -101,6 +148,7 @@ export function EditarAgendamentoModal({
     setValue,
     control,
     watch,
+    reset,
     formState: { errors },
   } = useForm<AgendamentoFormInputs>({
     resolver: zodResolver(agendamentoSchema),
@@ -158,15 +206,61 @@ export function EditarAgendamentoModal({
     } else if (!open) {
       // Limpar o estado quando o modal fechar
       setAgendamentoAtualizado(null);
+      setFormInitialized(false); // Reset da flag quando o modal fechar
     }
   }, [open, agendamento?.id, agendamentos, agendamento]);
 
+  // Efeito adicional para garantir que o modal seja reinicializado quando abrir
+  useEffect(() => {
+    if (open) {
+      // Reset da flag de inicialização quando o modal abrir
+      setFormInitialized(false);
+    } else {
+      // Limpar o formulário quando o modal fechar
+      reset();
+      setValorInput("");
+    }
+  }, [open, reset]);
+
   // Carregar os dados do agendamento quando o modal abrir ou quando o agendamento atualizado for obtido
+  // MAS APENAS NA PRIMEIRA VEZ para evitar sobrescrever as edições do usuário
   useEffect(() => {
     // Usar agendamentoAtualizado se disponível, caso contrário usar agendamento das props
     const agendamentoToUse = agendamentoAtualizado || agendamento;
 
-    if (agendamentoToUse && !isLoadingAgendamento) {
+    // Só inicializar o formulário se:
+    // 1. Temos dados do agendamento
+    // 2. Não está carregando
+    // 3. Ainda não foi inicializado (formInitialized = false)
+    // 4. Temos os dados de terapeutas carregados (essencial para os selects funcionarem)
+    // 5. Temos os dados de pacientes carregados (se for admin/secretaria) ou dados do terapeuta (se for terapeuta)
+    const terapeutasCarregados = terapeutas && terapeutas.length > 0;
+    const pacientesCarregados = isUserTerapeuta
+      ? terapeutaPacientes !== undefined && !terapeutaDataLoading // Para terapeuta, aguardar hook específico E não estar carregando
+      : allPacientes && allPacientes.length >= 0; // Para admin/secretaria, aguardar todos os pacientes
+
+    if (
+      agendamentoToUse &&
+      !isLoadingAgendamento &&
+      !formInitialized &&
+      terapeutasCarregados &&
+      pacientesCarregados &&
+      terapeutaAssociado // Aguardar associação do terapeuta para usuários tipo "terapeuta"
+    ) {
+      console.log(
+        "Inicializando formulário com dados do agendamento:",
+        agendamentoToUse,
+      );
+      console.log("Paciente ID:", agendamentoToUse.paciente_id);
+      console.log("Terapeuta ID:", agendamentoToUse.terapeuta_id);
+      console.log("Terapeutas carregados:", terapeutasCarregados);
+      console.log("Pacientes carregados:", pacientesCarregados);
+      console.log("🔍 isUserTerapeuta:", isUserTerapeuta);
+      console.log("🔍 terapeutaDataLoading:", terapeutaDataLoading);
+      console.log("🔍 terapeutaPacientes length:", terapeutaPacientes?.length);
+      console.log("🔍 terapeutaAssociado:", terapeutaAssociado);
+      console.log("🔍 currentTerapeuta:", currentTerapeuta);
+
       setValue("paciente_id", agendamentoToUse.paciente_id);
       setValue("terapeuta_id", agendamentoToUse.terapeuta_id);
 
@@ -213,12 +307,42 @@ export function EditarAgendamentoModal({
         console.error("Erro ao calcular dia da semana:", error);
         setNovoDiaSemana(0); // Default para Domingo
       }
+
+      // Marcar como inicializado para evitar sobreposições futuras
+      setFormInitialized(true);
+      console.log("Formulário inicializado com sucesso");
     }
-  }, [agendamento, agendamentoAtualizado, setValue, isLoadingAgendamento]);
+  }, [
+    agendamento,
+    agendamentoAtualizado,
+    setValue,
+    isLoadingAgendamento,
+    formInitialized,
+    terapeutas,
+    allPacientes,
+    terapeutaPacientes,
+    isUserTerapeuta,
+    terapeutaDataLoading,
+    terapeutaAssociado,
+    currentTerapeuta,
+  ]);
 
   // Selecionar paciente e terapeuta
   const selectedTerapeutaId = watch("terapeuta_id");
+  const selectedPacienteId = watch("paciente_id");
   const selectedModalidade = watch("modalidadeAgendamento");
+
+  // Debug: logs para verificar os valores selecionados
+  useEffect(() => {
+    console.log("Debug - selectedTerapeutaId:", selectedTerapeutaId);
+    console.log("Debug - selectedPacienteId:", selectedPacienteId);
+    console.log("Debug - pacientes disponíveis:", pacientes?.length);
+    console.log(
+      "Debug - agendamento atual:",
+      agendamento?.terapeuta_id,
+      agendamento?.paciente_id,
+    );
+  }, [selectedTerapeutaId, selectedPacienteId, pacientes, agendamento]);
 
   // Efeito para ajustar o local de agendamento quando a modalidade muda
   useEffect(() => {
@@ -228,13 +352,29 @@ export function EditarAgendamentoModal({
   }, [selectedModalidade, setValue]);
 
   // Filtrar pacientes pelo terapeuta selecionado
-  const filteredPacientes = selectedTerapeutaId
-    ? pacientes?.filter((p) => p.terapeuta_id === selectedTerapeutaId)
-    : [];
+  // IMPORTANTE: Usar o terapeuta do agendamento como fallback se selectedTerapeutaId ainda não estiver disponível
+  const terapeutaIdParaFiltro =
+    selectedTerapeutaId || (agendamentoAtualizado || agendamento)?.terapeuta_id;
+  const filteredPacientes = useMemo(() => {
+    return terapeutaIdParaFiltro
+      ? pacientes?.filter((p) => p.terapeuta_id === terapeutaIdParaFiltro)
+      : [];
+  }, [terapeutaIdParaFiltro, pacientes]);
+
+  // Debug: log para verificar a filtragem
+  useEffect(() => {
+    console.log("Debug - terapeutaIdParaFiltro:", terapeutaIdParaFiltro);
+    console.log("Debug - filteredPacientes:", filteredPacientes?.length);
+    console.log(
+      "Debug - filteredPacientes nomes:",
+      filteredPacientes?.map((p) => p.nome),
+    );
+  }, [terapeutaIdParaFiltro, filteredPacientes]);
 
   // Handler para envio do formulário
   const onSubmit = async (data: AgendamentoFormInputs) => {
     setIsSubmitting(true);
+    setLoadingMessage("Preparando atualização...");
 
     try {
       // Formatar a data para o formato esperado pela API
@@ -247,6 +387,12 @@ export function EditarAgendamentoModal({
       const agendamentoToUse = agendamentoAtualizado || agendamento;
 
       if (agendamentoToUse.recurrenceId && editarRecorrencia) {
+        setLoadingMessage(
+          alterarDiaSemana
+            ? "Atualizando todos os agendamentos recorrentes com novo dia da semana..."
+            : "Atualizando todos os agendamentos recorrentes...",
+        );
+
         // Preparar dados adicionais se alterando dia da semana
         const dadosAtualizacao = {
           ...formattedData,
@@ -263,6 +409,8 @@ export function EditarAgendamentoModal({
           }),
         ).unwrap();
 
+        setLoadingMessage("Atualizando sessões correspondentes...");
+
         // Atualizar a sessão correspondente (se existir)
         try {
           await axiosInstance.post("/sessoes/from-agendamento", {
@@ -277,6 +425,8 @@ export function EditarAgendamentoModal({
           // Não interrompemos o fluxo se houver erro na atualização da sessão
         }
       } else {
+        setLoadingMessage("Atualizando agendamento...");
+
         // Atualizar apenas este agendamento específico
         await dispatch(
           updateAgendamento({
@@ -287,6 +437,8 @@ export function EditarAgendamentoModal({
             },
           }),
         ).unwrap();
+
+        setLoadingMessage("Atualizando sessão correspondente...");
 
         // Atualizar a sessão correspondente (se existir)
         try {
@@ -303,8 +455,13 @@ export function EditarAgendamentoModal({
         }
       }
 
+      setLoadingMessage("Finalizando...");
+
       // Recarregar dados após salvar
       dispatch(fetchAgendamentos());
+
+      // Invalidar cache de sessões para garantir sincronização com dashboard de transações
+      await mutate("/sessoes");
 
       // Callback de sucesso e fechamento do modal
       onSuccess();
@@ -319,6 +476,7 @@ export function EditarAgendamentoModal({
       console.error("Erro ao atualizar agendamento:", error);
     } finally {
       setIsSubmitting(false);
+      setLoadingMessage("");
     }
   };
 
@@ -357,6 +515,7 @@ export function EditarAgendamentoModal({
                       errors.terapeuta_id ? "border-red-500" : "border-gray-300"
                     }`}
                     {...register("terapeuta_id")}
+                    disabled={isUserTerapeuta}
                   >
                     <option value="">Selecione um terapeuta</option>
                     {terapeutas
@@ -386,10 +545,10 @@ export function EditarAgendamentoModal({
                       errors.paciente_id ? "border-red-500" : "border-gray-300"
                     }`}
                     {...register("paciente_id")}
-                    disabled={!selectedTerapeutaId}
+                    disabled={!terapeutaIdParaFiltro}
                   >
                     <option value="">
-                      {selectedTerapeutaId
+                      {terapeutaIdParaFiltro
                         ? "Selecione um paciente"
                         : "Escolha um terapeuta primeiro"}
                     </option>
@@ -407,11 +566,18 @@ export function EditarAgendamentoModal({
                       {errors.paciente_id.message?.toString()}
                     </span>
                   )}
-                  {selectedTerapeutaId && filteredPacientes?.length === 0 && (
-                    <span className="text-amber-600 text-sm">
-                      Não há pacientes associados a este terapeuta.
+                  {isUserTerapeuta && filteredPacientes?.length === 0 && (
+                    <span className="text-sm text-gray-600 mt-1">
+                      Mostrando apenas pacientes atribuídos a você
                     </span>
                   )}
+                  {!isUserTerapeuta &&
+                    terapeutaIdParaFiltro &&
+                    filteredPacientes?.length === 0 && (
+                      <span className="text-amber-600 text-sm">
+                        Não há pacientes associados a este terapeuta.
+                      </span>
+                    )}
                 </div>
 
                 {/* Data do Agendamento */}
@@ -766,15 +932,23 @@ export function EditarAgendamentoModal({
                   type="button"
                   onClick={onClose}
                   className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+                  disabled={isSubmitting}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-azul text-white rounded hover:bg-sky-600 disabled:bg-gray-400"
+                  className="px-4 py-2 bg-azul text-white rounded hover:bg-sky-600 disabled:bg-gray-400 min-w-[150px] flex items-center justify-center"
                 >
-                  {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      {loadingMessage || "Salvando..."}
+                    </>
+                  ) : (
+                    "Salvar Alterações"
+                  )}
                 </button>
               </div>
             </form>

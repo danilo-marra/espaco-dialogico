@@ -86,11 +86,7 @@ async function postHandler(req, res) {
   }
 
   // Criar terapeuta no banco de dados
-  console.log("Criando terapeuta com dados:", terapeutaData);
   const newTerapeuta = await terapeuta.create(terapeutaData);
-
-  console.log("Fields:", fields);
-  console.log("Files:", files);
 
   return res.status(201).json(newTerapeuta);
 }

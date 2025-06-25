@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { useFetchPacientes } from "../../hooks/useFetchPacientes";
 import { useFetchTerapeutas } from "../../hooks/useFetchTerapeutas";
+import { useTerapeutaData } from "../../hooks/useTerapeutaData";
+import useAuth from "../../hooks/useAuth";
 import { X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import DatePicker, { registerLocale } from "react-datepicker";
@@ -84,11 +86,23 @@ export function NovoAgendamentoModal({
 }: NovoAgendamentoModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [selectedDiasSemana, setSelectedDiasSemana] = useState<DiaSemana[]>([]);
   const [valorInput, setValorInput] = useState<string>("");
 
-  const { pacientes } = useFetchPacientes();
+  const { user } = useAuth();
+  const isTerapeuta = user?.role === "terapeuta";
+
+  // Para terapeutas, usar dados específicos
+  const { terapeuta: currentTerapeuta, pacientes: terapeutaPacientes } =
+    useTerapeutaData();
+
+  // Para admin/secretaria, usar dados completos
+  const { pacientes: allPacientes } = useFetchPacientes();
   const { terapeutas } = useFetchTerapeutas();
+
+  // Determinar quais dados usar baseado no role
+  const pacientes = isTerapeuta ? terapeutaPacientes : allPacientes;
 
   // Configuração do formulário com zod e react-hook-form
   const {
@@ -103,7 +117,7 @@ export function NovoAgendamentoModal({
     resolver: zodResolver(agendamentoSchema),
     defaultValues: {
       paciente_id: "",
-      terapeuta_id: "",
+      terapeuta_id: isTerapeuta ? currentTerapeuta?.id || "" : "",
       dataAgendamento: initialDate || null,
       horarioAgendamento: "",
       localAgendamento: "Sala Verde",
@@ -117,6 +131,13 @@ export function NovoAgendamentoModal({
       dataFimRecorrencia: null,
     },
   });
+
+  // Efeito para definir o terapeuta automaticamente se for usuário terapeuta
+  useEffect(() => {
+    if (isTerapeuta && currentTerapeuta?.id) {
+      setValue("terapeuta_id", currentTerapeuta.id);
+    }
+  }, [isTerapeuta, currentTerapeuta, setValue]);
 
   // Selecionar paciente e terapeuta
   const selectedTerapeutaId = watch("terapeuta_id");
@@ -135,7 +156,7 @@ export function NovoAgendamentoModal({
       !selectedDiasDaSemana ||
       selectedDiasDaSemana.length === 0
     ) {
-      return 0;
+      return { estimado: 0, limitado: false };
     }
 
     const dataInicio = new Date(selectedDataAgendamento);
@@ -144,15 +165,25 @@ export function NovoAgendamentoModal({
       (dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    if (diferencaDias <= 0) return 0;
+    if (diferencaDias <= 0) return { estimado: 0, limitado: false };
 
     const intervaloDias = selectedPeriodicidade === "Semanal" ? 7 : 14;
     const numeroDeSemanas = Math.ceil(diferencaDias / intervaloDias);
+    const numeroEstimado = numeroDeSemanas * selectedDiasDaSemana.length;
 
-    return numeroDeSemanas * selectedDiasDaSemana.length;
+    // Limite máximo de 35 agendamentos
+    const LIMITE_MAXIMO = 35;
+    const limitado = numeroEstimado > LIMITE_MAXIMO;
+    const numeroFinal = limitado ? LIMITE_MAXIMO : numeroEstimado;
+
+    return { estimado: numeroFinal, original: numeroEstimado, limitado };
   };
 
-  const numeroEstimado = calcularNumeroEstimadoAgendamentos();
+  const {
+    estimado: numeroEstimado,
+    original: _numeroOriginal,
+    limitado: foiLimitado,
+  } = calcularNumeroEstimadoAgendamentos();
 
   // Limpar o paciente selecionado quando mudar de terapeuta
   useEffect(() => {
@@ -161,10 +192,12 @@ export function NovoAgendamentoModal({
     }
   }, [selectedTerapeutaId, setValue]);
 
-  // Filtrar pacientes pelo terapeuta selecionado
-  const filteredPacientes = selectedTerapeutaId
-    ? pacientes?.filter((p) => p.terapeuta_id === selectedTerapeutaId)
-    : [];
+  // Filtrar pacientes pelo terapeuta selecionado ou mostrar todos os pacientes do terapeuta logado
+  const filteredPacientes = isTerapeuta
+    ? pacientes // Para terapeutas, já vem filtrado do hook
+    : selectedTerapeutaId
+      ? pacientes?.filter((p) => p.terapeuta_id === selectedTerapeutaId)
+      : [];
 
   // Efeito para ajustar o local de agendamento quando a modalidade muda
   useEffect(() => {
@@ -191,12 +224,15 @@ export function NovoAgendamentoModal({
   // Handler para envio do formulário
   const onSubmit = async (data: AgendamentoFormInputs) => {
     setIsSubmitting(true);
+    setLoadingMessage("Preparando agendamento...");
 
     try {
       let requestData = { ...data };
 
       // Se não tiver periodicidade, cria um agendamento simples
       if (data.periodicidade === "Não repetir") {
+        setLoadingMessage("Criando agendamento...");
+
         delete requestData.diasDaSemana;
         delete requestData.dataFimRecorrencia;
 
@@ -209,6 +245,8 @@ export function NovoAgendamentoModal({
         // Usando o Redux action em vez do axios diretamente
         await dispatch(addAgendamento(formattedRequestData)).unwrap();
 
+        setLoadingMessage("Finalizando...");
+
         // Reiniciar o formulário e chamar callbacks sem exibir toast
         reset();
 
@@ -220,6 +258,10 @@ export function NovoAgendamentoModal({
       }
       // Caso contrário, cria agendamentos recorrentes
       else {
+        setLoadingMessage(
+          `Criando ${numeroEstimado} agendamentos recorrentes...`,
+        );
+
         // Criar um ID único para a recorrência
         const recurrenceId = crypto.randomUUID();
 
@@ -250,6 +292,7 @@ export function NovoAgendamentoModal({
         ) {
           toast.error("Erro: Selecione um terapeuta");
           setIsSubmitting(false);
+          setLoadingMessage("");
           return;
         }
 
@@ -259,11 +302,12 @@ export function NovoAgendamentoModal({
         ) {
           toast.error("Erro: Selecione um paciente");
           setIsSubmitting(false);
+          setLoadingMessage("");
           return;
         }
 
         // Usando o Redux action para agendamentos recorrentes
-        await dispatch(
+        const result = await dispatch(
           addAgendamentoRecorrente({
             recurrenceId,
             agendamentoBase,
@@ -273,11 +317,26 @@ export function NovoAgendamentoModal({
           }),
         ).unwrap();
 
+        setLoadingMessage("Criando sessões correspondentes...");
+
+        // Aguardar um pouco para mostrar a mensagem
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        setLoadingMessage("Finalizando...");
+
         // Reiniciar o formulário e chamar callbacks sem exibir toast
         reset();
 
         // Revalidar manualmente os dados de sessões
         mutate("/sessoes");
+
+        // Mostrar mensagem personalizada se houve limitação
+        if (result.metadata?.limiteLabelizado) {
+          toast.success(
+            `${result.metadata.numeroFinalCriado} agendamentos criados (limitado a máximo de 35)`,
+            { duration: 5000 },
+          );
+        }
 
         onSuccess(); // O componente pai será responsável pelo toast
         onClose();
@@ -292,6 +351,7 @@ export function NovoAgendamentoModal({
       console.error("Erro ao criar agendamento:", error);
     } finally {
       setIsSubmitting(false);
+      setLoadingMessage("");
     }
   };
 
@@ -317,23 +377,31 @@ export function NovoAgendamentoModal({
               <label htmlFor="terapeuta_id" className="font-medium mb-1">
                 Terapeuta <span className="text-red-500">*</span>
               </label>
-              <select
-                id="terapeuta_id"
-                className={`border rounded p-2 ${
-                  errors.terapeuta_id ? "border-red-500" : "border-gray-300"
-                }`}
-                {...register("terapeuta_id")}
-              >
-                <option value="">Selecione um terapeuta</option>
-                {terapeutas
-                  ?.slice()
-                  .sort((a, b) => a.nome.localeCompare(b.nome))
-                  .map((terapeuta) => (
-                    <option key={terapeuta.id} value={terapeuta.id}>
-                      {terapeuta.nome}
-                    </option>
-                  ))}
-              </select>
+              {isTerapeuta ? (
+                // Para terapeutas, mostrar apenas o nome (read-only)
+                <div className="border rounded p-2 bg-gray-100 text-gray-700">
+                  {currentTerapeuta?.nome || "Carregando..."}
+                </div>
+              ) : (
+                // Para admin/secretaria, mostrar seleção completa
+                <select
+                  id="terapeuta_id"
+                  className={`border rounded p-2 ${
+                    errors.terapeuta_id ? "border-red-500" : "border-gray-300"
+                  }`}
+                  {...register("terapeuta_id")}
+                >
+                  <option value="">Selecione um terapeuta</option>
+                  {terapeutas
+                    ?.slice()
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .map((terapeuta) => (
+                      <option key={terapeuta.id} value={terapeuta.id}>
+                        {terapeuta.nome}
+                      </option>
+                    ))}
+                </select>
+              )}
               {errors.terapeuta_id && (
                 <span className="text-red-500 text-sm">
                   {errors.terapeuta_id.message?.toString()}
@@ -352,12 +420,14 @@ export function NovoAgendamentoModal({
                   errors.paciente_id ? "border-red-500" : "border-gray-300"
                 }`}
                 {...register("paciente_id")}
-                disabled={!selectedTerapeutaId}
+                disabled={isTerapeuta ? false : !selectedTerapeutaId}
               >
                 <option value="">
-                  {selectedTerapeutaId
+                  {isTerapeuta
                     ? "Selecione um paciente"
-                    : "Escolha um terapeuta primeiro"}
+                    : selectedTerapeutaId
+                      ? "Selecione um paciente"
+                      : "Escolha um terapeuta primeiro"}
                 </option>
                 {filteredPacientes
                   ?.slice()
@@ -373,9 +443,14 @@ export function NovoAgendamentoModal({
                   {errors.paciente_id.message?.toString()}
                 </span>
               )}
-              {selectedTerapeutaId && filteredPacientes?.length === 0 && (
+              {((isTerapeuta && filteredPacientes?.length === 0) ||
+                (!isTerapeuta &&
+                  selectedTerapeutaId &&
+                  filteredPacientes?.length === 0)) && (
                 <span className="text-amber-600 text-sm">
-                  Não há pacientes associados a este terapeuta.
+                  {isTerapeuta
+                    ? "Você não tem pacientes associados."
+                    : "Não há pacientes associados a este terapeuta."}
                 </span>
               )}
             </div>
@@ -662,8 +737,8 @@ export function NovoAgendamentoModal({
               {numeroEstimado > 0 && (
                 <div
                   className={`mt-2 p-2 rounded text-sm ${
-                    numeroEstimado > 50
-                      ? "bg-red-100 text-red-700 border border-red-300"
+                    foiLimitado
+                      ? "bg-orange-100 text-orange-700 border border-orange-300"
                       : numeroEstimado > 20
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
                         : "bg-blue-100 text-blue-700 border border-blue-300"
@@ -682,14 +757,21 @@ export function NovoAgendamentoModal({
                       />
                     </svg>
                     <span className="font-medium">
-                      Serão criados aproximadamente {numeroEstimado}{" "}
-                      agendamentos
+                      {foiLimitado ? (
+                        <>
+                          Serão criados {numeroEstimado} agendamentos (limite
+                          máximo)
+                        </>
+                      ) : (
+                        <>Serão criados {numeroEstimado} agendamentos</>
+                      )}
                     </span>
                   </div>
-                  {numeroEstimado > 50 && (
+                  {foiLimitado && (
                     <div className="mt-1 text-xs">
-                      ⚠️ Número alto de agendamentos pode causar lentidão.
-                      Considere reduzir o período.
+                      ⚠️ O período selecionado excede o limite máximo de 35
+                      agendamentos. O sistema criará automaticamente apenas os
+                      primeiros 35 agendamentos.
                     </div>
                   )}
                 </div>
@@ -723,15 +805,23 @@ export function NovoAgendamentoModal({
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              disabled={isSubmitting}
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-azul text-white rounded hover:bg-sky-600 disabled:bg-gray-400"
+              className="px-4 py-2 bg-azul text-white rounded hover:bg-sky-600 disabled:bg-gray-400 min-w-[160px] flex items-center justify-center"
             >
-              {isSubmitting ? "Salvando..." : "Salvar Agendamento"}
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  {loadingMessage || "Salvando..."}
+                </>
+              ) : (
+                "Salvar Agendamento"
+              )}
             </button>
           </div>
         </form>

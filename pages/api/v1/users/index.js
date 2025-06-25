@@ -2,6 +2,7 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import user from "models/user.js";
 import invite from "models/invite.js";
+import terapeuta from "models/terapeuta.js";
 
 // Em ambiente de teste, importar o mock de convites
 let inviteModel = invite;
@@ -78,7 +79,7 @@ async function postHandler(request, response) {
     }
 
     // Criar o usuário com a função definida no convite ou a função especificada
-    const userRole = role || inviteResult.role || "user";
+    const userRole = role || inviteResult.role || "secretaria";
     const userInputValues = {
       username,
       email,
@@ -90,6 +91,38 @@ async function postHandler(request, response) {
 
     // Marcar o convite como usado
     await inviteModel.validateAndUse(inviteCode, newUser.id);
+
+    // Se o usuário é um terapeuta, tentar vinculá-lo ao registro de terapeuta existente
+    if (userRole === "Terapeuta") {
+      try {
+        console.log(
+          `[VINCULAÇÃO] Tentando vincular usuário ${newUser.id} com email ${email}`,
+        );
+        const existingTerapeuta = await terapeuta.getByEmail(email);
+
+        if (existingTerapeuta && !existingTerapeuta.user_id) {
+          console.log(
+            `[VINCULAÇÃO] Vinculando terapeuta ${existingTerapeuta.id} ao usuário ${newUser.id}`,
+          );
+          await terapeuta.linkUser(existingTerapeuta.id, newUser.id);
+          console.log(
+            `[VINCULAÇÃO] ✅ Usuário ${newUser.id} vinculado ao terapeuta ${existingTerapeuta.id}`,
+          );
+        } else {
+          console.log(
+            `[VINCULAÇÃO] Terapeuta não encontrado ou já tem user_id:`,
+            existingTerapeuta?.id,
+            existingTerapeuta?.user_id,
+          );
+        }
+      } catch (error) {
+        console.error(
+          "[VINCULAÇÃO] ❌ Erro ao vincular usuário ao terapeuta:",
+          error,
+        );
+        // Não falhar o registro por causa disso, apenas logar o erro
+      }
+    }
 
     return response.status(201).json(newUser);
   } catch (error) {

@@ -120,6 +120,7 @@ describe("GET /api/v1/terapeutas", () => {
           endereco: terapeuta.endereco,
           dt_entrada: terapeuta.dt_entrada,
           chave_pix: terapeuta.chave_pix,
+          user_id: terapeuta.user_id,
           created_at: terapeuta.created_at,
           updated_at: terapeuta.updated_at,
         });

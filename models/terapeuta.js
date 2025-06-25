@@ -77,6 +77,44 @@ async function getById(id) {
   return result.rows[0] || null;
 }
 
+// Recuperar terapeuta por email
+async function getByEmail(email) {
+  const queryObject = {
+    text: `SELECT * FROM terapeutas WHERE LOWER(email) = LOWER($1)`,
+    values: [email],
+  };
+
+  const result = await database.query(queryObject);
+  return result.rows[0] || null;
+}
+
+// Vincular usuário ao terapeuta
+async function linkUser(terapeutaId, userId) {
+  const queryObject = {
+    text: `
+      UPDATE terapeutas
+      SET user_id = $1
+      WHERE id = $2
+      RETURNING *
+    `,
+    values: [userId, terapeutaId],
+  };
+
+  const result = await database.query(queryObject);
+  return result.rows[0];
+}
+
+// Buscar terapeuta por user_id
+async function getByUserId(userId) {
+  const queryObject = {
+    text: `SELECT * FROM terapeutas WHERE user_id = $1`,
+    values: [userId],
+  };
+
+  const result = await database.query(queryObject);
+  return result.rows[0] || null;
+}
+
 async function update(id, terapeutaInputValues) {
   // Primeiro, buscar o terapeuta existente para obter a foto atual
   const currentTerapeuta = await getById(id);
@@ -121,6 +159,12 @@ async function update(id, terapeutaInputValues) {
       ? terapeutaInputValues.foto
       : currentTerapeuta.foto;
 
+  // Manter user_id existente se não for fornecido um novo
+  const userIdToUse =
+    terapeutaInputValues.user_id !== undefined
+      ? terapeutaInputValues.user_id
+      : currentTerapeuta.user_id;
+
   const queryObject = {
     text: `
       UPDATE terapeutas
@@ -131,8 +175,9 @@ async function update(id, terapeutaInputValues) {
         email = $4,
         endereco = $5,
         dt_entrada = $6,
-        chave_pix = $7
-      WHERE id = $8
+        chave_pix = $7,
+        user_id = $8
+      WHERE id = $9
       RETURNING *
     `,
     values: [
@@ -143,6 +188,7 @@ async function update(id, terapeutaInputValues) {
       terapeutaInputValues.endereco,
       terapeutaInputValues.dt_entrada,
       terapeutaInputValues.chave_pix,
+      userIdToUse,
       id,
     ],
   };
@@ -165,6 +211,9 @@ const terapeuta = {
   create,
   getAll,
   getById,
+  getByEmail,
+  linkUser,
+  getByUserId,
   update,
   remove,
 };

@@ -12,6 +12,7 @@ import type { AppDispatch } from "store/store";
 import { updateSessao } from "store/sessoesSlice";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import { useFetchPacientes } from "hooks/useFetchPacientes";
+import { mutate } from "swr"; // Importar mutate global do SWR
 
 import { Sessao } from "tipos";
 import {
@@ -180,6 +181,10 @@ export function EditarSessaoModal({
           sessao: sessaoData,
         }),
       ).unwrap();
+
+      // Invalidar cache global do SWR para que todos os componentes que usam dados de sessões sejam atualizados
+      // Isso garante que o dashboard de transações também seja atualizado
+      await mutate("/sessoes");
 
       // Chamar funções de callback
       onSuccess?.();

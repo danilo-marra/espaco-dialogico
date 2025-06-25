@@ -16,7 +16,12 @@ function generateInviteCode(length = 8) {
   return code;
 }
 
-async function create({ email, role = "user", expiresInDays = 7, createdBy }) {
+async function create({
+  email,
+  role = "secretaria",
+  expiresInDays = 7,
+  createdBy,
+}) {
   // Gerar um código de convite único
   let code;
   let isCodeUnique = false;

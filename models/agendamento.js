@@ -529,11 +529,20 @@ async function createRecurrences({
   }
 
   // Limitar o número máximo de agendamentos para evitar timeout
-  const MAX_AGENDAMENTOS = 50;
+  const MAX_AGENDAMENTOS = 35;
+
+  // Se exceder o limite, ajustar automaticamente a data final
   if (dataAgendamentos.length > MAX_AGENDAMENTOS) {
-    throw new ValidationError({
-      message: `Número de agendamentos muito alto (${dataAgendamentos.length}). Máximo permitido: ${MAX_AGENDAMENTOS}. Reduza o período da recorrência.`,
-    });
+    console.log(
+      `⚠️ Limite de agendamentos atingido: ${dataAgendamentos.length} → ${MAX_AGENDAMENTOS}`,
+    );
+
+    // Cortar a lista para o máximo permitido
+    dataAgendamentos.splice(MAX_AGENDAMENTOS);
+
+    console.log(
+      `✅ Agendamentos limitados automaticamente a ${dataAgendamentos.length}`,
+    );
   }
 
   // Debug: verificar se o agendamentoBase tem terapeuta_id
@@ -776,10 +785,17 @@ async function createRecurrencesOptimizedForStaging({
     return createdAgendamentos;
   }
 
-  if (dataAgendamentos.length > 25) {
-    throw new ValidationError({
-      message: `Número de agendamentos muito alto (${dataAgendamentos.length}). Máximo permitido para staging: 25. Reduza o período da recorrência.`,
-    });
+  if (dataAgendamentos.length > 35) {
+    console.log(
+      `⚠️ STAGING: Limite de agendamentos atingido: ${dataAgendamentos.length} → 35`,
+    );
+
+    // Cortar a lista para o máximo permitido
+    dataAgendamentos.splice(35);
+
+    console.log(
+      `✅ STAGING: Agendamentos limitados automaticamente a ${dataAgendamentos.length}`,
+    );
   }
 
   // OTIMIZAÇÃO PARA STAGING: inserção única com todos os valores
@@ -1010,6 +1026,8 @@ async function update(id, agendamentoData) {
   }
 
   // Adicionar cada campo que precisa ser atualizado
+  addField("paciente_id", agendamentoData.paciente_id);
+  addField("terapeuta_id", agendamentoData.terapeuta_id);
   addField("data_agendamento", agendamentoData.dataAgendamento);
   addField("horario_agendamento", agendamentoData.horarioAgendamento);
   addField("local_agendamento", agendamentoData.localAgendamento);

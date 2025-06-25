@@ -73,6 +73,11 @@ async function putHandler(request, response) {
     chave_pix: getFormValue(fields.chave_pix),
   };
 
+  // Incluir user_id se foi fornecido (para associação de usuários)
+  if (fields.user_id) {
+    terapeutaData.user_id = getFormValue(fields.user_id);
+  }
+
   // Upload da foto para o Cloudinary, se existir
   if (files.foto && Array.isArray(files.foto) && files.foto.length > 0) {
     try {

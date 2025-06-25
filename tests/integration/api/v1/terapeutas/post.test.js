@@ -129,6 +129,7 @@ describe("POST /api/v1/terapeutas", () => {
         endereco: "shces 301 bloco c apt 202",
         dt_entrada: "2025-02-22T03:00:00.000Z",
         chave_pix: "pix871",
+        user_id: null,
         created_at: responseBody.created_at,
         updated_at: responseBody.updated_at,
       });

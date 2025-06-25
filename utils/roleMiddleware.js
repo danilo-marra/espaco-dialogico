@@ -1,6 +1,27 @@
 import { verifyToken } from "./auth.js";
 
-// Definição de permissões por role
+/**
+ * Normaliza o role para lowercase para garantir consistência
+ * @param {string} role - Role do usuário
+ * @returns {string} - Role normalizado
+ */
+function normalizeRole(role) {
+  if (!role) return "terapeuta";
+
+  // Converter para lowercase e mapear roles conhecidos
+  const normalized = role.toLowerCase();
+
+  // Mapeamento de roles alternativos
+  const roleMap = {
+    administrador: "admin",
+    secretária: "secretaria",
+    secretario: "secretaria",
+  };
+
+  return roleMap[normalized] || normalized;
+}
+
+// Definição de permissões por role (em lowercase)
 const ROLE_PERMISSIONS = {
   admin: [
     "agendamentos",
@@ -12,7 +33,12 @@ const ROLE_PERMISSIONS = {
     "usuarios",
     "perfil",
   ],
-  terapeuta: ["agendamentos", "perfil"],
+  terapeuta: [
+    "agendamentos",
+    "pacientes", // Adicionado: terapeuta precisa acessar pacientes (será filtrado pelo middleware)
+    "terapeutas", // Adicionado: terapeuta precisa acessar sua própria informação
+    "perfil",
+  ],
   secretaria: [
     "agendamentos",
     "pacientes",
@@ -47,11 +73,32 @@ const ROUTE_RESOURCE_MAP = {
  * Verifica se um usuário tem permissão para acessar um recurso
  * @param {string} userRole - Role do usuário
  * @param {string} resource - Recurso que está sendo acessado
+ * @param {object} context - Contexto adicional (opcional)
+ * @param {string} context.userId - ID do usuário que faz a requisição
+ * @param {string} context.targetTerapeutaId - ID do terapeuta alvo (para verificações específicas)
+ * @param {string} context.targetPacienteId - ID do paciente alvo (para verificações específicas)
  * @returns {boolean} - Se tem permissão ou não
  */
-export function hasPermission(userRole, resource) {
-  const permissions = ROLE_PERMISSIONS[userRole];
-  return permissions && permissions.includes(resource);
+export function hasPermission(userRole, resource, context = {}) {
+  const normalizedRole = normalizeRole(userRole);
+  const permissions = ROLE_PERMISSIONS[normalizedRole];
+
+  // Verificar se o role tem permissão básica para o recurso
+  if (!permissions || !permissions.includes(resource)) {
+    return false;
+  }
+
+  // Para terapeutas, aplicar verificações adicionais
+  if (normalizedRole === "terapeuta" && context) {
+    // Se está tentando acessar agendamentos, verificar se é dos seus próprios pacientes
+    if (resource === "agendamentos" && context.targetPacienteId) {
+      // Esta verificação será feita na camada de API, pois precisa consultar o banco
+      // Por ora, permitir na camada de middleware e fazer a verificação na API
+      return true;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -108,7 +155,7 @@ export function requirePermission(requiredResource) {
 
       // Adicionar usuário à requisição
       req.user = decoded; // Verificar permissão
-      const userRole = decoded.role || "terapeuta";
+      const userRole = normalizeRole(decoded.role || "terapeuta");
 
       if (!hasPermission(userRole, requiredResource)) {
         return res.status(403).json({
@@ -160,7 +207,7 @@ export function withRolePermission(handler, requiredResource) {
 
       // Adicionar usuário decodificado à solicitação
       req.user = decoded; // Verificar permissão
-      const userRole = decoded.role || "terapeuta";
+      const userRole = normalizeRole(decoded.role || "terapeuta");
 
       if (!hasPermission(userRole, requiredResource)) {
         return res.status(403).json({
@@ -188,7 +235,7 @@ export function withRolePermission(handler, requiredResource) {
  * @returns {boolean} - Se tem permissão ou não
  */
 export function usePermission(userRole, resource) {
-  return hasPermission(userRole, resource);
+  return hasPermission(normalizeRole(userRole), resource);
 }
 
 export { ROLE_PERMISSIONS, ROUTE_RESOURCE_MAP };

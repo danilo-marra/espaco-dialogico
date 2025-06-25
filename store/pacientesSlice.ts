@@ -118,7 +118,27 @@ export const addPaciente = createAsyncThunk<
     // Formatar os dados antes de enviar
     const formattedPaciente = preparePacienteData(paciente);
 
-    const response = await axiosInstance.post(API_ENDPOINT, formattedPaciente);
+    // Criar FormData para envio multipart
+    const formData = new FormData();
+
+    // Adicionar todos os campos ao FormData
+    Object.keys(formattedPaciente).forEach((key) => {
+      const value = formattedPaciente[key];
+      if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    console.log(
+      "FormData criado para novo paciente:",
+      Array.from(formData.entries()),
+    );
+
+    const response = await axiosInstance.post(API_ENDPOINT, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Erro ao adicionar paciente:", error);
@@ -160,9 +180,31 @@ export const updatePaciente = createAsyncThunk<
 
     console.log(`Enviando PUT para ${API_ENDPOINT}/${id}:`, formattedPaciente);
 
+    // Criar FormData para envio multipart
+    const formData = new FormData();
+
+    // Adicionar todos os campos ao FormData
+    Object.keys(formattedPaciente).forEach((key) => {
+      const value = formattedPaciente[key];
+      if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    // Log para debug
+    console.log(
+      "FormData criado para paciente:",
+      Array.from(formData.entries()),
+    );
+
     const response = await axiosInstance.put<Paciente>(
       `${API_ENDPOINT}/${id}`,
-      formattedPaciente,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
     );
 
     return response.data;
