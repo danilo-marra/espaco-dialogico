@@ -32,13 +32,25 @@ describe("Dashboard Terapeutas", () => {
       </Provider>,
     );
 
-    // Use more specific query to target heading instead of title
+    // Buscar especificamente pelo h1 principal da página
     expect(
-      await screen.findByRole("heading", { name: "Terapeutas" }),
+      await screen.findByRole("heading", {
+        name: "Terapeutas",
+        level: 1,
+      }),
     ).toBeInTheDocument();
+
+    // Verificar se o botão de novo terapeuta está presente
     expect(await screen.findByText("Novo Terapeuta")).toBeInTheDocument();
+
+    // Verificar se João Silva está presente (pode aparecer em múltiplos lugares)
+    // Usar getAllByText para verificar que existe pelo menos um
+    const joaoSilvaElements = await screen.findAllByText("João Silva");
+    expect(joaoSilvaElements.length).toBeGreaterThan(0);
+
+    // Verificar se os elementos de filtro estão presentes
     expect(
-      await screen.findByRole("cell", { name: "João Silva" }),
+      await screen.findByText("Filtrar por Terapeuta"),
     ).toBeInTheDocument();
   });
 

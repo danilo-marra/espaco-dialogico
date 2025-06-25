@@ -197,46 +197,98 @@ export default function UsersPage() {
       <Head>
         <title>Gerenciamento de Usuários - Espaço Dialógico</title>
       </Head>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6 text-azul">
-          Gerenciamento de Usuários
-        </h1>
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl font-bold text-azul">
+            Gerenciamento de Usuários
+          </h1>
+        </div>
+
+        {/* Cards de Estatísticas */}
+        {!loadingUsers && users.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Total de Usuários
+              </h3>
+              <p className="text-2xl font-bold text-azul">{users.length}</p>
+            </div>
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Administradores
+              </h3>
+              <p className="text-2xl font-bold text-purple-600">
+                {users.filter((u) => u.role === "admin").length}
+              </p>
+            </div>
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Terapeutas
+              </h3>
+              <p className="text-2xl font-bold text-blue-600">
+                {users.filter((u) => u.role === "terapeuta").length}
+              </p>
+            </div>
+            <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">
+                Secretários
+              </h3>
+              <p className="text-2xl font-bold text-green-600">
+                {users.filter((u) => u.role === "secretaria").length}
+              </p>
+            </div>
+          </div>
+        )}
 
         {loadingUsers ? (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-4 border-t-azul rounded-full animate-spin mx-auto"></div>
-            <p className="mt-2">Carregando usuários...</p>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-t-azul rounded-full animate-spin mx-auto"></div>
+              <p className="mt-4 text-gray-600">Carregando usuários...</p>
+            </div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <div className="text-center">
+              <p className="text-gray-500 text-lg mb-2">
+                Nenhum usuário encontrado
+              </p>
+              <p className="text-gray-400 text-sm">
+                Não há usuários cadastrados no sistema
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow">
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-50">
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {/* Tabela para telas médias e grandes */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Username
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Email
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Função
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Data de Criação
                     </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ações
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {user.username}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.email}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -256,28 +308,28 @@ export default function UsersPage() {
                               : "Terapeuta"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.created_at).toLocaleDateString("pt-BR")}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex justify-center space-x-2">
                           <button
                             onClick={() => handleEditUser(user)}
-                            className="p-1 text-blue-600 hover:text-blue-800"
+                            className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
                             title="Editar usuário"
                           >
-                            <PencilSimple size={20} />
+                            <PencilSimple size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteUser(user)}
-                            className="p-1 text-red-600 hover:text-red-800"
+                            className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Excluir usuário"
                             disabled={
                               user.role === "admin" &&
                               user.username === "adminDanilo"
                             }
                           >
-                            <TrashSimple size={20} />
+                            <TrashSimple size={18} />
                           </button>
                         </div>
                       </td>
@@ -286,22 +338,83 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Cards para telas pequenas */}
+            <div className="md:hidden divide-y divide-gray-200">
+              {users.map((user) => (
+                <div key={user.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h3 className="text-sm font-medium text-gray-900 truncate">
+                          {user.username}
+                        </h3>
+                        <span
+                          className={`${
+                            user.role === "admin"
+                              ? "bg-purple-100 text-purple-800"
+                              : user.role === "secretaria"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-blue-100 text-blue-800"
+                          } px-2 py-1 rounded-full text-xs font-medium`}
+                        >
+                          {user.role === "admin"
+                            ? "Admin"
+                            : user.role === "secretaria"
+                              ? "Secretaria"
+                              : "Terapeuta"}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 mb-1 truncate">
+                        {user.email}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Criado em:{" "}
+                        {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                        title="Editar usuário"
+                      >
+                        <PencilSimple size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user)}
+                        className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Excluir usuário"
+                        disabled={
+                          user.role === "admin" &&
+                          user.username === "adminDanilo"
+                        }
+                      >
+                        <TrashSimple size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
       {/* Modal de Edição */}
       {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Editar Usuário</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4 text-azul">
+              Editar Usuário
+            </h2>
             <form onSubmit={submitEditForm} className="space-y-4">
               <div>
                 <label
                   htmlFor="username"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Nome de Usuário
+                  Nome de Usuário <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="username"
@@ -311,6 +424,7 @@ export default function UsersPage() {
                     setEditForm({ ...editForm, username: e.target.value })
                   }
                   className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                  required
                 />
               </div>
 
@@ -319,7 +433,7 @@ export default function UsersPage() {
                   htmlFor="email"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Email
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="email"
@@ -329,6 +443,7 @@ export default function UsersPage() {
                     setEditForm({ ...editForm, email: e.target.value })
                   }
                   className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                  required
                 />
               </div>
 
@@ -337,7 +452,10 @@ export default function UsersPage() {
                   htmlFor="password"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Nova Senha (deixe em branco para manter a atual)
+                  Nova Senha
+                  <span className="text-xs text-gray-500 ml-1">
+                    (deixe em branco para manter a atual)
+                  </span>
                 </label>
                 <input
                   id="password"
@@ -356,7 +474,7 @@ export default function UsersPage() {
                   htmlFor="role"
                   className="block text-sm font-medium text-gray-700 mb-1"
                 >
-                  Função
+                  Função <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="role"
@@ -365,6 +483,7 @@ export default function UsersPage() {
                     setEditForm({ ...editForm, role: e.target.value })
                   }
                   className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                  required
                 >
                   <option value="terapeuta">Terapeuta</option>
                   <option value="secretaria">Secretaria</option>
@@ -372,17 +491,17 @@ export default function UsersPage() {
                 </select>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-azul text-white rounded text-sm font-medium hover:bg-azul/80"
+                  className="px-4 py-2 bg-azul text-white rounded text-sm font-medium hover:bg-azul/80 transition-colors w-full sm:w-auto"
                 >
                   Salvar
                 </button>
@@ -394,26 +513,31 @@ export default function UsersPage() {
 
       {/* Modal de Confirmação de Exclusão */}
       {isDeleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Confirmar Exclusão</h2>
-            <p className="mb-6">
-              Tem certeza que deseja excluir o usuário{" "}
-              <strong>{selectedUser.username}</strong>?
-              <br />
-              Esta ação não pode ser desfeita.
-            </p>
+            <h2 className="text-xl font-semibold mb-4 text-azul">
+              Confirmar Exclusão
+            </h2>
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2">
+                Tem certeza que deseja excluir o usuário{" "}
+                <strong className="text-azul">{selectedUser.username}</strong>?
+              </p>
+              <p className="text-sm text-red-600 bg-red-50 p-3 rounded border border-red-200">
+                <strong>Atenção:</strong> Esta ação não pode ser desfeita.
+              </p>
+            </div>
 
-            <div className="flex justify-end space-x-3">
+            <div className="flex flex-col sm:flex-row sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3">
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors w-full sm:w-auto"
               >
                 Cancelar
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700"
+                className="px-4 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition-colors w-full sm:w-auto"
               >
                 Excluir
               </button>

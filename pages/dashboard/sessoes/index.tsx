@@ -382,40 +382,39 @@ export default function Sessoes() {
         </div>
 
         {/* Cards de resumo */}
-        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-5 overflow-x-auto">
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <Receipt size={24} className="text-rosa flex-shrink-0" />
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-yellow-100 rounded-full">
+              <Receipt size={24} className="text-yellow-600" />
+            </div>
             <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Pagamentos Pendentes
               </h3>
-              <span className="text-xl font-semibold">{sessoesPendentes}</span>
+              <span className="text-2xl font-bold text-gray-900">
+                {sessoesPendentes}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center p-4 bg-white rounded shadow justify-between">
-            <div className="flex items-center min-w-0">
-              <ChartPie
-                size={24}
-                className="text-green-600 mr-2 flex-shrink-0"
-              />
+          <div className="flex items-center p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <ChartPie size={24} className="text-green-600" />
+              </div>
               <div className="min-w-0">
-                <h3 className="text-xs uppercase text-gray-500 truncate">
-                  <span className="hidden sm:inline">
-                    Pagamentos Realizados
-                  </span>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Pagamentos Realizados
                 </h3>
-                <span className="text-md font-semibold">
-                  <span className="text-xl font-semibold">
-                    {sessoesRealizadas}
-                  </span>
+                <span className="text-2xl font-bold text-gray-900">
+                  {sessoesRealizadas}
                 </span>
               </div>
             </div>
 
             <button
               onClick={() => setShowLegend(!showLegend)}
-              className="text-gray-500 hover:text-gray-700 ml-2 flex-shrink-0"
+              className="text-gray-400 hover:text-gray-600 p-2 rounded-md hover:bg-gray-50 transition-all flex-shrink-0"
               aria-label="Mostrar legenda"
               title="Mostrar legenda"
             >
@@ -423,40 +422,43 @@ export default function Sessoes() {
             </button>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <FileText size={24} className="text-blue-500 flex-shrink-0" />
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <FileText size={24} className="text-blue-600" />
+            </div>
             <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
-                <span>Nota Fiscal Emitida</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Nota Fiscal Emitida
               </h3>
-              <span className="text-xl font-semibold">
+              <span className="text-xl font-bold text-gray-900">
                 R$ {valorNotasFiscaisEmitidas.toFixed(2).replace(".", ",")}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <PaperPlaneTilt
-              size={24}
-              className="text-purple-500 flex-shrink-0"
-            />
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-purple-100 rounded-full">
+              <PaperPlaneTilt size={24} className="text-purple-600" />
+            </div>
             <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
-                <span>Nota Fiscal Enviada</span>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Nota Fiscal Enviada
               </h3>
-              <span className="text-xl font-semibold">
+              <span className="text-xl font-bold text-gray-900">
                 R$ {valorNotasFiscaisEnviadas.toFixed(2).replace(".", ",")}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <CalendarCheck size={24} className="text-green-500 flex-shrink-0" />
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-green-100 rounded-full">
+              <CalendarCheck size={24} className="text-green-600" />
+            </div>
             <div className="min-w-0">
-              <h3 className="text-xs uppercase text-gray-500 truncate">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Total de Sessões
               </h3>
-              <span className="text-xl font-semibold">
+              <span className="text-2xl font-bold text-gray-900">
                 {filteredSessoes.length}
               </span>
             </div>
@@ -570,149 +572,148 @@ export default function Sessoes() {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2 xl:grid-cols-4">
           {/* Filtro por Terapeuta */}
-          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <User size={24} className="text-gray-500" />
+          <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <User size={24} className="text-gray-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <label
                 htmlFor="terapeutas"
-                className="text-md font-medium text-gray-700 whitespace-nowrap"
+                className="text-sm font-medium text-gray-700 block mb-2"
               >
-                Terapeuta:
+                Filtrar por Terapeuta
               </label>
+              <select
+                className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
+                name="terapeutas"
+                id="terapeutas"
+                value={selectedTerapeuta}
+                onChange={(e) => {
+                  setSelectedTerapeuta(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="Todos">Todos os terapeutas</option>
+                {terapeutas?.map((terapeuta) => (
+                  <option key={terapeuta.id} value={terapeuta.id}>
+                    {terapeuta.nome}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
-              name="terapeutas"
-              id="terapeutas"
-              value={selectedTerapeuta}
-              onChange={(e) => {
-                setSelectedTerapeuta(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              <option value="Todos">Todos</option>
-              {terapeutas?.map((terapeuta) => (
-                <option key={terapeuta.id} value={terapeuta.id}>
-                  {terapeuta.nome}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Filtro por Status */}
-          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <Receipt size={24} className="text-gray-500" />
+          <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <Receipt size={24} className="text-gray-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <label
                 htmlFor="status"
-                className="text-md font-medium text-gray-700 whitespace-nowrap"
+                className="text-sm font-medium text-gray-700 block mb-2"
               >
-                Status:
+                Filtrar por Status
               </label>
+              <select
+                className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
+                name="status"
+                id="status"
+                value={selectedStatus}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {STATUS_SESSOES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
-              name="status"
-              id="status"
-              value={selectedStatus}
-              onChange={(e) => {
-                setSelectedStatus(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              {STATUS_SESSOES.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Filtro por Tipo */}
-          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow sm:flex-row sm:space-y-0 sm:items-center">
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <CalendarCheck size={24} className="text-gray-500" />
+          <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <CalendarCheck size={24} className="text-gray-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <label
                 htmlFor="tipo"
-                className="text-md font-medium text-gray-700 whitespace-nowrap"
+                className="text-sm font-medium text-gray-700 block mb-2"
               >
-                Tipo:
+                Filtrar por Tipo
               </label>
+              <select
+                className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
+                name="tipo"
+                id="tipo"
+                value={selectedTipo}
+                onChange={(e) => {
+                  setSelectedTipo(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                {TIPOS_SESSOES.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              className="text-md w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
-              name="tipo"
-              id="tipo"
-              value={selectedTipo}
-              onChange={(e) => {
-                setSelectedTipo(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-              {TIPOS_SESSOES.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Busca por Paciente */}
-          <div className="flex flex-col space-y-2 p-4 bg-white rounded shadow lg:col-span-3 sm:flex-row sm:space-y-0 sm:items-center">
-            <div className="flex items-center space-x-2 flex-shrink-0">
-              <MagnifyingGlass size={24} className="text-gray-500" />
+          <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <MagnifyingGlass
+              size={24}
+              className="text-gray-500 flex-shrink-0"
+            />
+            <div className="flex-1 min-w-0">
               <label
                 htmlFor="searchPaciente"
-                className="text-md font-medium text-gray-700 whitespace-nowrap"
+                className="text-sm font-medium text-gray-700 block mb-2"
               >
-                Paciente:
+                Buscar Paciente
               </label>
+              <input
+                type="text"
+                id="searchPaciente"
+                className="w-full text-sm lg:text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-azul/20 rounded px-3 py-2 border border-gray-200"
+                placeholder="Nome do paciente..."
+                value={searchPaciente}
+                onChange={(e) => {
+                  setSearchPaciente(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
             </div>
-            <input
-              type="text"
-              id="searchPaciente"
-              className="w-full focus:outline-none border border-gray-300 rounded px-2 py-1 sm:border-none"
-              placeholder="Digite o nome do paciente"
-              value={searchPaciente}
-              onChange={(e) => {
-                setSearchPaciente(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
           </div>
         </div>
 
         {/* Tabela de Sessões */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="w-full divide-y divide-gray-200">
               <thead className="bg-rosa text-white">
                 <tr>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                  <th className="p-3 text-left text-sm font-medium">
                     Terapeuta
                   </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                  <th className="p-3 text-left text-sm font-medium">
                     Paciente
                   </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm hidden md:table-cell">
+                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                     Tipo de Sessão
                   </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
-                    Valor
-                  </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm hidden lg:table-cell">
+                  <th className="p-3 text-left text-sm font-medium">Valor</th>
+                  <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
                     Repasse
                   </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
-                    Status
-                  </th>
-                  <th className="p-2 text-left text-xs sm:p-4 sm:text-sm">
+                  <th className="p-3 text-left text-sm font-medium">Status</th>
+                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                     Data
                   </th>
                   {isAdmin && (
-                    <th className="p-2 text-center text-xs sm:p-4 sm:text-sm">
+                    <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
                       Ações
                     </th>
                   )}
@@ -720,7 +721,7 @@ export default function Sessoes() {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {paginatedSessoes.length > 0 ? (
-                  paginatedSessoes.map((sessao) => {
+                  paginatedSessoes.map((sessao, index) => {
                     // Usar a função helper para obter a data da sessão
                     const dataExibicao = formatSessaoDate(sessao);
 
@@ -759,42 +760,62 @@ export default function Sessoes() {
                     }
 
                     return (
-                      <tr key={sessao.id} className="hover:bg-gray-50">
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
-                          <div className="truncate max-w-[120px] sm:max-w-none">
-                            {sessao.terapeutaInfo?.nome || "Não atribuído"}
+                      <tr
+                        key={sessao.id}
+                        className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+                      >
+                        <td className="p-3">
+                          <div className="font-medium text-gray-900 text-sm lg:text-base">
+                            {sessao.terapeutaInfo?.nome || (
+                              <span className="text-orange-600 font-medium">
+                                Não atribuído
+                              </span>
+                            )}
                           </div>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
-                          <div className="truncate max-w-[120px] sm:max-w-none">
-                            {sessao.pacienteInfo?.nome || "Não atribuído"}
+                        <td className="p-3">
+                          <div className="text-sm lg:text-base text-gray-900">
+                            {sessao.pacienteInfo?.nome || (
+                              <span className="text-orange-600 font-medium">
+                                Não atribuído
+                              </span>
+                            )}
+                          </div>
+                          {/* Informações extras em telas menores */}
+                          <div className="lg:hidden mt-1 space-y-1">
+                            <div className="text-xs text-gray-500">
+                              Tipo: {sessao.tipoSessao}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Data: {dataExibicao}
+                            </div>
                           </div>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm hidden md:table-cell">
-                          {sessao.tipoSessao}
+                        <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                          <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                            {sessao.tipoSessao}
+                          </span>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
-                          <div className="flex flex-col">
-                            <span>
-                              R${" "}
-                              {sessao.valorSessao.toFixed(2).replace(".", ",")}
-                            </span>
-                            <span className="text-xs text-gray-500 md:hidden">
-                              {sessao.tipoSessao}
-                            </span>
+                        <td className="p-3">
+                          <div className="text-sm lg:text-base font-semibold text-gray-900">
+                            R$ {sessao.valorSessao.toFixed(2).replace(".", ",")}
+                          </div>
+                          {/* Informação de repasse em telas menores */}
+                          <div className="xl:hidden text-xs text-gray-500 mt-1">
+                            Repasse: R${" "}
+                            {valorRepasse.toFixed(2).replace(".", ",")} (
+                            {percentualRepasse}%)
                           </div>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm hidden lg:table-cell">
-                          <div className="flex flex-col">
-                            <span>
-                              R$ {valorRepasse.toFixed(2).replace(".", ",")}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              {percentualRepasse}%
-                            </span>
+                        <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                          <div className="text-sm font-medium text-green-600">
+                            R$ {valorRepasse.toFixed(2).replace(".", ",")}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {percentualRepasse}% do valor
                           </div>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
+                        <td className="p-3">
                           <span
                             className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               sessao.statusSessao === "Pagamento Pendente"
@@ -827,24 +848,21 @@ export default function Sessoes() {
                                       : sessao.statusSessao}
                             </span>
                           </span>
-                          <div className="text-xs text-gray-500 mt-1 lg:hidden">
-                            Repasse: R${" "}
-                            {valorRepasse.toFixed(2).replace(".", ",")} (
-                            {percentualRepasse}%)
-                          </div>
                         </td>
-                        <td className="p-2 text-xs sm:p-4 sm:text-sm">
-                          <div className="truncate">{dataExibicao}</div>
+                        <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                          {dataExibicao}
                         </td>
                         {isAdmin && (
-                          <td className="p-2 text-center sm:p-4">
-                            <button
-                              onClick={() => handleEditSessao(sessao)}
-                              className="text-azul hover:text-blue-700 transition-colors p-1"
-                              title="Editar sessão"
-                            >
-                              <PencilSimple size={16} />
-                            </button>
+                          <td className="p-3 sticky right-0 bg-white">
+                            <div className="flex items-center justify-center">
+                              <button
+                                onClick={() => handleEditSessao(sessao)}
+                                className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
+                                title="Editar sessão"
+                              >
+                                <PencilSimple size={16} weight="bold" />
+                              </button>
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -854,9 +872,21 @@ export default function Sessoes() {
                   <tr>
                     <td
                       colSpan={isAdmin ? 8 : 7}
-                      className="p-8 text-center text-gray-500"
+                      className="text-center py-12 px-4"
                     >
-                      Nenhuma sessão encontrada com os filtros aplicados
+                      <div className="max-w-md mx-auto">
+                        <CalendarCheck
+                          size={64}
+                          className="mx-auto mb-4 text-gray-300"
+                        />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Nenhuma sessão encontrada
+                        </h3>
+                        <p className="text-gray-600">
+                          Tente ajustar os filtros de busca para encontrar o que
+                          está procurando.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
