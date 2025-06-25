@@ -90,7 +90,8 @@ export default function ConvitesPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Erro ao criar convite");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Erro ao criar convite");
       }
 
       const newInvite = await response.json();
@@ -115,7 +116,22 @@ export default function ConvitesPage() {
       setEmail("");
     } catch (error) {
       console.error(error);
-      toast.error("Não foi possível criar o convite");
+
+      // Verificar se é um erro específico de email já cadastrado
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível criar o convite";
+
+      if (errorMessage.includes("Email já cadastrado")) {
+        toast.error("❌ Este email já possui uma conta no sistema!", {
+          description:
+            "Não é possível criar convites para emails já cadastrados. Verifique o email ou solicite que a pessoa faça login diretamente.",
+          duration: 6000,
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsCreatingInvite(false);
     }

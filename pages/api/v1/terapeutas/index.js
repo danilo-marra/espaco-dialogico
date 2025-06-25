@@ -27,68 +27,135 @@ router.post(postHandler);
 export default router.handler(controller.errorHandlers);
 
 async function postHandler(req, res) {
-  // Log para debug
-  if (process.env.NODE_ENV === "development") {
-    console.log("Received body:", req.body);
-  }
+  try {
+    // Log para debug
+    if (process.env.NODE_ENV === "development") {
+      console.log("Headers recebidos:", req.headers);
+    }
 
-  // Configurar formidable para análise de formulários multipart
-  const form = formidable({
-    keepExtensions: true,
-    maxFileSize: 10 * 1024 * 1024, // 10MB
-  });
-
-  // Parsing com a API atual
-  const [fields, files] = await new Promise((resolve, reject) => {
-    form.parse(req, (err, fields, files) => {
-      if (err) reject(err);
-      resolve([fields, files]);
+    // Configurar formidable para análise de formulários multipart
+    const form = formidable({
+      keepExtensions: true,
+      maxFileSize: 10 * 1024 * 1024, // 10MB
     });
-  });
 
-  // Preparar objeto terapeuta
-  const terapeutaData = {
-    nome: getFormValue(fields.nome),
-    telefone: getFormValue(fields.telefone),
-    email: getFormValue(fields.email),
-    endereco: getFormValue(fields.endereco),
-    dt_entrada: getFormValue(fields.dt_entrada),
-    chave_pix: getFormValue(fields.chave_pix),
-  };
+    // Parsing com a API atual
+    const [fields, files] = await new Promise((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) {
+          console.error("Erro no parsing do form:", err);
+          reject(err);
+        }
+        resolve([fields, files]);
+      });
+    });
 
-  // Validação básica
-  const requiredFields = [
-    "nome",
-    "telefone",
-    "email",
-    "endereco",
-    "dt_entrada",
-    "chave_pix",
-  ];
+    // Log para debug
+    if (process.env.NODE_ENV === "development") {
+      console.log("Fields recebidos:", fields);
+      console.log("Files recebidos:", Object.keys(files));
+    }
 
-  for (const field of requiredFields) {
-    if (!terapeutaData[field]) {
+    // Preparar objeto terapeuta
+    const terapeutaData = {
+      nome: getFormValue(fields.nome),
+      telefone: getFormValue(fields.telefone),
+      email: getFormValue(fields.email),
+      endereco: getFormValue(fields.endereco),
+      dt_entrada: getFormValue(fields.dt_entrada),
+      chave_pix: getFormValue(fields.chave_pix),
+    };
+
+    // Validação detalhada
+    const validationErrors = [];
+
+    if (!terapeutaData.nome || !terapeutaData.nome.trim()) {
+      validationErrors.push("Nome do terapeuta é obrigatório");
+    }
+
+    if (!terapeutaData.telefone || !terapeutaData.telefone.trim()) {
+      validationErrors.push("Telefone é obrigatório");
+    }
+
+    if (!terapeutaData.email || !terapeutaData.email.trim()) {
+      validationErrors.push("Email é obrigatório");
+    }
+
+    if (!terapeutaData.dt_entrada) {
+      validationErrors.push("Data de entrada é obrigatória");
+    }
+
+    // Validação de formato de email
+    if (terapeutaData.email && terapeutaData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(terapeutaData.email.trim())) {
+        validationErrors.push("Formato de email inválido");
+      }
+    }
+
+    // Retornar erros de validação se existirem
+    if (validationErrors.length > 0) {
       return res.status(400).json({
-        error: `O campo "${field}" é obrigatório`,
+        error: "Dados inválidos",
+        message: validationErrors.join(", "),
+        details: validationErrors,
       });
     }
-  }
 
-  // Upload da foto para o Cloudinary, se existir
-  if (files.foto && Array.isArray(files.foto) && files.foto.length > 0) {
-    try {
-      const fotoUrl = await uploadToCloudinary(files.foto[0]); // Acessando o primeiro elemento do array
-      terapeutaData.foto = fotoUrl;
-    } catch (error) {
-      console.error("Erro ao fazer upload para o Cloudinary:", error);
-      // Continua sem a foto se falhar o upload
+    // Limpar dados
+    terapeutaData.nome = terapeutaData.nome.trim();
+    terapeutaData.telefone = terapeutaData.telefone.trim();
+    terapeutaData.email = terapeutaData.email.trim().toLowerCase();
+    terapeutaData.endereco = terapeutaData.endereco?.trim() || "";
+    terapeutaData.chave_pix = terapeutaData.chave_pix?.trim() || "";
+
+    // Upload da foto para o Cloudinary, se existir
+    if (files.foto && Array.isArray(files.foto) && files.foto.length > 0) {
+      try {
+        const fotoUrl = await uploadToCloudinary(files.foto[0]);
+        terapeutaData.foto = fotoUrl;
+        console.log("Upload da foto realizado com sucesso:", fotoUrl);
+      } catch (error) {
+        console.error("Erro ao fazer upload para o Cloudinary:", error);
+        // Continua sem a foto se falhar o upload
+      }
     }
+
+    // Criar terapeuta no banco de dados
+    const newTerapeuta = await terapeuta.create(terapeutaData);
+
+    return res.status(201).json(newTerapeuta);
+  } catch (error) {
+    console.error("Erro no postHandler:", error);
+
+    // Tratamento específico de erros
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        name: error.name,
+        message: error.message,
+        action: error.action || "Verifique os dados e tente novamente.",
+        status_code: 400,
+      });
+    }
+
+    if (
+      error.message &&
+      error.message.includes("email") &&
+      error.message.includes("já")
+    ) {
+      return res.status(400).json({
+        name: "ValidationError",
+        message: "Este email já está sendo utilizado por outro terapeuta.",
+        action: "Use um email diferente.",
+        status_code: 400,
+      });
+    }
+
+    return res.status(500).json({
+      error: "Erro interno do servidor",
+      message: "Erro ao criar terapeuta. Tente novamente.",
+    });
   }
-
-  // Criar terapeuta no banco de dados
-  const newTerapeuta = await terapeuta.create(terapeutaData);
-
-  return res.status(201).json(newTerapeuta);
 }
 
 async function getHandler(request, response) {

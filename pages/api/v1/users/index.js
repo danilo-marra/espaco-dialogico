@@ -93,12 +93,14 @@ async function postHandler(request, response) {
     await inviteModel.validateAndUse(inviteCode, newUser.id);
 
     // Se o usuário é um terapeuta, tentar vinculá-lo ao registro de terapeuta existente
-    if (userRole === "Terapeuta") {
+    if (userRole.toLowerCase() === "terapeuta") {
       try {
         console.log(
           `[VINCULAÇÃO] Tentando vincular usuário ${newUser.id} com email ${email}`,
         );
-        const existingTerapeuta = await terapeuta.getByEmail(email);
+        const existingTerapeuta = await terapeuta.getByEmail(
+          email.toLowerCase(),
+        );
 
         if (existingTerapeuta && !existingTerapeuta.user_id) {
           console.log(
@@ -108,12 +110,44 @@ async function postHandler(request, response) {
           console.log(
             `[VINCULAÇÃO] ✅ Usuário ${newUser.id} vinculado ao terapeuta ${existingTerapeuta.id}`,
           );
+        } else if (existingTerapeuta && existingTerapeuta.user_id) {
+          console.warn(
+            `[VINCULAÇÃO] ⚠️ Terapeuta já tem usuário associado: ${existingTerapeuta.user_id}`,
+          );
         } else {
           console.log(
-            `[VINCULAÇÃO] Terapeuta não encontrado ou já tem user_id:`,
-            existingTerapeuta?.id,
-            existingTerapeuta?.user_id,
+            `[VINCULAÇÃO] Terapeuta não encontrado, criando registro automaticamente para ${email}`,
           );
+
+          // NOVO: Criar registro de terapeuta automaticamente se não existir
+          try {
+            const newTerapeuta = await terapeuta.createFromUser({
+              user_id: newUser.id,
+              nome: username,
+              email: email.toLowerCase(),
+            });
+            console.log(
+              `[VINCULAÇÃO] ✅ Registro de terapeuta criado automaticamente: ${newTerapeuta.id}`,
+            );
+          } catch (terapeutaError) {
+            console.error(
+              `[VINCULAÇÃO] ❌ Erro ao criar terapeuta, fazendo rollback do usuário:`,
+              terapeutaError.message,
+            );
+
+            // Rollback: remover o usuário criado para evitar estado inconsistente
+            try {
+              await user.deleteById(newUser.id);
+              console.log(
+                `[VINCULAÇÃO] 🔄 Rollback: usuário ${newUser.id} removido`,
+              );
+            } catch (rollbackError) {
+              console.error(`[VINCULAÇÃO] ❌ Erro no rollback:`, rollbackError);
+            }
+
+            // Re-throw o erro para o cliente
+            throw terapeutaError;
+          }
         }
       } catch (error) {
         console.error(

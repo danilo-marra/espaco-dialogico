@@ -19,6 +19,7 @@
     "test:frontend": "cross-env NODE_ENV=test JEST_EXPLICIT_RUN=true jest tests/frontend --env=jsdom",
     "test:all": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test JEST_EXPLICIT_RUN=true concurrently -k -s first \"next dev\" \"wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit\"",
     "test": "npm run services:up && npm run services:wait:database && cross-env NODE_ENV=test JEST_EXPLICIT_RUN=true concurrently -k -s first \"next dev\" \"wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit\"",
+    "test:single": "cross-env NODE_ENV=test JEST_EXPLICIT_RUN=true jest --runInBand --verbose",
     "test:verbose": "cross-env TEST_VERBOSE=true npm test",
     "neodev": "node ./handle-dev-services.js",
     "posttest": "npm run services:stop",

@@ -350,8 +350,96 @@ function formatSessaoResult(row) {
   };
 }
 
+async function createBatch(sessoesData) {
+  if (!sessoesData || sessoesData.length === 0) {
+    console.warn("Nenhuma sessão para criar");
+    return 0;
+  }
+
+  try {
+    await database.query({ text: "BEGIN" });
+
+    let totalSessoesCreated = 0;
+
+    // Para lotes grandes, dividir em chunks menores para evitar timeout
+    const BATCH_SIZE = 10; // Reduzido para evitar timeout
+
+    for (let i = 0; i < sessoesData.length; i += BATCH_SIZE) {
+      const chunk = sessoesData.slice(i, i + BATCH_SIZE);
+
+      // Preparar dados para inserção do chunk atual
+      const allValues = [];
+      const placeholders = [];
+
+      chunk.forEach((sessaoData, index) => {
+        // Validar dados essenciais
+        if (!sessaoData.terapeuta_id || !sessaoData.paciente_id) {
+          throw new ValidationError({
+            message: `Dados incompletos na sessão ${i + index + 1}`,
+          });
+        }
+
+        const base = index * 7;
+        placeholders.push(
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`,
+        );
+
+        allValues.push(
+          sessaoData.terapeuta_id,
+          sessaoData.paciente_id,
+          sessaoData.tipoSessao || "Atendimento",
+          sessaoData.valorSessao || 0,
+          sessaoData.valorRepasse || null,
+          sessaoData.statusSessao || "Pagamento Pendente",
+          sessaoData.agendamento_id || null,
+        );
+      });
+
+      // Log apenas para o primeiro chunk ou chunks grandes
+      if (i === 0 || sessoesData.length > BATCH_SIZE) {
+        console.log(
+          `🚀 BATCH: Inserindo ${chunk.length} sessões (${i + 1}-${i + chunk.length}/${sessoesData.length})...`,
+        );
+      }
+
+      // Inserção do chunk atual
+      const result = await database.query({
+        text: `
+          INSERT INTO sessoes (
+            terapeuta_id,
+            paciente_id,
+            tipo_sessao,
+            valor_sessao,
+            valor_repasse,
+            status_sessao,
+            agendamento_id
+          )
+          VALUES ${placeholders.join(", ")}
+          RETURNING id
+        `,
+        values: allValues,
+      });
+
+      totalSessoesCreated += result.rowCount;
+    }
+
+    await database.query({ text: "COMMIT" });
+
+    console.log(`✅ BATCH: ${totalSessoesCreated} sessões criadas com sucesso`);
+
+    return totalSessoesCreated;
+  } catch (error) {
+    await database.query({ text: "ROLLBACK" });
+    console.error("Erro ao criar sessões em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao criar sessões em lote: ${error.message}`,
+    });
+  }
+}
+
 const sessao = {
   create,
+  createBatch,
   getAll,
   getById,
   getFiltered,

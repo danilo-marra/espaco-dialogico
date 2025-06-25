@@ -207,6 +207,48 @@ async function remove(id) {
   return result.rows[0];
 }
 
+// Criar registro de terapeuta baseado em dados do usuário
+async function createFromUser(userData) {
+  // Validar se o email não está sendo usado
+  const existingTerapeuta = await getByEmail(userData.email);
+
+  if (existingTerapeuta) {
+    if (!existingTerapeuta.user_id) {
+      // Se existe mas não tem user_id, vincular
+      console.log(
+        `[VINCULAÇÃO] Terapeuta existente encontrado, vinculando user_id ${userData.user_id}`,
+      );
+      return await linkUser(existingTerapeuta.id, userData.user_id);
+    } else {
+      // Se já tem user_id, retornar erro
+      throw new ValidationError({
+        message: "Já existe um terapeuta cadastrado com este email.",
+        action: "Verifique se o terapeuta já está associado a outro usuário.",
+      });
+    }
+  }
+
+  const queryObject = {
+    text: `
+      INSERT INTO terapeutas (user_id, nome, email, dt_entrada, telefone, endereco, foto, chave_pix)
+      VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7)
+      RETURNING *
+    `,
+    values: [
+      userData.user_id,
+      userData.nome,
+      userData.email,
+      userData.telefone || "(não informado)", // Campo obrigatório - valor padrão
+      userData.endereco || "(não informado)", // Campo obrigatório - valor padrão
+      userData.foto || null,
+      userData.chave_pix || "(não informado)", // Campo obrigatório - valor padrão
+    ],
+  };
+
+  const result = await database.query(queryObject);
+  return result.rows[0];
+}
+
 const terapeuta = {
   create,
   getAll,
@@ -216,6 +258,7 @@ const terapeuta = {
   getByUserId,
   update,
   remove,
+  createFromUser,
 };
 
 export default terapeuta;

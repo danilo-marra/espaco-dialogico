@@ -43,8 +43,9 @@ export function useTerapeutaData() {
   } = useSWR(shouldFetch ? "/api/v1/pacientes" : null, fetcher);
 
   // Encontrar o terapeuta atual baseado no usuário logado
+  // Tentar ambas as formas de comparação (string e UUID direto)
   const currentTerapeuta = terapeutaData?.find(
-    (t) => t.user_id === user?.id?.toString(),
+    (t) => t.user_id === user?.id || t.user_id === user?.id?.toString(),
   );
 
   // Função para verificar se pode editar um agendamento

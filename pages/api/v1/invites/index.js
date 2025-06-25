@@ -39,6 +39,28 @@ async function postHandler(request, response) {
   const username = request.user.username;
 
   try {
+    // Se um email foi fornecido, verificar se já existe um usuário com esse email
+    if (email && email.trim()) {
+      try {
+        await user.findOneByEmail(email.trim());
+        // Se chegou até aqui, o usuário já existe
+        return response.status(400).json({
+          error: "Email já cadastrado",
+          action:
+            "Este email já possui uma conta ativa no sistema. A pessoa pode fazer login diretamente ou solicitar recuperação de senha se necessário.",
+          details:
+            "Não é possível criar convites para emails já cadastrados para evitar duplicação de contas.",
+        });
+      } catch (error) {
+        // Se o erro for NotFoundError, significa que o email não existe (o que é o que queremos)
+        if (error.name !== "NotFoundError") {
+          // Se for outro tipo de erro, lançar novamente
+          throw error;
+        }
+        // Email não existe, podemos continuar
+      }
+    }
+
     // Verificar se o ID do usuário existe no banco de dados
     let userExists = false;
     let userRecord = null;

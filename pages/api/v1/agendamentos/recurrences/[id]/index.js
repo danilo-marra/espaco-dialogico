@@ -139,69 +139,133 @@ async function postHandler(req, res) {
 
     console.log(`Agendamentos criados em ${duration}ms`);
 
+    // Função auxiliar para mapear tipos de agendamento para tipos de sessão
+    const mapearTipoAgendamentoParaTipoSessao = (tipoAgendamento) => {
+      switch (tipoAgendamento) {
+        case "Sessão":
+          return "Atendimento";
+        case "Orientação Parental":
+          return "Atendimento";
+        case "Visita Escolar":
+          return "Visitar Escolar";
+        case "Supervisão":
+          return "Atendimento";
+        case "Outros":
+          return "Atendimento";
+        default:
+          return "Atendimento";
+      }
+    };
+
+    // Função auxiliar para mapear status de agendamento para status de sessão
+    const mapearStatusAgendamentoParaStatusSessao = (statusAgendamento) => {
+      switch (statusAgendamento) {
+        case "Confirmado":
+          return "Pagamento Pendente";
+        case "Remarcado":
+          return "Pagamento Pendente";
+        default:
+          return "Pagamento Pendente";
+      }
+    };
+
     // Criar sessões para todos os agendamentos recorrentes criados
     console.log("🔄 Criando sessões para os agendamentos recorrentes...");
+    const sessaoStartTime = Date.now();
     let sessoesCreated = 0;
 
     try {
-      for (const agendamentoCreated of agendamentosRecorrentes) {
-        // Só criar sessão se o agendamento não estiver cancelado
-        if (agendamentoCreated.statusAgendamento !== "Cancelado") {
-          // Mapear tipos de agendamento para tipos de sessão
-          const mapearTipoAgendamentoParaTipoSessao = (tipoAgendamento) => {
-            switch (tipoAgendamento) {
-              case "Sessão":
-                return "Atendimento";
-              case "Orientação Parental":
-                return "Atendimento";
-              case "Visita Escolar":
-                return "Visitar Escolar";
-              case "Supervisão":
-                return "Atendimento";
-              case "Outros":
-                return "Atendimento";
-              default:
-                return "Atendimento";
+      // Otimização: usar criação em lote para ambiente de staging/produção
+      if (isProduction || isStaging) {
+        console.log(
+          "🏭 Usando criação otimizada de sessões para staging/produção",
+        );
+
+        // Preparar dados para criação em lote
+        const sessoesData = agendamentosRecorrentes
+          .filter(
+            (agendamentoCreated) =>
+              agendamentoCreated.statusAgendamento !== "Cancelado",
+          )
+          .map((agendamentoCreated) => {
+            return {
+              terapeuta_id: agendamentoCreated.terapeutaId,
+              paciente_id: agendamentoCreated.pacienteId,
+              tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+                agendamentoCreated.tipoAgendamento,
+              ),
+              valorSessao: agendamentoCreated.valorAgendamento,
+              statusSessao: mapearStatusAgendamentoParaStatusSessao(
+                agendamentoCreated.statusAgendamento,
+              ),
+              agendamento_id: agendamentoCreated.id,
+            };
+          });
+
+        try {
+          // Tentar criação em lote primeiro
+          sessoesCreated = await sessao.createBatch(sessoesData);
+        } catch (batchError) {
+          console.warn(
+            "⚠️ Erro na criação em lote, tentando método individual:",
+            batchError.message,
+          );
+
+          // Fallback: criar sessões individualmente
+          for (const sessaoData of sessoesData) {
+            try {
+              await sessao.create(sessaoData);
+              sessoesCreated++;
+            } catch (individualError) {
+              console.error(
+                "❌ Erro ao criar sessão individual:",
+                individualError.message,
+              );
+              // Continuar com as próximas sessões
             }
-          };
+          }
+        }
+      } else {
+        // Método original para desenvolvimento
+        console.log(
+          "🔧 Usando criação individual de sessões para desenvolvimento",
+        );
 
-          // Mapear status de agendamento para status de sessão
-          const mapearStatusAgendamentoParaStatusSessao = (
-            statusAgendamento,
-          ) => {
-            switch (statusAgendamento) {
-              case "Confirmado":
-                return "Pagamento Pendente";
-              case "Remarcado":
-                return "Pagamento Pendente";
-              default:
-                return "Pagamento Pendente";
-            }
-          };
+        for (const agendamentoCreated of agendamentosRecorrentes) {
+          // Só criar sessão se o agendamento não estiver cancelado
+          if (agendamentoCreated.statusAgendamento !== "Cancelado") {
+            const sessaoData = {
+              terapeuta_id: agendamentoCreated.terapeutaId,
+              paciente_id: agendamentoCreated.pacienteId,
+              tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+                agendamentoCreated.tipoAgendamento,
+              ),
+              valorSessao: agendamentoCreated.valorAgendamento,
+              statusSessao: mapearStatusAgendamentoParaStatusSessao(
+                agendamentoCreated.statusAgendamento,
+              ),
+              agendamento_id: agendamentoCreated.id,
+            };
 
-          const sessaoData = {
-            terapeuta_id: agendamentoCreated.terapeutaId,
-            paciente_id: agendamentoCreated.pacienteId,
-            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-              agendamentoCreated.tipoAgendamento,
-            ),
-            valorSessao: agendamentoCreated.valorAgendamento,
-            statusSessao: mapearStatusAgendamentoParaStatusSessao(
-              agendamentoCreated.statusAgendamento,
-            ),
-            agendamento_id: agendamentoCreated.id,
-          };
-
-          await sessao.create(sessaoData);
-          sessoesCreated++;
+            await sessao.create(sessaoData);
+            sessoesCreated++;
+          }
         }
       }
 
+      const sessaoEndTime = Date.now();
+      const sessaoDuration = sessaoEndTime - sessaoStartTime;
+
       console.log(
-        `✅ ${sessoesCreated} sessões criadas com sucesso para os agendamentos recorrentes`,
+        `✅ ${sessoesCreated} sessões criadas com sucesso para os agendamentos recorrentes em ${sessaoDuration}ms`,
       );
     } catch (error) {
-      console.error("⚠️ Erro ao criar algumas sessões:", error.message);
+      const sessaoEndTime = Date.now();
+      const sessaoDuration = sessaoEndTime - sessaoStartTime;
+      console.error(
+        `⚠️ Erro ao criar algumas sessões após ${sessaoDuration}ms:`,
+        error.message,
+      );
       // Não falhar o processo inteiro se houver erro na criação das sessões
     }
 
@@ -250,14 +314,26 @@ async function postHandler(req, res) {
 
 // Handler para atualizar todos os agendamentos de uma recorrência
 async function putHandler(req, res) {
+  const startTime = Date.now();
+
   try {
     const { id: recurrenceId } = req.query;
     const agendamentoData = req.body;
+
+    // Detectar ambiente para usar otimizações
+    const isProduction =
+      process.env.NODE_ENV === "production" ||
+      process.env.VERCEL_ENV === "production";
+    const isStaging = process.env.VERCEL_ENV === "preview";
 
     // Verificar se é para atualizar todos os agendamentos da recorrência
     const updateAllRecurrences = agendamentoData.updateAllRecurrences === true;
 
     if (updateAllRecurrences) {
+      console.log(
+        `Iniciando atualização de agendamentos recorrentes. Recurrence ID: ${recurrenceId}`,
+      );
+
       // Verificar se é para alterar o dia da semana
       const novoDiaSemana = agendamentoData.novoDiaSemana;
 
@@ -265,37 +341,83 @@ async function putHandler(req, res) {
       delete agendamentoData.updateAllRecurrences;
       delete agendamentoData.novoDiaSemana;
 
+      let atualizados;
+
       // Se for para alterar o dia da semana, usar função específica
       if (novoDiaSemana !== undefined && novoDiaSemana !== null) {
-        const atualizados =
-          await agendamento.updateAllByRecurrenceIdWithNewWeekday(
-            recurrenceId,
-            agendamentoData,
-            novoDiaSemana,
-          );
+        console.log(
+          `Atualizando agendamentos recorrentes com novo dia da semana: ${novoDiaSemana}`,
+        );
 
-        // Atualizar sessões correspondentes aos agendamentos atualizados
-        await atualizarSessoesDeAgendamentos(atualizados, agendamentoData);
-
-        return res.status(200).json({
-          message: `${atualizados.length} agendamentos recorrentes atualizados com novo dia da semana`,
-          data: atualizados,
-        });
+        atualizados = await agendamento.updateAllByRecurrenceIdWithNewWeekday(
+          recurrenceId,
+          agendamentoData,
+          novoDiaSemana,
+        );
       } else {
+        console.log(
+          "Atualizando agendamentos recorrentes sem alterar dia da semana",
+        );
+
         // Atualizar todos os agendamentos com o mesmo ID de recorrência sem alterar dia
-        const atualizados = await agendamento.updateAllByRecurrenceId(
+        atualizados = await agendamento.updateAllByRecurrenceId(
           recurrenceId,
           agendamentoData,
         );
-
-        // Atualizar sessões correspondentes aos agendamentos atualizados
-        await atualizarSessoesDeAgendamentos(atualizados, agendamentoData);
-
-        return res.status(200).json({
-          message: `${atualizados.length} agendamentos recorrentes atualizados com sucesso`,
-          data: atualizados,
-        });
       }
+
+      const agendamentosEndTime = Date.now();
+      const agendamentosDuration = agendamentosEndTime - startTime;
+      console.log(`Agendamentos atualizados em ${agendamentosDuration}ms`);
+
+      // Atualizar sessões correspondentes aos agendamentos atualizados com otimização
+      console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
+      const sessaoStartTime = Date.now();
+
+      let sessoesAtualizadas;
+      if (isProduction || isStaging) {
+        console.log(
+          "🏭 Usando atualização otimizada de sessões para staging/produção",
+        );
+        sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
+          atualizados,
+          agendamentoData,
+        );
+      } else {
+        console.log(
+          "🔧 Usando atualização individual de sessões para desenvolvimento",
+        );
+        sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
+          atualizados,
+          agendamentoData,
+        );
+      }
+
+      const sessaoEndTime = Date.now();
+      const sessaoDuration = sessaoEndTime - sessaoStartTime;
+      const totalDuration = sessaoEndTime - startTime;
+
+      console.log(
+        `✅ ${sessoesAtualizadas} sessões atualizadas em ${sessaoDuration}ms`,
+      );
+      console.log(`Processo total concluído em ${totalDuration}ms`);
+
+      const message =
+        novoDiaSemana !== undefined && novoDiaSemana !== null
+          ? `${atualizados.length} agendamentos recorrentes atualizados com novo dia da semana`
+          : `${atualizados.length} agendamentos recorrentes atualizados com sucesso`;
+
+      return res.status(200).json({
+        message,
+        data: atualizados,
+        metadata: {
+          agendamentosAtualizados: atualizados.length,
+          sessoesAtualizadas: sessoesAtualizadas,
+          duration: `${totalDuration}ms`,
+          agendamentosDuration: `${agendamentosDuration}ms`,
+          sessoesDuration: `${sessaoDuration}ms`,
+        },
+      });
     } else {
       // Se não for para atualizar todos, retorna erro pois esta rota é específica para recorrências
       return res.status(400).json({
@@ -304,10 +426,19 @@ async function putHandler(req, res) {
       });
     }
   } catch (error) {
-    console.error("Erro ao atualizar agendamentos recorrentes:", error);
+    const endTime = Date.now();
+    const duration = endTime - startTime;
+
+    console.error(
+      `Erro ao atualizar agendamentos recorrentes após ${duration}ms:`,
+      error,
+    );
     return res.status(500).json({
       message: "Erro ao atualizar agendamentos recorrentes",
       error: error.message,
+      metadata: {
+        duration: `${duration}ms`,
+      },
     });
   }
 }
@@ -363,8 +494,17 @@ async function deleteHandler(req, res) {
   }
 }
 
-// Exportar o handler com tratamento de erros e timeout aumentado para staging
-export default withTimeout(router.handler(controller.errorHandlers), 55000);
+// Detectar ambiente para definir timeout apropriado
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.VERCEL_ENV === "production";
+const isStaging = process.env.VERCEL_ENV === "preview";
+
+// Timeout mais agressivo para staging (30 segundos) e produção (45 segundos)
+const timeoutMs = isStaging ? 30000 : isProduction ? 45000 : 55000;
+
+// Exportar o handler com tratamento de erros e timeout otimizado para ambiente
+export default withTimeout(router.handler(controller.errorHandlers), timeoutMs);
 
 // Função auxiliar para atualizar sessões associadas aos agendamentos
 async function atualizarSessoesDeAgendamentos(
@@ -412,6 +552,112 @@ async function atualizarSessoesDeAgendamentos(
     }
 
     console.log(`✅ ${sessoesAtualizadas} sessões atualizadas com sucesso`);
+  } catch (error) {
+    console.error("⚠️ Erro ao atualizar algumas sessões:", error.message);
+    // Não falhar o processo se houver erro na atualização das sessões
+  }
+
+  return sessoesAtualizadas;
+}
+
+// Função auxiliar para atualizar sessões associadas aos agendamentos (método otimizado)
+async function atualizarSessoesDeAgendamentosOtimizado(
+  agendamentosAtualizados,
+  agendamentoData,
+) {
+  console.log(
+    "🔄 Atualizando sessões dos agendamentos recorrentes (otimizado)...",
+  );
+  let sessoesAtualizadas = 0;
+
+  try {
+    // Coletar todas as sessões que precisam ser atualizadas
+    const sessoesParaAtualizar = [];
+
+    // Buscar todas as sessões em lote
+    for (const agendamentoAtualizado of agendamentosAtualizados) {
+      const sessoesAssociadas = await sessao.getFiltered({
+        agendamento_id: agendamentoAtualizado.id,
+      });
+
+      for (const sessaoAssociada of sessoesAssociadas) {
+        // Preparar dados para atualização da sessão
+        const sessaoUpdateData = {};
+
+        // Mapear campos do agendamento para a sessão se foram alterados
+        if (agendamentoData.tipoAgendamento) {
+          sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
+            agendamentoData.tipoAgendamento,
+          );
+        }
+
+        if (agendamentoData.valorAgendamento !== undefined) {
+          sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
+        }
+
+        if (agendamentoData.statusAgendamento) {
+          sessaoUpdateData.statusSessao =
+            mapearStatusAgendamentoParaStatusSessao(
+              agendamentoData.statusAgendamento,
+            );
+        }
+
+        // Se há dados para atualizar, adicionar à lista
+        if (Object.keys(sessaoUpdateData).length > 0) {
+          sessoesParaAtualizar.push({
+            id: sessaoAssociada.id,
+            updateData: sessaoUpdateData,
+          });
+        }
+      }
+    }
+
+    console.log(
+      `🚀 BATCH: Atualizando ${sessoesParaAtualizar.length} sessões em lote...`,
+    );
+
+    // Atualizar sessões em lote (chunks de 10 para evitar timeout)
+    const BATCH_SIZE = 10;
+
+    for (let i = 0; i < sessoesParaAtualizar.length; i += BATCH_SIZE) {
+      const chunk = sessoesParaAtualizar.slice(i, i + BATCH_SIZE);
+
+      // Log apenas para chunks grandes
+      if (sessoesParaAtualizar.length > BATCH_SIZE) {
+        console.log(
+          `🚀 BATCH: Atualizando sessões ${i + 1}-${Math.min(i + BATCH_SIZE, sessoesParaAtualizar.length)}/${sessoesParaAtualizar.length}...`,
+        );
+      }
+
+      // Processar chunk atual em paralelo
+      const updatePromises = chunk.map(({ id, updateData }) =>
+        sessao.update(id, updateData),
+      );
+
+      try {
+        await Promise.all(updatePromises);
+        sessoesAtualizadas += chunk.length;
+      } catch (error) {
+        console.error(`⚠️ Erro ao atualizar chunk de sessões:`, error.message);
+
+        // Fallback: tentar individual para o chunk que falhou
+        for (const { id, updateData } of chunk) {
+          try {
+            await sessao.update(id, updateData);
+            sessoesAtualizadas++;
+          } catch (individualError) {
+            console.error(
+              `❌ Erro ao atualizar sessão individual ${id}:`,
+              individualError.message,
+            );
+          }
+        }
+      }
+    }
+
+    console.log(
+      `✅ BATCH: ${sessoesAtualizadas} sessões atualizadas com sucesso`,
+    );
   } catch (error) {
     console.error("⚠️ Erro ao atualizar algumas sessões:", error.message);
     // Não falhar o processo se houver erro na atualização das sessões

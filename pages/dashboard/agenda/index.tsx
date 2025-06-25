@@ -40,6 +40,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import { useFetchAgendamentos } from "hooks/useFetchAgendamentos";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
+import { useTerapeutaData } from "hooks/useTerapeutaData";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "sonner";
@@ -92,6 +93,9 @@ export default function Agenda() {
   // Auth context para verificar permissões
   const { user } = useAuth();
   const userRole = user?.role || "terapeuta";
+
+  // Hook para dados específicos do terapeuta (se for terapeuta)
+  const { canEditAgendamento } = useTerapeutaData();
 
   // Fetch data
   const { agendamentos, isLoading, isError, mutate, updateAgendamento } =
@@ -536,17 +540,9 @@ export default function Agenda() {
 
   // Handlers para ações de agendamento
   const handleEditAgendamento = (agendamento: Agendamento) => {
-    // Para terapeutas, verificar se é seu próprio agendamento
+    // Para terapeutas, verificar se é seu próprio agendamento usando o hook
     if (userRole === "terapeuta") {
-      // Buscar o terapeuta associado ao usuário logado via user_id
-      const currentUserTerapeuta = terapeutas?.find(
-        (t) => t.user_id === user?.id?.toString(),
-      );
-
-      if (
-        !currentUserTerapeuta ||
-        agendamento.terapeuta_id !== currentUserTerapeuta.id
-      ) {
+      if (!canEditAgendamento(agendamento)) {
         toast.error(
           "Você só pode editar agendamentos de seus próprios pacientes",
         );
@@ -558,17 +554,9 @@ export default function Agenda() {
   };
 
   const handleDeleteClick = (agendamento: Agendamento) => {
-    // Para terapeutas, verificar se é seu próprio agendamento
+    // Para terapeutas, verificar se é seu próprio agendamento usando o hook
     if (userRole === "terapeuta") {
-      // Buscar o terapeuta associado ao usuário logado via user_id
-      const currentUserTerapeuta = terapeutas?.find(
-        (t) => t.user_id === user?.id?.toString(),
-      );
-
-      if (
-        !currentUserTerapeuta ||
-        agendamento.terapeuta_id !== currentUserTerapeuta.id
-      ) {
+      if (!canEditAgendamento(agendamento)) {
         toast.error(
           "Você só pode excluir agendamentos de seus próprios pacientes",
         );
@@ -603,16 +591,9 @@ export default function Agenda() {
 
   // Handlers para drag and drop (remarcação rápida)
   const handleDragStart = (agendamento: Agendamento) => {
-    // Para terapeutas, verificar se é seu próprio agendamento
+    // Para terapeutas, verificar se é seu próprio agendamento usando o hook
     if (userRole === "terapeuta") {
-      const currentUserTerapeuta = terapeutas?.find(
-        (t) => t.user_id === user?.id?.toString(),
-      );
-
-      if (
-        !currentUserTerapeuta ||
-        agendamento.terapeuta_id !== currentUserTerapeuta.id
-      ) {
+      if (!canEditAgendamento(agendamento)) {
         toast.error(
           "Você só pode remarcar agendamentos de seus próprios pacientes",
         );
@@ -632,16 +613,9 @@ export default function Agenda() {
     e.preventDefault();
     if (!draggedAgendamento) return;
 
-    // Verificar novamente as permissões (por precaução)
+    // Verificar novamente as permissões (por precaução) usando o hook
     if (userRole === "terapeuta") {
-      const currentUserTerapeuta = terapeutas?.find(
-        (t) => t.user_id === user?.id?.toString(),
-      );
-
-      if (
-        !currentUserTerapeuta ||
-        draggedAgendamento.terapeuta_id !== currentUserTerapeuta.id
-      ) {
+      if (!canEditAgendamento(draggedAgendamento)) {
         toast.error(
           "Você só pode remarcar agendamentos de seus próprios pacientes",
         );
