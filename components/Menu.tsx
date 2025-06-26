@@ -9,6 +9,7 @@ import {
   UsersThree,
   EnvelopeSimple,
   User,
+  CurrencyDollar,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -129,6 +130,20 @@ const Menu = () => {
                   >
                     <CalendarCheck size={24} />
                     <span>Sessões</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("faturamento") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/faturamento"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <CurrencyDollar size={24} />
+                    <span>Faturamento</span>
                   </Link>
                 </li>
                 <hr />
