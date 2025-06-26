@@ -202,6 +202,7 @@ export default function PerfilPage() {
             onEdit={() => setIsEditingTerapeuta(true)}
             onCancel={() => setIsEditingTerapeuta(false)}
             onSubmit={handleTerapeutaSubmit}
+            user={user} // Passa user como prop
           />
         )}
 
@@ -281,6 +282,7 @@ interface TerapeutaProfileSectionProps {
   onEdit: () => void;
   onCancel: () => void;
   onSubmit: (_formData: FormData) => Promise<void>;
+  user: any; // Adicionado user como prop
 }
 
 function TerapeutaProfileSection({
@@ -290,6 +292,7 @@ function TerapeutaProfileSection({
   onEdit,
   onCancel,
   onSubmit,
+  user, // Recebe user
 }: TerapeutaProfileSectionProps) {
   const [formData, setFormData] = useState({
     nome: terapeutaData?.nome || "",
@@ -452,9 +455,16 @@ function TerapeutaProfileSection({
                 onChange={(e) =>
                   setFormData({ ...formData, dt_entrada: e.target.value })
                 }
-                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] disabled:bg-gray-100 disabled:cursor-not-allowed"
                 required
+                disabled={user?.role === "terapeuta"}
               />
+              {user?.role === "terapeuta" && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Este campo só pode ser alterado por um usuário com perfil{" "}
+                  <b>Administrador</b> ou <b>Secretaria</b>.
+                </p>
+              )}
             </div>
           </div>
 
