@@ -27,11 +27,25 @@ export function DeletarTerapeutaModal({
     try {
       setIsDeleting(true);
       await dispatch(deleteTerapeuta(terapeuta.id)).unwrap();
-      toast.success(`Terapeuta ${terapeuta.nome} excluído com sucesso.`);
+      toast.success(
+        `Terapeuta ${terapeuta.nome} e usuário associado excluídos com sucesso.`,
+      );
       onSuccess?.();
       onClose();
     } catch (error) {
-      toast.error("Erro ao excluir terapeuta.");
+      // Verificar se é um erro de validação (dependências)
+      const errorMessage =
+        typeof error === "string"
+          ? error
+          : error?.message || "Erro ao excluir terapeuta.";
+
+      if (errorMessage.includes("vinculados")) {
+        toast.error(errorMessage, {
+          duration: 6000,
+        });
+      } else {
+        toast.error("Erro ao excluir terapeuta.");
+      }
     } finally {
       setIsDeleting(false);
     }
@@ -49,8 +63,23 @@ export function DeletarTerapeutaModal({
             <VisuallyHidden>Editar dados do terapeuta</VisuallyHidden>
           </Dialog.Description>
           <p className="mb-6">
-            Tem certeza que deseja excluir o terapeuta {terapeuta.nome}? Esta
-            ação não pode ser desfeita.
+            Tem certeza que deseja excluir o terapeuta{" "}
+            <strong>{terapeuta.nome}</strong>?
+            <br />
+            <br />
+            <span className="text-amber-600 font-medium">⚠️ Atenção:</span>
+            <br />
+            • O terapeuta será removido permanentemente
+            <br />
+            • O usuário associado no sistema também será excluído
+            <br />
+            • Esta ação não pode ser desfeita
+            <br />
+            <br />
+            <span className="text-sm text-gray-600">
+              Certifique-se de que não há pacientes, agendamentos ou sessões
+              vinculados a este terapeuta.
+            </span>
           </p>
 
           <div className="flex justify-end gap-4">

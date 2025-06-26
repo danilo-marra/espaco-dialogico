@@ -106,14 +106,12 @@ describe("Excluir Terapeuta", () => {
     expect(modal).toBeInTheDocument();
 
     // Verifica conteúdo do modal
-    expect(
-      screen.getByText(
-        new RegExp(
-          `Tem certeza que deseja excluir o terapeuta ${terapeutaToDelete.nome}`,
-          "i",
-        ),
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Confirmar Exclusão")).toBeInTheDocument();
+
+    // Verifica se o nome do terapeuta aparece dentro do modal
+    expect(modal).toHaveTextContent(
+      `Tem certeza que deseja excluir o terapeuta ${terapeutaToDelete.nome}`,
+    );
 
     // 3. Confirma a exclusão
     const botaoConfirmar = screen.getByRole("button", { name: /excluir/i });
@@ -123,7 +121,7 @@ describe("Excluir Terapeuta", () => {
     await waitFor(
       () => {
         expect(toast.success).toHaveBeenCalledWith(
-          `Terapeuta ${terapeutaToDelete.nome} excluído com sucesso.`,
+          `Terapeuta ${terapeutaToDelete.nome} e usuário associado excluídos com sucesso.`,
         );
       },
       { timeout: 5000 },

@@ -32,9 +32,9 @@ async function create(terapeutaInputValues) {
     const results = await database.query({
       text: `
     INSERT INTO
-      terapeutas (nome, foto, telefone, email, endereco, dt_entrada, chave_pix)
+      terapeutas (nome, foto, telefone, email, endereco, dt_entrada, chave_pix, user_id)
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7)
+      ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING
       *
     ;`,
@@ -46,6 +46,7 @@ async function create(terapeutaInputValues) {
         terapeutaInputValues.endereco,
         terapeutaInputValues.dt_entrada,
         terapeutaInputValues.chave_pix,
+        terapeutaInputValues.user_id || null,
       ],
     });
 
@@ -198,13 +199,87 @@ async function update(id, terapeutaInputValues) {
 }
 
 async function remove(id) {
-  const queryObject = {
-    text: `DELETE FROM terapeutas WHERE id = $1 RETURNING *`,
-    values: [id],
-  };
+  // Primeiro, buscar o terapeuta para obter o user_id antes de deletar
+  const terapeutaToDelete = await getById(id);
 
-  const result = await database.query(queryObject);
-  return result.rows[0];
+  if (!terapeutaToDelete) {
+    throw new NotFoundError({
+      message: "Terapeuta não encontrado",
+      action: "Verifique o ID e tente novamente",
+    });
+  }
+
+  // Verificar se existem pacientes, agendamentos ou sessões vinculados
+  const dependenciesCheck = await database.query({
+    text: `
+      SELECT 
+        (SELECT COUNT(*) FROM pacientes WHERE terapeuta_id = $1) as pacientes_count,
+        (SELECT COUNT(*) FROM agendamentos WHERE terapeuta_id = $1) as agendamentos_count,
+        (SELECT COUNT(*) FROM sessoes WHERE terapeuta_id = $1) as sessoes_count
+    `,
+    values: [id],
+  });
+
+  const { pacientes_count, agendamentos_count, sessoes_count } =
+    dependenciesCheck.rows[0];
+
+  if (
+    parseInt(pacientes_count) > 0 ||
+    parseInt(agendamentos_count) > 0 ||
+    parseInt(sessoes_count) > 0
+  ) {
+    const dependencies = [];
+    if (parseInt(pacientes_count) > 0)
+      dependencies.push(`${pacientes_count} paciente(s)`);
+    if (parseInt(agendamentos_count) > 0)
+      dependencies.push(`${agendamentos_count} agendamento(s)`);
+    if (parseInt(sessoes_count) > 0)
+      dependencies.push(`${sessoes_count} sessão(ões)`);
+
+    throw new ValidationError({
+      message: `Não é possível excluir o terapeuta porque existem ${dependencies.join(", ")} vinculados a ele.`,
+      action:
+        "Remova ou transfira esses registros para outro terapeuta antes de excluir.",
+    });
+  }
+
+  // Iniciar uma transação para garantir consistência
+  const client = await database.getNewClient();
+
+  try {
+    await client.query("BEGIN");
+
+    // Deletar o terapeuta
+    const deleteTerapeutaQuery = {
+      text: `DELETE FROM terapeutas WHERE id = $1 RETURNING *`,
+      values: [id],
+    };
+
+    const terapeutaResult = await client.query(deleteTerapeutaQuery);
+
+    // Se o terapeuta tinha um user_id associado, deletar o usuário também
+    if (terapeutaToDelete.user_id) {
+      const deleteUserQuery = {
+        text: `DELETE FROM users WHERE id = $1`,
+        values: [terapeutaToDelete.user_id],
+      };
+
+      await client.query(deleteUserQuery);
+      console.log(
+        `Usuário ${terapeutaToDelete.user_id} removido junto com o terapeuta ${id}`,
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return terapeutaResult.rows[0];
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Erro ao remover terapeuta e usuário:", error);
+    throw error;
+  } finally {
+    await client.end();
+  }
 }
 
 // Criar registro de terapeuta baseado em dados do usuário

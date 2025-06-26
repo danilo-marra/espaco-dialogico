@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
 import Head from "next/head";
+import Image from "next/image";
 import useAuth from "../../hooks/useAuth";
+import { Terapeuta } from "../../tipos";
 
 export default function PerfilPage() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -13,12 +15,83 @@ export default function PerfilPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Estados para dados do terapeuta
+  const [terapeutaData, setTerapeutaData] = useState<Terapeuta | null>(null);
+  const [isLoadingTerapeuta, setIsLoadingTerapeuta] = useState(false);
+  const [isEditingTerapeuta, setIsEditingTerapeuta] = useState(false);
+
   // Redirecionar para login se não estiver autenticado, mas apenas após o carregamento inicial
   React.useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router, loading]);
+
+  // Buscar dados do terapeuta se a role for "terapeuta"
+  useEffect(() => {
+    const fetchTerapeutaData = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const response = await fetch(`/api/v1/terapeutas/by-user/${user?.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setTerapeutaData(data);
+
+          // Se for um novo registro (primeiro acesso), entrar em modo de edição
+          if (data.isNew) {
+            setIsEditingTerapeuta(true);
+          }
+        } else if (response.status === 404) {
+          // Terapeuta não encontrado, pode ser primeiro acesso
+          setIsEditingTerapeuta(true);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados do terapeuta:", error);
+      }
+    };
+
+    if (user?.role === "terapeuta" && user?.id) {
+      fetchTerapeutaData();
+    }
+  }, [user]);
+
+  const handleTerapeutaSubmit = async (formData: FormData) => {
+    setIsLoadingTerapeuta(true);
+    try {
+      const token = localStorage.getItem("authToken");
+
+      const response = await fetch(`/api/v1/terapeutas/by-user/${user?.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || "Erro ao salvar dados do terapeuta",
+        );
+      }
+
+      const updatedTerapeuta = await response.json();
+      setTerapeutaData(updatedTerapeuta);
+      setIsEditingTerapeuta(false);
+      toast.success("Dados atualizados com sucesso!");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao salvar dados",
+      );
+    } finally {
+      setIsLoadingTerapeuta(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,6 +193,18 @@ export default function PerfilPage() {
           </div>
         </div>
 
+        {/* Seção específica para terapeutas */}
+        {user?.role === "terapeuta" && (
+          <TerapeutaProfileSection
+            terapeutaData={terapeutaData}
+            isEditing={isEditingTerapeuta}
+            isLoading={isLoadingTerapeuta}
+            onEdit={() => setIsEditingTerapeuta(true)}
+            onCancel={() => setIsEditingTerapeuta(false)}
+            onSubmit={handleTerapeutaSubmit}
+          />
+        )}
+
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Alterar Senha</h2>
           <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
@@ -185,5 +270,312 @@ export default function PerfilPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// Componente específico para o perfil do terapeuta
+interface TerapeutaProfileSectionProps {
+  terapeutaData: Terapeuta | null;
+  isEditing: boolean;
+  isLoading: boolean;
+  onEdit: () => void;
+  onCancel: () => void;
+  onSubmit: (_formData: FormData) => Promise<void>;
+}
+
+function TerapeutaProfileSection({
+  terapeutaData,
+  isEditing,
+  isLoading,
+  onEdit,
+  onCancel,
+  onSubmit,
+}: TerapeutaProfileSectionProps) {
+  const [formData, setFormData] = useState({
+    nome: terapeutaData?.nome || "",
+    telefone: terapeutaData?.telefone || "",
+    email: terapeutaData?.email || "",
+    endereco: terapeutaData?.endereco || "",
+    dt_entrada: terapeutaData?.dt_entrada
+      ? new Date(terapeutaData.dt_entrada).toISOString().split("T")[0]
+      : "",
+    chave_pix: terapeutaData?.chave_pix || "",
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (terapeutaData) {
+      setFormData({
+        nome: terapeutaData.nome || "",
+        telefone: terapeutaData.telefone || "",
+        email: terapeutaData.email || "",
+        endereco: terapeutaData.endereco || "",
+        dt_entrada: terapeutaData.dt_entrada
+          ? new Date(terapeutaData.dt_entrada).toISOString().split("T")[0]
+          : "",
+        chave_pix: terapeutaData.chave_pix || "",
+      });
+    }
+  }, [terapeutaData]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const submitFormData = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+      submitFormData.append(key, value);
+    });
+
+    if (selectedFile) {
+      submitFormData.append("foto", selectedFile);
+    }
+
+    await onSubmit(submitFormData);
+  };
+
+  if (!isEditing && !terapeutaData) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Dados Profissionais</h2>
+        <p className="text-gray-600 mb-4">
+          Complete seu perfil profissional para começar a usar o sistema.
+        </p>
+        <button
+          onClick={onEdit}
+          className="bg-azul text-white px-4 py-2 rounded hover:bg-azul/80"
+        >
+          Completar Perfil
+        </button>
+      </div>
+    );
+  }
+
+  if (!isEditing && terapeutaData?.isNew) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-semibold mb-4">Dados Profissionais</h2>
+        <p className="text-gray-600 mb-4">
+          Complete seu perfil profissional para começar a usar o sistema.
+        </p>
+        <button
+          onClick={onEdit}
+          className="bg-azul text-white px-4 py-2 rounded hover:bg-azul/80"
+        >
+          Completar Perfil
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Dados Profissionais</h2>
+        {!isEditing && terapeutaData && (
+          <button
+            onClick={onEdit}
+            className="bg-azul text-white px-4 py-2 rounded hover:bg-azul/80"
+          >
+            Editar
+          </button>
+        )}
+      </div>
+
+      {isEditing ? (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Nome Completo *
+              </label>
+              <input
+                type="text"
+                value={formData.nome}
+                onChange={(e) =>
+                  setFormData({ ...formData, nome: e.target.value })
+                }
+                className={`shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] ${
+                  terapeutaData?.isNew ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
+                disabled={terapeutaData?.isNew}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Telefone *
+              </label>
+              <input
+                type="text"
+                value={formData.telefone}
+                onChange={(e) =>
+                  setFormData({ ...formData, telefone: e.target.value })
+                }
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                placeholder="(11) 99999-9999"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className={`shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] ${
+                  terapeutaData?.isNew ? "bg-gray-100 cursor-not-allowed" : ""
+                }`}
+                disabled={terapeutaData?.isNew}
+                placeholder="seuemail@exemplo.com"
+                required
+              />
+              {terapeutaData?.isNew && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Email importado do sistema de usuários
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data de Entrada na Clínica *
+              </label>
+              <input
+                type="date"
+                value={formData.dt_entrada}
+                onChange={(e) =>
+                  setFormData({ ...formData, dt_entrada: e.target.value })
+                }
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Endereço
+            </label>
+            <input
+              type="text"
+              value={formData.endereco}
+              onChange={(e) =>
+                setFormData({ ...formData, endereco: e.target.value })
+              }
+              className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+              placeholder="Rua, número, bairro, cidade"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Chave PIX *
+            </label>
+            <input
+              type="text"
+              value={formData.chave_pix}
+              onChange={(e) =>
+                setFormData({ ...formData, chave_pix: e.target.value })
+              }
+              className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+              placeholder="CPF, email, telefone ou chave aleatória"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Foto do Perfil
+            </label>
+            {terapeutaData?.foto && (
+              <div className="mb-2">
+                <Image
+                  src={terapeutaData.foto}
+                  alt="Foto atual"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-cover"
+                />
+                <p className="text-sm text-gray-500 mt-1">Foto atual</p>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="shadow-rosa/50 focus:shadow-rosa block w-full rounded-md px-4 py-2 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 10MB
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="bg-azul text-white px-4 py-2 rounded hover:bg-azul/80 disabled:opacity-50"
+            >
+              {isLoading ? "Salvando..." : "Salvar"}
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {terapeutaData?.foto && (
+            <div className="md:col-span-2 mb-4">
+              <Image
+                src={terapeutaData.foto}
+                alt="Foto do perfil"
+                width={96}
+                height={96}
+                className="rounded-full object-cover"
+              />
+            </div>
+          )}
+          <div>
+            <p className="text-gray-600">Nome</p>
+            <p className="font-medium">{terapeutaData?.nome}</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Telefone</p>
+            <p className="font-medium">{terapeutaData?.telefone}</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Email</p>
+            <p className="font-medium">{terapeutaData?.email}</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Data de Entrada</p>
+            <p className="font-medium">
+              {terapeutaData?.dt_entrada
+                ? new Date(terapeutaData.dt_entrada).toLocaleDateString("pt-BR")
+                : "-"}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-600">Endereço</p>
+            <p className="font-medium">{terapeutaData?.endereco || "-"}</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Chave PIX</p>
+            <p className="font-medium">{terapeutaData?.chave_pix}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

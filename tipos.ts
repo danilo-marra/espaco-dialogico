@@ -10,6 +10,7 @@ export interface Terapeuta {
   user_id?: string | null; // ID do usuário associado (para vincular com o sistema de login)
   created_at?: string;
   updated_at?: string;
+  isNew?: boolean; // Flag para indicar se é um novo registro (primeiro acesso)
 }
 
 export interface Paciente {

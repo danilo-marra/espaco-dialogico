@@ -13,4 +13,22 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "typescript.tsdk": "node_modules\\typescript\\lib",
+  "dbcode.connections": [
+    {
+      "connectionId": "YsNfx43tes6lG-4-iRY9t",
+      "name": "Espaço Dialógico",
+      "driver": "postgres",
+      "color": "#0074B3",
+      "connectionType": "host",
+      "host": "localhost",
+      "port": 5434,
+      "ssl": false,
+      "username": "local_user",
+      "password": "",
+      "savePassword": "secretStorage",
+      "database": "local_db2",
+      "readOnly": false,
+      "connectionTimeout": 30
+    }
+  ],
 }
