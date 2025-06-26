@@ -47,7 +47,8 @@ import { toast } from "sonner";
 import { AgendaSemSala } from "components/Agendamento/AgendaSemSala";
 import { parseAnyDate, formatDateForAPI } from "utils/dateUtils";
 import useAuth from "hooks/useAuth";
-import { RoleBasedInfo } from "components/RoleBasedInfo";
+import { useFirstAccessTerapeuta } from "hooks/useFirstAccessTerapeuta";
+import { FirstAccessAlert } from "components/FirstAccessAlert";
 
 // Tipo de visualização
 type ViewMode = "semanal" | "mensal" | "terapeuta";
@@ -96,6 +97,10 @@ export default function Agenda() {
 
   // Hook para dados específicos do terapeuta (se for terapeuta)
   const { canEditAgendamento } = useTerapeutaData();
+
+  // Hook para verificar primeiro acesso do terapeuta
+  const { isFirstAccess, terapeutaProfile, dismissFirstAccess } =
+    useFirstAccessTerapeuta();
 
   // Fetch data
   const { agendamentos, isLoading, isError, mutate, updateAgendamento } =
@@ -697,7 +702,6 @@ export default function Agenda() {
         <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
           <div className="flex flex-col space-y-3">
             <h1 className="text-xl font-semibold sm:text-2xl">Agenda</h1>
-            <RoleBasedInfo userRole={userRole} className="max-w-md" />
           </div>
           <Dialog.Root
             open={isNewAgendamentoOpen}
@@ -732,6 +736,14 @@ export default function Agenda() {
             )}
           </Dialog.Root>
         </div>
+
+        {/* Alerta de primeiro acesso para terapeutas */}
+        {isFirstAccess && terapeutaProfile && (
+          <FirstAccessAlert
+            terapeutaName={terapeutaProfile.nome}
+            onDismiss={dismissFirstAccess}
+          />
+        )}
 
         {/* Cards de estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 overflow-x-auto">
