@@ -15,6 +15,7 @@ import {
 import { useFetchFaturamento } from "hooks/useFetchFaturamento";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import useAuth from "hooks/useAuth";
+import { parseAnyDate } from "utils/dateUtils";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -50,7 +51,7 @@ export default function Faturamento() {
       ) {
         percentual = Math.round((sessao.repasse / sessao.valor) * 100);
       } else if (sessao.terapeuta_dt_entrada) {
-        const dataEntrada = new Date(sessao.terapeuta_dt_entrada);
+        const dataEntrada = parseAnyDate(sessao.terapeuta_dt_entrada);
         const hoje = new Date();
         const diffMs = hoje.getTime() - dataEntrada.getTime();
         const umAnoMs = 365.25 * 24 * 60 * 60 * 1000;
@@ -307,7 +308,7 @@ export default function Faturamento() {
                   faturamento?.sessoes.map((sessao) => (
                     <tr key={sessao.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {format(new Date(sessao.data), "dd/MM/yyyy", {
+                        {format(parseAnyDate(sessao.data), "dd/MM/yyyy", {
                           locale: ptBR,
                         })}
                       </td>
