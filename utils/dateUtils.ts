@@ -29,13 +29,11 @@ export function formatSafeDate(dateValue: any): string {
   if (!dateValue) return "-";
 
   try {
-    const date = new Date(dateValue);
-    // Verifica se a data é válida
-    if (isNaN(date.getTime())) {
-      return "Data inválida";
-    }
+    // Usa a função parseAnyDate para garantir que a data seja tratada corretamente
+    const date = parseAnyDate(dateValue);
     return format(date, "dd/MM/yyyy", { locale: ptBR });
   } catch (error) {
+    console.error("Erro ao formatar data segura:", error);
     return "Data inválida";
   }
 }
@@ -212,7 +210,8 @@ export function getSessaoDate(sessao: any): Date | null {
   }
 
   try {
-    return new Date(sessao.agendamentoInfo.dataAgendamento);
+    // Usa a função parseAnyDate para garantir que a data seja tratada corretamente
+    return parseAnyDate(sessao.agendamentoInfo.dataAgendamento);
   } catch (error) {
     console.warn("Erro ao processar data da sessão:", error);
     return null;

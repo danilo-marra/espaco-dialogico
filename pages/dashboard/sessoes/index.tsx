@@ -22,7 +22,7 @@ import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, addMonths } from "date-fns";
-import { formatSessaoDate } from "utils/dateUtils";
+import { formatSessaoDate, parseAnyDate } from "utils/dateUtils";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
@@ -84,10 +84,10 @@ const filterSessoes = (
     .sort((a, b) => {
       // Ordenando por data do agendamento (se existir)
       const dateA = a.agendamentoInfo?.dataAgendamento
-        ? new Date(a.agendamentoInfo.dataAgendamento).getTime()
+        ? parseAnyDate(a.agendamentoInfo.dataAgendamento).getTime()
         : 0;
       const dateB = b.agendamentoInfo?.dataAgendamento
-        ? new Date(b.agendamentoInfo.dataAgendamento).getTime()
+        ? parseAnyDate(b.agendamentoInfo.dataAgendamento).getTime()
         : 0;
       return dateA - dateB; // Da mais próxima para a mais distante
     })
@@ -119,7 +119,7 @@ const filterSessoes = (
       // Verifica se a data do agendamento está dentro do mês selecionado
       if (sessao.agendamentoInfo?.dataAgendamento) {
         try {
-          const data = new Date(sessao.agendamentoInfo.dataAgendamento);
+          const data = parseAnyDate(sessao.agendamentoInfo.dataAgendamento);
           if (!isNaN(data.getTime())) {
             // Usar uma comparação mais robusta que considera apenas ano e mês
             const anoMesSessao = format(data, "yyyy-MM");
@@ -193,7 +193,7 @@ const calcularRepasse = (
 
   // Converter string para data se necessário
   const dataEntrada =
-    typeof dtEntrada === "string" ? new Date(dtEntrada) : dtEntrada;
+    typeof dtEntrada === "string" ? parseAnyDate(dtEntrada) : dtEntrada;
 
   // Verificar se a data é válida
   if (isNaN(dataEntrada.getTime())) return 0;
@@ -742,7 +742,7 @@ export default function Sessoes() {
                     } else {
                       // Calcular baseado na regra padrão
                       if (sessao.terapeutaInfo?.dt_entrada) {
-                        const dataEntrada = new Date(
+                        const dataEntrada = parseAnyDate(
                           sessao.terapeutaInfo.dt_entrada,
                         );
                         const hoje = new Date();
