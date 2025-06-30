@@ -11,8 +11,9 @@ import {
   PencilSimple,
   FileText,
   PaperPlaneTilt,
+  CaretUp,
+  CaretDown,
 } from "@phosphor-icons/react";
-import Pagination from "components/Pagination";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
 import { Sessao } from "tipos";
@@ -27,6 +28,7 @@ import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
 import { toast } from "sonner";
+import { Tabs, Tab } from "components/common/Tabs";
 
 // Função auxiliar para obter o valor de repasse correto
 function obterValorRepasse(sessao: Sessao): number {
@@ -43,8 +45,6 @@ function obterValorRepasse(sessao: Sessao): number {
   // Fallback (não deveria acontecer, mas por segurança)
   return sessao.valorSessao * 0.45;
 }
-
-const SESSOES_PER_PAGE = 10;
 
 // Status de sessão para filtro
 const STATUS_SESSOES = [
@@ -222,7 +222,6 @@ export default function Sessoes() {
   const { terapeutas } = useFetchTerapeutas();
   const { isAdmin } = useAuth();
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
   const [selectedTipo, setSelectedTipo] = useState("Todos");
@@ -231,6 +230,23 @@ export default function Sessoes() {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
+  // const [activeTab, setActiveTab] = useState<"terapeutas" | "pacientes">(
+  //   "terapeutas",
+  // );
+  const [expandedTherapists, setExpandedTherapists] = useState<string[]>([]);
+  const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
+
+  const toggleAccordion = (type: "terapeuta" | "paciente", id: string) => {
+    if (type === "terapeuta") {
+      setExpandedTherapists((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+      );
+    } else {
+      setExpandedPatients((prev) =>
+        prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+      );
+    }
+  };
 
   // Filtrar sessões - com segurança para quando sessoes for null ou undefined
   const filteredSessoes = useMemo(
@@ -256,11 +272,35 @@ export default function Sessoes() {
     ],
   );
 
-  // Paginação - com segurança
-  const paginatedSessoes = useMemo(() => {
-    const startIndex = (currentPage - 1) * SESSOES_PER_PAGE;
-    return filteredSessoes.slice(startIndex, startIndex + SESSOES_PER_PAGE);
-  }, [filteredSessoes, currentPage]);
+  // Agrupar sessões por terapeuta
+  const groupedSessoesByTerapeuta = useMemo(() => {
+    return filteredSessoes.reduce(
+      (acc, sessao) => {
+        const terapeutaId = sessao.terapeutaInfo?.id || "unassigned";
+        if (!acc[terapeutaId]) {
+          acc[terapeutaId] = [];
+        }
+        acc[terapeutaId].push(sessao);
+        return acc;
+      },
+      {} as Record<string, Sessao[]>,
+    );
+  }, [filteredSessoes]);
+
+  // Agrupar sessões por paciente
+  const groupedSessoesByPaciente = useMemo(() => {
+    return filteredSessoes.reduce(
+      (acc, sessao) => {
+        const pacienteId = sessao.pacienteInfo?.id || "unassigned";
+        if (!acc[pacienteId]) {
+          acc[pacienteId] = [];
+        }
+        acc[pacienteId].push(sessao);
+        return acc;
+      },
+      {} as Record<string, Sessao[]>,
+    );
+  }, [filteredSessoes]);
 
   // Valor total das notas fiscais emitidas - com segurança
   const valorNotasFiscaisEmitidas = useMemo(() => {
@@ -320,10 +360,6 @@ export default function Sessoes() {
     ).length;
   }, [sessoes, currentDate]);
 
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredSessoes.length / SESSOES_PER_PAGE);
-  }, [filteredSessoes]);
-
   // Handlers
 
   const handleEditSessao = (sessao: Sessao) => {
@@ -338,13 +374,11 @@ export default function Sessoes() {
 
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
-    setCurrentPage(1); // Reset para a primeira página ao mudar o mês
   };
 
   const handleMonthChange = (change: number) => {
     const newDate = addMonths(currentDate, change);
     setCurrentDate(newDate);
-    setCurrentPage(1); // Reset para a primeira página ao mudar o mês
   };
 
   // Mostrar estado de carregamento
@@ -590,7 +624,6 @@ export default function Sessoes() {
                 value={selectedTerapeuta}
                 onChange={(e) => {
                   setSelectedTerapeuta(e.target.value);
-                  setCurrentPage(1);
                 }}
               >
                 <option value="Todos">Todos os terapeutas</option>
@@ -620,7 +653,6 @@ export default function Sessoes() {
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
-                  setCurrentPage(1);
                 }}
               >
                 {STATUS_SESSOES.map((status) => (
@@ -649,7 +681,6 @@ export default function Sessoes() {
                 value={selectedTipo}
                 onChange={(e) => {
                   setSelectedTipo(e.target.value);
-                  setCurrentPage(1);
                 }}
               >
                 {TIPOS_SESSOES.map((tipo) => (
@@ -682,227 +713,520 @@ export default function Sessoes() {
                 value={searchPaciente}
                 onChange={(e) => {
                   setSearchPaciente(e.target.value);
-                  setCurrentPage(1);
                 }}
               />
             </div>
           </div>
         </div>
 
-        {/* Tabela de Sessões */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-          <div className="overflow-x-auto">
-            <table className="w-full divide-y divide-gray-200">
-              <thead className="bg-rosa text-white">
-                <tr>
-                  <th className="p-3 text-left text-sm font-medium">
-                    Terapeuta
-                  </th>
-                  <th className="p-3 text-left text-sm font-medium">
-                    Paciente
-                  </th>
-                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                    Tipo de Sessão
-                  </th>
-                  <th className="p-3 text-left text-sm font-medium">Valor</th>
-                  <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
-                    Repasse
-                  </th>
-                  <th className="p-3 text-left text-sm font-medium">Status</th>
-                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                    Data
-                  </th>
-                  {isAdmin && (
-                    <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
-                      Ações
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {paginatedSessoes.length > 0 ? (
-                  paginatedSessoes.map((sessao, index) => {
-                    // Usar a função helper para obter a data da sessão
-                    const dataExibicao = formatSessaoDate(sessao);
+        <Tabs initialActiveTab="Terapeutas">
+          <Tab label="Terapeutas">
+            {/* Tabela de Sessões */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-rosa text-white">
+                    <tr>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Terapeuta
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Paciente
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
+                        Tipo de Sessão
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Valor
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
+                        Repasse
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Status
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
+                        Data
+                      </th>
+                      {isAdmin && (
+                        <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
+                          Ações
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {Object.keys(groupedSessoesByTerapeuta).length > 0 ? (
+                      Object.entries(groupedSessoesByTerapeuta).map(
+                        ([terapeutaId, sessoesDoTerapeuta]) => (
+                          <React.Fragment key={terapeutaId}>
+                            <tr
+                              className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                              onClick={() =>
+                                toggleAccordion("terapeuta", terapeutaId)
+                              }
+                            >
+                              <td colSpan={isAdmin ? 8 : 7} className="p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-gray-800">
+                                    {sessoesDoTerapeuta[0].terapeutaInfo
+                                      ?.nome || "Terapeuta Não Atribuído"}{" "}
+                                    ({sessoesDoTerapeuta.length} sessões)
+                                  </span>
+                                  {expandedTherapists.includes(terapeutaId) ? (
+                                    <CaretUp size={20} />
+                                  ) : (
+                                    <CaretDown size={20} />
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedTherapists.includes(terapeutaId) &&
+                              sessoesDoTerapeuta.map((sessao, index) => {
+                                const dataExibicao = formatSessaoDate(sessao);
+                                const valorRepasse = obterValorRepasse(sessao);
+                                let percentualRepasse = 0;
 
-                    // Calcular valor de repasse para esta sessão
-                    const valorRepasse = obterValorRepasse(sessao);
+                                if (
+                                  sessao.valorRepasse !== undefined &&
+                                  sessao.valorRepasse !== null
+                                ) {
+                                  percentualRepasse = Math.round(
+                                    (sessao.valorRepasse / sessao.valorSessao) *
+                                      100,
+                                  );
+                                } else {
+                                  if (sessao.terapeutaInfo?.dt_entrada) {
+                                    const dataEntrada = parseAnyDate(
+                                      sessao.terapeutaInfo.dt_entrada,
+                                    );
+                                    const hoje = new Date();
+                                    const diferencaEmMilissegundos =
+                                      hoje.getTime() - dataEntrada.getTime();
+                                    const umAnoEmMilissegundos =
+                                      365.25 * 24 * 60 * 60 * 1000;
+                                    const anosNaClinica =
+                                      diferencaEmMilissegundos /
+                                      umAnoEmMilissegundos;
+                                    percentualRepasse =
+                                      anosNaClinica >= 1 ? 50 : 45;
+                                  } else {
+                                    percentualRepasse = 45;
+                                  }
+                                }
 
-                    // Calcular percentual de repasse
-                    let percentualRepasse = 0;
-
-                    // Se temos um valor de repasse personalizado
-                    if (
-                      sessao.valorRepasse !== undefined &&
-                      sessao.valorRepasse !== null
-                    ) {
-                      percentualRepasse = Math.round(
-                        (sessao.valorRepasse / sessao.valorSessao) * 100,
-                      );
-                    } else {
-                      // Calcular baseado na regra padrão
-                      if (sessao.terapeutaInfo?.dt_entrada) {
-                        const dataEntrada = parseAnyDate(
-                          sessao.terapeutaInfo.dt_entrada,
-                        );
-                        const hoje = new Date();
-                        const diferencaEmMilissegundos =
-                          hoje.getTime() - dataEntrada.getTime();
-                        const umAnoEmMilissegundos =
-                          365.25 * 24 * 60 * 60 * 1000;
-                        const anosNaClinica =
-                          diferencaEmMilissegundos / umAnoEmMilissegundos;
-                        percentualRepasse = anosNaClinica >= 1 ? 50 : 45;
-                      } else {
-                        // Fallback para 45%
-                        percentualRepasse = 45;
-                      }
-                    }
-
-                    return (
-                      <tr
-                        key={sessao.id}
-                        className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
-                      >
-                        <td className="p-3">
-                          <div className="font-medium text-gray-900 text-sm lg:text-base">
-                            {sessao.terapeutaInfo?.nome || (
-                              <span className="text-orange-600 font-medium">
-                                Não atribuído
-                              </span>
-                            )}
+                                return (
+                                  <tr
+                                    key={sessao.id}
+                                    className={`hover:bg-gray-50 transition-colors ${
+                                      index % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-gray-50/50"
+                                    }`}
+                                  >
+                                    <td className="p-3 pl-8">
+                                      <div className="font-medium text-gray-900 text-sm lg:text-base">
+                                        {sessao.terapeutaInfo?.nome || (
+                                          <span className="text-orange-600 font-medium">
+                                            Não atribuído
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-sm lg:text-base text-gray-900">
+                                        {sessao.pacienteInfo?.nome || (
+                                          <span className="text-orange-600 font-medium">
+                                            Não atribuído
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="lg:hidden mt-1 space-y-1">
+                                        <div className="text-xs text-gray-500">
+                                          Tipo: {sessao.tipoSessao}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          Data: {dataExibicao}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                                        {sessao.tipoSessao}
+                                      </span>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-sm lg:text-base font-semibold text-gray-900">
+                                        R${" "}
+                                        {sessao.valorSessao
+                                          .toFixed(2)
+                                          .replace(".", ",")}
+                                      </div>
+                                      <div className="xl:hidden text-xs text-gray-500 mt-1">
+                                        Repasse: R${" "}
+                                        {valorRepasse
+                                          .toFixed(2)
+                                          .replace(".", ",")}{" "}
+                                        ( {percentualRepasse}%)
+                                      </div>
+                                    </td>
+                                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                                      <div className="text-sm font-medium text-green-600">
+                                        R${" "}
+                                        {valorRepasse
+                                          .toFixed(2)
+                                          .replace(".", ",")}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {percentualRepasse}% do valor
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          sessao.statusSessao ===
+                                          "Pagamento Pendente"
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : sessao.statusSessao ===
+                                                "Pagamento Realizado"
+                                              ? "bg-green-100 text-green-800"
+                                              : sessao.statusSessao ===
+                                                  "Nota Fiscal Emitida"
+                                                ? "bg-blue-100 text-blue-800"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Enviada"
+                                                  ? "bg-purple-100 text-purple-800"
+                                                  : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        <span className="hidden sm:inline">
+                                          {sessao.statusSessao}
+                                        </span>
+                                        <span className="sm:hidden">
+                                          {sessao.statusSessao ===
+                                          "Pagamento Pendente"
+                                            ? "Pendente"
+                                            : sessao.statusSessao ===
+                                                "Pagamento Realizado"
+                                              ? "Realizado"
+                                              : sessao.statusSessao ===
+                                                  "Nota Fiscal Emitida"
+                                                ? "NF Emitida"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Enviada"
+                                                  ? "NF Enviada"
+                                                  : sessao.statusSessao}
+                                        </span>
+                                      </span>
+                                    </td>
+                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                      {dataExibicao}
+                                    </td>
+                                    {isAdmin && (
+                                      <td className="p-3 sticky right-0 bg-white">
+                                        <div className="flex items-center justify-center">
+                                          <button
+                                            onClick={() =>
+                                              handleEditSessao(sessao)
+                                            }
+                                            className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
+                                            title="Editar sessão"
+                                          >
+                                            <PencilSimple
+                                              size={16}
+                                              weight="bold"
+                                            />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    )}
+                                  </tr>
+                                );
+                              })}
+                          </React.Fragment>
+                        ),
+                      )
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={isAdmin ? 8 : 7}
+                          className="text-center py-12 px-4"
+                        >
+                          <div className="max-w-md mx-auto">
+                            <CalendarCheck
+                              size={64}
+                              className="mx-auto mb-4 text-gray-300"
+                            />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                              Nenhuma sessão encontrada
+                            </h3>
+                            <p className="text-gray-600">
+                              Tente ajustar os filtros de busca para encontrar o
+                              que está procurando.
+                            </p>
                           </div>
                         </td>
-                        <td className="p-3">
-                          <div className="text-sm lg:text-base text-gray-900">
-                            {sessao.pacienteInfo?.nome || (
-                              <span className="text-orange-600 font-medium">
-                                Não atribuído
-                              </span>
-                            )}
-                          </div>
-                          {/* Informações extras em telas menores */}
-                          <div className="lg:hidden mt-1 space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Tipo: {sessao.tipoSessao}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Data: {dataExibicao}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                          <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                            {sessao.tipoSessao}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <div className="text-sm lg:text-base font-semibold text-gray-900">
-                            R$ {sessao.valorSessao.toFixed(2).replace(".", ",")}
-                          </div>
-                          {/* Informação de repasse em telas menores */}
-                          <div className="xl:hidden text-xs text-gray-500 mt-1">
-                            Repasse: R${" "}
-                            {valorRepasse.toFixed(2).replace(".", ",")} (
-                            {percentualRepasse}%)
-                          </div>
-                        </td>
-                        <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
-                          <div className="text-sm font-medium text-green-600">
-                            R$ {valorRepasse.toFixed(2).replace(".", ",")}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {percentualRepasse}% do valor
-                          </div>
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              sessao.statusSessao === "Pagamento Pendente"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : sessao.statusSessao === "Pagamento Realizado"
-                                  ? "bg-green-100 text-green-800"
-                                  : sessao.statusSessao ===
-                                      "Nota Fiscal Emitida"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : sessao.statusSessao ===
-                                        "Nota Fiscal Enviada"
-                                      ? "bg-purple-100 text-purple-800"
-                                      : "bg-gray-100 text-gray-800"
-                            }`}
-                          >
-                            <span className="hidden sm:inline">
-                              {sessao.statusSessao}
-                            </span>
-                            <span className="sm:hidden">
-                              {sessao.statusSessao === "Pagamento Pendente"
-                                ? "Pendente"
-                                : sessao.statusSessao === "Pagamento Realizado"
-                                  ? "Realizado"
-                                  : sessao.statusSessao ===
-                                      "Nota Fiscal Emitida"
-                                    ? "NF Emitida"
-                                    : sessao.statusSessao ===
-                                        "Nota Fiscal Enviada"
-                                      ? "NF Enviada"
-                                      : sessao.statusSessao}
-                            </span>
-                          </span>
-                        </td>
-                        <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                          {dataExibicao}
-                        </td>
-                        {isAdmin && (
-                          <td className="p-3 sticky right-0 bg-white">
-                            <div className="flex items-center justify-center">
-                              <button
-                                onClick={() => handleEditSessao(sessao)}
-                                className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
-                                title="Editar sessão"
-                              >
-                                <PencilSimple size={16} weight="bold" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={isAdmin ? 8 : 7}
-                      className="text-center py-12 px-4"
-                    >
-                      <div className="max-w-md mx-auto">
-                        <CalendarCheck
-                          size={64}
-                          className="mx-auto mb-4 text-gray-300"
-                        />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          Nenhuma sessão encontrada
-                        </h3>
-                        <p className="text-gray-600">
-                          Tente ajustar os filtros de busca para encontrar o que
-                          está procurando.
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Tab>
+          <Tab label="Pacientes">
+            {/* Conteúdo da aba de pacientes */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
+              <div className="overflow-x-auto">
+                <table className="w-full divide-y divide-gray-200">
+                  <thead className="bg-rosa text-white">
+                    <tr>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Paciente
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Terapeuta
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
+                        Tipo de Sessão
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Valor
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
+                        Repasse
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium">
+                        Status
+                      </th>
+                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
+                        Data
+                      </th>
+                      {isAdmin && (
+                        <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
+                          Ações
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {Object.keys(groupedSessoesByPaciente).length > 0 ? (
+                      Object.entries(groupedSessoesByPaciente).map(
+                        ([pacienteId, sessoesDoPaciente]) => (
+                          <React.Fragment key={pacienteId}>
+                            <tr
+                              className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                              onClick={() =>
+                                toggleAccordion("paciente", pacienteId)
+                              }
+                            >
+                              <td colSpan={isAdmin ? 8 : 7} className="p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-gray-800">
+                                    {sessoesDoPaciente[0].pacienteInfo?.nome ||
+                                      "Paciente Não Atribuído"}{" "}
+                                    ({sessoesDoPaciente.length} sessões)
+                                  </span>
+                                  {expandedPatients.includes(pacienteId) ? (
+                                    <CaretUp size={20} />
+                                  ) : (
+                                    <CaretDown size={20} />
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedPatients.includes(pacienteId) &&
+                              sessoesDoPaciente.map((sessao, index) => {
+                                const dataExibicao = formatSessaoDate(sessao);
+                                const valorRepasse = obterValorRepasse(sessao);
+                                let percentualRepasse = 0;
 
-        {/* Paginação */}
-        {filteredSessoes.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
-        )}
+                                if (
+                                  sessao.valorRepasse !== undefined &&
+                                  sessao.valorRepasse !== null
+                                ) {
+                                  percentualRepasse = Math.round(
+                                    (sessao.valorRepasse / sessao.valorSessao) *
+                                      100,
+                                  );
+                                } else {
+                                  if (sessao.terapeutaInfo?.dt_entrada) {
+                                    const dataEntrada = parseAnyDate(
+                                      sessao.terapeutaInfo.dt_entrada,
+                                    );
+                                    const hoje = new Date();
+                                    const diferencaEmMilissegundos =
+                                      hoje.getTime() - dataEntrada.getTime();
+                                    const umAnoEmMilissegundos =
+                                      365.25 * 24 * 60 * 60 * 1000;
+                                    const anosNaClinica =
+                                      diferencaEmMilissegundos /
+                                      umAnoEmMilissegundos;
+                                    percentualRepasse =
+                                      anosNaClinica >= 1 ? 50 : 45;
+                                  } else {
+                                    percentualRepasse = 45;
+                                  }
+                                }
+
+                                return (
+                                  <tr
+                                    key={sessao.id}
+                                    className={`hover:bg-gray-50 transition-colors ${
+                                      index % 2 === 0
+                                        ? "bg-white"
+                                        : "bg-gray-50/50"
+                                    }`}
+                                  >
+                                    <td className="p-3 pl-8">
+                                      <div className="font-medium text-gray-900 text-sm lg:text-base">
+                                        {sessao.pacienteInfo?.nome || (
+                                          <span className="text-orange-600 font-medium">
+                                            Não atribuído
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-sm lg:text-base text-gray-900">
+                                        {sessao.terapeutaInfo?.nome || (
+                                          <span className="text-orange-600 font-medium">
+                                            Não atribuído
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="lg:hidden mt-1 space-y-1">
+                                        <div className="text-xs text-gray-500">
+                                          Tipo: {sessao.tipoSessao}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          Data: {dataExibicao}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                                        {sessao.tipoSessao}
+                                      </span>
+                                    </td>
+                                    <td className="p-3">
+                                      <div className="text-sm lg:text-base font-semibold text-gray-900">
+                                        R${" "}
+                                        {sessao.valorSessao
+                                          .toFixed(2)
+                                          .replace(".", ",")}
+                                      </div>
+                                      <div className="xl:hidden text-xs text-gray-500 mt-1">
+                                        Repasse: R${" "}
+                                        {valorRepasse
+                                          .toFixed(2)
+                                          .replace(".", ",")}{" "}
+                                        ( {percentualRepasse}%)
+                                      </div>
+                                    </td>
+                                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                                      <div className="text-sm font-medium text-green-600">
+                                        R${" "}
+                                        {valorRepasse
+                                          .toFixed(2)
+                                          .replace(".", ",")}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {percentualRepasse}% do valor
+                                      </div>
+                                    </td>
+                                    <td className="p-3">
+                                      <span
+                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                          sessao.statusSessao ===
+                                          "Pagamento Pendente"
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : sessao.statusSessao ===
+                                                "Pagamento Realizado"
+                                              ? "bg-green-100 text-green-800"
+                                              : sessao.statusSessao ===
+                                                  "Nota Fiscal Emitida"
+                                                ? "bg-blue-100 text-blue-800"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Enviada"
+                                                  ? "bg-purple-100 text-purple-800"
+                                                  : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        <span className="hidden sm:inline">
+                                          {sessao.statusSessao}
+                                        </span>
+                                        <span className="sm:hidden">
+                                          {sessao.statusSessao ===
+                                          "Pagamento Pendente"
+                                            ? "Pendente"
+                                            : sessao.statusSessao ===
+                                                "Pagamento Realizado"
+                                              ? "Realizado"
+                                              : sessao.statusSessao ===
+                                                  "Nota Fiscal Emitida"
+                                                ? "NF Emitida"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Enviada"
+                                                  ? "NF Enviada"
+                                                  : sessao.statusSessao}
+                                        </span>
+                                      </span>
+                                    </td>
+                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                      {dataExibicao}
+                                    </td>
+                                    {isAdmin && (
+                                      <td className="p-3 sticky right-0 bg-white">
+                                        <div className="flex items-center justify-center">
+                                          <button
+                                            onClick={() =>
+                                              handleEditSessao(sessao)
+                                            }
+                                            className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
+                                            title="Editar sessão"
+                                          >
+                                            <PencilSimple
+                                              size={16}
+                                              weight="bold"
+                                            />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    )}
+                                  </tr>
+                                );
+                              })}
+                          </React.Fragment>
+                        ),
+                      )
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={isAdmin ? 8 : 7}
+                          className="text-center py-12 px-4"
+                        >
+                          <div className="max-w-md mx-auto">
+                            <CalendarCheck
+                              size={64}
+                              className="mx-auto mb-4 text-gray-300"
+                            />
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                              Nenhuma sessão encontrada
+                            </h3>
+                            <p className="text-gray-600">
+                              Tente ajustar os filtros de busca para encontrar o
+                              que está procurando.
+                            </p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </Tab>
+        </Tabs>
 
         {/* Edit Session Modal */}
         {sessaoEditando && (
