@@ -106,53 +106,66 @@ async function putHandler(req, res) {
     // Remove a flag que não deve ser persistida no banco
     delete agendamentoData.updateAllRecurrences;
 
+    // Buscar o estado do agendamento *antes* da atualização
+    const agendamentoAntes = await agendamento.getById(id);
+
     // Atualizar apenas este agendamento específico
     const agendamentoAtualizado = await agendamento.update(id, agendamentoData);
 
-    // Atualizar sessão associada se existir
-    try {
-      const sessoesAssociadas = await sessao.getFiltered({
-        agendamento_id: id,
-      });
+    // Suporte a ambos os formatos camelCase e snake_case
+    // Prioriza o valor do banco (snake_case), mas aceita camelCase vindo do frontend
+    const sessaoRealizadaAntes =
+      agendamentoAntes.sessao_realizada !== undefined
+        ? agendamentoAntes.sessao_realizada
+        : agendamentoAntes.sessaoRealizada;
 
-      if (sessoesAssociadas && sessoesAssociadas.length > 0) {
-        console.log("🔄 Atualizando sessão associada ao agendamento...");
+    // O model pode retornar camelCase ou snake_case dependendo do mapeamento
+    // e o update pode não atualizar ambos, então garantimos aqui
+    const sessaoRealizadaDepois =
+      agendamentoAtualizado.sessao_realizada !== undefined
+        ? agendamentoAtualizado.sessao_realizada
+        : agendamentoAtualizado.sessaoRealizada;
 
-        for (const sessaoAssociada of sessoesAssociadas) {
-          // Preparar dados para atualização da sessão
-          const sessaoUpdateData = {};
-
-          // Mapear campos do agendamento para a sessão se foram alterados
-          if (agendamentoData.tipoAgendamento) {
-            sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
-              agendamentoData.tipoAgendamento,
-            );
-          }
-
-          if (agendamentoData.valorAgendamento !== undefined) {
-            sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
-          }
-
-          if (agendamentoData.statusAgendamento) {
-            sessaoUpdateData.statusSessao =
-              mapearStatusAgendamentoParaStatusSessao(
-                agendamentoData.statusAgendamento,
-              );
-          }
-
-          // Se há dados para atualizar, fazer a atualização
-          if (Object.keys(sessaoUpdateData).length > 0) {
-            await sessao.update(sessaoAssociada.id, sessaoUpdateData);
-            console.log("✅ Sessão atualizada com sucesso");
-          }
-        }
+    // Se `sessaoRealizada` mudou de false para true, criar a sessão
+    if (!sessaoRealizadaAntes && sessaoRealizadaDepois) {
+      try {
+        const sessaoData = {
+          terapeuta_id: agendamentoAtualizado.terapeuta_id,
+          paciente_id: agendamentoAtualizado.paciente_id,
+          tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+            agendamentoAtualizado.tipoAgendamento,
+          ),
+          valorSessao: agendamentoAtualizado.valorAgendamento,
+          statusSessao: "Pagamento Pendente",
+          agendamento_id: agendamentoAtualizado.id,
+        };
+        await sessao.create(sessaoData);
+      } catch (error) {
+        console.error(
+          "Erro ao criar sessão na atualização do agendamento:",
+          error,
+        );
       }
-    } catch (error) {
-      console.error("⚠️ Erro ao atualizar sessão associada:", error.message);
-      // Não falhar a atualização do agendamento se houver erro na sessão
+    }
+    // Se `sessaoRealizada` mudou de true para false, remover a sessão associada
+    else if (sessaoRealizadaAntes && !sessaoRealizadaDepois) {
+      try {
+        const sessoesAssociadas = await sessao.getFiltered({
+          agendamento_id: id,
+        });
+        for (const sessaoAssociada of sessoesAssociadas) {
+          await sessao.remove(sessaoAssociada.id);
+        }
+      } catch (error) {
+        console.error(
+          "Erro ao remover sessão na atualização do agendamento:",
+          error,
+        );
+      }
     }
 
     // Retornar a resposta com status 200 (OK)
+    console.log("Agendamento atualizado (backend):", agendamentoAtualizado);
     res.status(200).json(agendamentoAtualizado);
   } catch (error) {
     console.error("Erro ao atualizar agendamento:", error);
@@ -241,17 +254,5 @@ function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
       return "Atendimento";
     default:
       return "Atendimento";
-  }
-}
-
-// Função auxiliar para mapear status de agendamento para status de sessão
-function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
-  switch (statusAgendamento) {
-    case "Confirmado":
-      return "Pagamento Pendente";
-    case "Remarcado":
-      return "Pagamento Pendente";
-    default:
-      return "Pagamento Pendente";
   }
 }

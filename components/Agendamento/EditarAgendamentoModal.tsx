@@ -181,6 +181,10 @@ export function EditarAgendamentoModal({
     if (open && agendamento?.id) {
       setIsLoadingAgendamento(true);
 
+      console.log(
+        "🔍 agendamento (props) sessaoRealizada:",
+        agendamento?.sessaoRealizada,
+      );
       // Primeiro, verificar se temos dados atualizados no Redux
       const agendamentoRedux = agendamentos.find(
         (a) => a.id === agendamento.id,
@@ -188,6 +192,10 @@ export function EditarAgendamentoModal({
 
       // Se encontramos no Redux, usamos essa versão mais atualizada
       if (agendamentoRedux) {
+        console.log(
+          "🔍 agendamentoRedux sessaoRealizada:",
+          agendamentoRedux.sessaoRealizada,
+        );
         setAgendamentoAtualizado(agendamentoRedux);
         setIsLoadingAgendamento(false);
       } else {
@@ -195,6 +203,10 @@ export function EditarAgendamentoModal({
         axiosInstance
           .get<Agendamento>(`/agendamentos/${agendamento.id}`)
           .then((response) => {
+            console.log(
+              "🔍 API response sessaoRealizada:",
+              response.data.sessaoRealizada,
+            );
             setAgendamentoAtualizado(response.data);
           })
           .catch((error) => {
@@ -321,6 +333,13 @@ export function EditarAgendamentoModal({
         agendamentoToUse.observacoesAgendamento || "",
       );
 
+      // Carregar o estado de sessaoRealizada
+      console.log(
+        "🔍 Setting sessaoRealizada to:",
+        agendamentoToUse.sessaoRealizada,
+      );
+      setValue("sessaoRealizada", agendamentoToUse.sessaoRealizada);
+
       // Formatar o valor para exibição
       const valorFormatado = maskPrice(
         (agendamentoToUse.valorAgendamento * 100).toString(),
@@ -419,9 +438,12 @@ export function EditarAgendamentoModal({
 
     try {
       // Formatar a data para o formato esperado pela API
+      // Garante que ambos os formatos de campo sejam enviados para o backend
       const formattedData = {
         ...data,
         dataAgendamento: formatDateForAPI(data.dataAgendamento),
+        sessaoRealizada: data.sessaoRealizada,
+        sessao_realizada: data.sessaoRealizada,
       };
 
       if (isRecurrenceUpdate) {
@@ -453,19 +475,8 @@ export function EditarAgendamentoModal({
         setProgressPercentage(75);
         setLoadingMessage("Atualizando sessões correspondentes...");
 
-        // Atualizar a sessão correspondente (se existir)
-        try {
-          await axiosInstance.post("/sessoes/from-agendamento", {
-            agendamento_id: agendamentoToUse.id,
-            update_all_recurrences: true,
-          });
-        } catch (error) {
-          console.error(
-            "Erro ao atualizar sessão a partir do agendamento:",
-            error,
-          );
-          // Não interrompemos o fluxo se houver erro na atualização da sessão
-        }
+        // A lógica de sessão foi centralizada no endpoint de agendamento.
+        // Nenhuma chamada adicional é necessária aqui.
       } else {
         setLoadingMessage("Atualizando agendamento...");
 
@@ -480,21 +491,7 @@ export function EditarAgendamentoModal({
           }),
         ).unwrap();
 
-        setLoadingMessage("Atualizando sessão correspondente...");
-
-        // Atualizar a sessão correspondente (se existir)
-        try {
-          await axiosInstance.post("/sessoes/from-agendamento", {
-            agendamento_id: agendamentoToUse.id,
-            update_all_recurrences: false,
-          });
-        } catch (error) {
-          console.error(
-            "Erro ao atualizar sessão a partir do agendamento:",
-            error,
-          );
-          // Não interrompemos o fluxo se houver erro na atualização da sessão
-        }
+        setLoadingMessage("Atualizando agendamento...");
       }
 
       if (isRecurrenceUpdate) {
@@ -505,7 +502,7 @@ export function EditarAgendamentoModal({
       // Recarregar dados após salvar
       dispatch(fetchAgendamentos());
 
-      // Invalidar cache de sessões para garantir sincronização com dashboard de transações
+      // Invalidar o cache de sessões para forçar a atualização dos dados
       await mutate("/sessoes");
 
       if (isRecurrenceUpdate) {
@@ -879,6 +876,26 @@ export function EditarAgendamentoModal({
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* Sessão Realizada */}
+              <div className="flex items-center mt-4">
+                <Controller
+                  name="sessaoRealizada"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      type="checkbox"
+                      id="sessaoRealizada"
+                      className="mr-2 h-4 w-4"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                  )}
+                />
+                <label htmlFor="sessaoRealizada" className="font-medium">
+                  Sessão Realizada (gera/atualiza registro de sessão)
+                </label>
               </div>
 
               {/* Opção para editar todos os agendamentos recorrentes */}

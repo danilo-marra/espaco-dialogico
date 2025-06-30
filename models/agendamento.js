@@ -127,6 +127,9 @@ async function create(agendamentoData) {
   }
 
   try {
+    // Garantir booleano para o campo sessao_realizada
+    const sessaoRealizada = !!agendamentoData.sessaoRealizada;
+
     // Inserir o agendamento no banco de dados
     const result = await database.query({
       text: `
@@ -141,9 +144,10 @@ async function create(agendamentoData) {
           tipo_agendamento,
           valor_agendamento,
           status_agendamento,
-          observacoes_agendamento
+          observacoes_agendamento,
+          sessao_realizada
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
       `,
       values: [
@@ -158,6 +162,7 @@ async function create(agendamentoData) {
         agendamentoData.valorAgendamento,
         agendamentoData.statusAgendamento || "Confirmado",
         agendamentoData.observacoesAgendamento,
+        sessaoRealizada,
       ],
     });
 
@@ -178,6 +183,7 @@ async function getAll() {
     text: `
       SELECT 
         a.*,
+        a.sessao_realizada,
         t.nome as terapeuta_nome,
         t.foto as terapeuta_foto,
         t.telefone as terapeuta_telefone,
@@ -260,6 +266,7 @@ async function getFiltered(filters) {
     text: `
       SELECT 
         a.*,
+        a.sessao_realizada,
         t.nome as terapeuta_nome,
         t.foto as terapeuta_foto,
         t.telefone as terapeuta_telefone,
@@ -297,6 +304,7 @@ async function getById(id) {
     text: `
       SELECT 
         a.*,
+        a.sessao_realizada,
         t.nome as terapeuta_nome,
         t.foto as terapeuta_foto,
         t.telefone as terapeuta_telefone,
@@ -339,6 +347,7 @@ async function getAgendamentoByRecurrenceId(recurrenceId) {
     text: `
       SELECT 
         a.*,
+        a.sessao_realizada,
         t.nome as terapeuta_nome,
         t.foto as terapeuta_foto,
         t.telefone as terapeuta_telefone,
@@ -583,6 +592,7 @@ async function createRecurrences({
     }
 
     // Preparar dados para inserção em lote - SEM logs individuais
+    const sessaoRealizada = !!agendamentoBase.sessaoRealizada;
     const agendamentosParaInserir = dataAgendamentos.map((data) => {
       const dataFormatada = formatDateForSQL(data);
       return [
@@ -597,6 +607,7 @@ async function createRecurrences({
         agendamentoBase.valorAgendamento,
         agendamentoBase.statusAgendamento,
         agendamentoBase.observacoesAgendamento,
+        sessaoRealizada,
       ];
     });
 
@@ -612,8 +623,8 @@ async function createRecurrences({
       // Construir query com múltiplos VALUES
       const placeholders = batch
         .map((_, index) => {
-          const base = index * 11;
-          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11})`;
+          const base = index * 12;
+          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12})`;
         })
         .join(", ");
 
@@ -632,7 +643,8 @@ async function createRecurrences({
             tipo_agendamento,
             valor_agendamento,
             status_agendamento,
-            observacoes_agendamento
+            observacoes_agendamento,
+            sessao_realizada
           )
           VALUES ${placeholders}
           RETURNING *
@@ -655,6 +667,7 @@ async function createRecurrences({
           valorAgendamento: row.valor_agendamento,
           statusAgendamento: row.status_agendamento,
           observacoesAgendamento: row.observacoes_agendamento,
+          sessaoRealizada: row.sessao_realizada,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
         });
@@ -1036,6 +1049,7 @@ async function update(id, agendamentoData) {
   addField("valor_agendamento", agendamentoData.valorAgendamento);
   addField("status_agendamento", agendamentoData.statusAgendamento);
   addField("observacoes_agendamento", agendamentoData.observacoesAgendamento);
+  addField("sessao_realizada", agendamentoData.sessaoRealizada);
   addField("recurrence_id", agendamentoData.recurrenceId);
 
   // Se não houver campos para atualizar, retornar os dados atuais
@@ -1120,6 +1134,7 @@ function formatAgendamentoResult(row) {
     valorAgendamento: parseFloat(row.valor_agendamento),
     statusAgendamento: row.status_agendamento,
     observacoesAgendamento: row.observacoes_agendamento,
+    sessaoRealizada: row.sessao_realizada,
     created_at: row.created_at,
     updated_at: row.updated_at,
 
