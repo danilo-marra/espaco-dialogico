@@ -7,6 +7,8 @@ export const agendamentoSchema = z
       required_error: "Paciente é obrigatório",
     }),
 
+    sessaoRealizada: z.boolean().optional(),
+
     terapeuta_id: z.string({
       required_error: "Terapeuta é obrigatório",
     }),

@@ -258,8 +258,11 @@ async function postHandler(req, res) {
         );
 
         for (const agendamentoCreated of agendamentosRecorrentes) {
-          // Só criar sessão se o agendamento não estiver cancelado
-          if (agendamentoCreated.statusAgendamento !== "Cancelado") {
+          // Só criar sessão se o agendamento não estiver cancelado e a flag sessaoRealizada for true
+          if (
+            agendamentoCreated.statusAgendamento !== "Cancelado" &&
+            agendamentoCreated.sessaoRealizada
+          ) {
             const sessaoData = {
               terapeuta_id: agendamentoCreated.terapeutaId,
               paciente_id: agendamentoCreated.pacienteId,
@@ -645,52 +648,75 @@ async function atualizarSessoesDeAgendamentos(
   agendamentoData,
 ) {
   console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
-  let sessoesAtualizadas = 0;
+  let sessoesProcessadas = 0;
 
   try {
     for (const agendamentoAtualizado of agendamentosAtualizados) {
-      // Buscar sessões associadas a este agendamento
-      const sessoesAssociadas = await sessao.getFiltered({
+      const sessaoExistente = await sessao.getFiltered({
         agendamento_id: agendamentoAtualizado.id,
       });
 
-      for (const sessaoAssociada of sessoesAssociadas) {
-        // Preparar dados para atualização da sessão
-        const sessaoUpdateData = {};
+      const shouldCreateSession = agendamentoData.sessaoRealizada;
+      const sessionAlreadyExists =
+        sessaoExistente && sessaoExistente.length > 0;
 
-        // Mapear campos do agendamento para a sessão se foram alterados
-        if (agendamentoData.tipoAgendamento) {
-          sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
-            agendamentoData.tipoAgendamento,
-          );
-        }
+      if (shouldCreateSession) {
+        if (sessionAlreadyExists) {
+          // Atualizar sessão existente
+          const sessaoAssociada = sessaoExistente[0];
+          const sessaoUpdateData = {};
 
-        if (agendamentoData.valorAgendamento !== undefined) {
-          sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
-        }
-
-        if (agendamentoData.statusAgendamento) {
-          sessaoUpdateData.statusSessao =
-            mapearStatusAgendamentoParaStatusSessao(
-              agendamentoData.statusAgendamento,
+          if (agendamentoData.tipoAgendamento) {
+            sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
+              agendamentoData.tipoAgendamento,
             );
-        }
+          }
+          if (agendamentoData.valorAgendamento !== undefined) {
+            sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
+          }
+          if (agendamentoData.statusAgendamento) {
+            sessaoUpdateData.statusSessao =
+              mapearStatusAgendamentoParaStatusSessao(
+                agendamentoData.statusAgendamento,
+              );
+          }
 
-        // Se há dados para atualizar, fazer a atualização
-        if (Object.keys(sessaoUpdateData).length > 0) {
-          await sessao.update(sessaoAssociada.id, sessaoUpdateData);
-          sessoesAtualizadas++;
+          if (Object.keys(sessaoUpdateData).length > 0) {
+            await sessao.update(sessaoAssociada.id, sessaoUpdateData);
+            sessoesProcessadas++;
+          }
+        } else {
+          // Criar nova sessão
+          const newSessaoData = {
+            terapeuta_id: agendamentoAtualizado.terapeuta_id,
+            paciente_id: agendamentoAtualizado.paciente_id,
+            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+              agendamentoData.tipoAgendamento,
+            ),
+            valorSessao: agendamentoData.valorAgendamento,
+            statusSessao: mapearStatusAgendamentoParaStatusSessao(
+              agendamentoData.statusAgendamento,
+            ),
+            agendamento_id: agendamentoAtualizado.id,
+          };
+          await sessao.create(newSessaoData);
+          sessoesProcessadas++;
+        }
+      } else {
+        // sessaoRealizada é false, então deletar sessão se existir
+        if (sessionAlreadyExists) {
+          await sessao.remove(sessaoExistente[0].id);
+          sessoesProcessadas++;
         }
       }
     }
 
-    console.log(`✅ ${sessoesAtualizadas} sessões atualizadas com sucesso`);
+    console.log(`✅ ${sessoesProcessadas} sessões processadas com sucesso`);
   } catch (error) {
-    console.error("⚠️ Erro ao atualizar algumas sessões:", error.message);
-    // Não falhar o processo se houver erro na atualização das sessões
+    console.error("⚠️ Erro ao processar algumas sessões:", error.message);
   }
 
-  return sessoesAtualizadas;
+  return sessoesProcessadas;
 }
 
 // Função auxiliar para atualizar sessões associadas aos agendamentos (método otimizado)
@@ -701,91 +727,151 @@ async function atualizarSessoesDeAgendamentosOtimizado(
   console.log(
     "🔄 Atualizando sessões dos agendamentos recorrentes (otimizado)...",
   );
-  let sessoesAtualizadas = 0;
+  let sessoesProcessadas = 0;
 
   try {
-    // Coletar todas as sessões que precisam ser atualizadas
+    const sessoesParaCriar = [];
     const sessoesParaAtualizar = [];
+    const sessoesParaDeletar = [];
 
-    // Buscar todas as sessões em lote
     for (const agendamentoAtualizado of agendamentosAtualizados) {
-      const sessoesAssociadas = await sessao.getFiltered({
+      const sessaoExistente = await sessao.getFiltered({
         agendamento_id: agendamentoAtualizado.id,
       });
 
-      for (const sessaoAssociada of sessoesAssociadas) {
-        // Preparar dados para atualização da sessão
-        const sessaoUpdateData = {
-          id: sessaoAssociada.id, // ID é necessário para updateBatch
-        };
+      const shouldCreateSession = agendamentoData.sessaoRealizada;
+      const sessionAlreadyExists =
+        sessaoExistente && sessaoExistente.length > 0;
 
-        // Mapear campos do agendamento para a sessão se foram alterados
-        if (agendamentoData.tipoAgendamento) {
-          sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
-            agendamentoData.tipoAgendamento,
-          );
-        }
+      if (shouldCreateSession) {
+        if (sessionAlreadyExists) {
+          // Atualizar sessão existente
+          const sessaoAssociada = sessaoExistente[0];
+          const sessaoUpdateData = {
+            id: sessaoAssociada.id,
+          };
 
-        if (agendamentoData.valorAgendamento !== undefined) {
-          sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
-        }
-
-        if (agendamentoData.statusAgendamento) {
-          sessaoUpdateData.statusSessao =
-            mapearStatusAgendamentoParaStatusSessao(
-              agendamentoData.statusAgendamento,
+          if (agendamentoData.tipoAgendamento) {
+            sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
+              agendamentoData.tipoAgendamento,
             );
-        }
+          }
+          if (agendamentoData.valorAgendamento !== undefined) {
+            sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
+          }
+          if (agendamentoData.statusAgendamento) {
+            sessaoUpdateData.statusSessao =
+              mapearStatusAgendamentoParaStatusSessao(
+                agendamentoData.statusAgendamento,
+              );
+          }
 
-        // Se há dados para atualizar (além do ID), adicionar à lista
-        if (Object.keys(sessaoUpdateData).length > 1) {
-          sessoesParaAtualizar.push(sessaoUpdateData);
+          if (Object.keys(sessaoUpdateData).length > 1) {
+            sessoesParaAtualizar.push(sessaoUpdateData);
+          }
+        } else {
+          // Criar nova sessão
+          sessoesParaCriar.push({
+            terapeuta_id: agendamentoAtualizado.terapeuta_id,
+            paciente_id: agendamentoAtualizado.paciente_id,
+            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+              agendamentoData.tipoAgendamento,
+            ),
+            valorSessao: agendamentoData.valorAgendamento,
+            statusSessao: mapearStatusAgendamentoParaStatusSessao(
+              agendamentoData.statusAgendamento,
+            ),
+            agendamento_id: agendamentoAtualizado.id,
+          });
+        }
+      } else {
+        // sessaoRealizada é false, então deletar sessão se existir
+        if (sessionAlreadyExists) {
+          sessoesParaDeletar.push(sessaoExistente[0].id);
         }
       }
     }
 
-    if (sessoesParaAtualizar.length === 0) {
-      console.log("✅ Nenhuma sessão precisa ser atualizada");
-      return 0;
+    if (sessoesParaCriar.length > 0) {
+      console.log(`🚀 BATCH: Criando ${sessoesParaCriar.length} sessões...`);
+      try {
+        sessoesProcessadas += await sessao.createBatch(sessoesParaCriar);
+      } catch (batchError) {
+        console.warn(
+          "⚠️ Erro na criação em lote de sessões, tentando individual:",
+          batchError.message,
+        );
+        for (const sessaoData of sessoesParaCriar) {
+          try {
+            await sessao.create(sessaoData);
+            sessoesProcessadas++;
+          } catch (individualError) {
+            console.error(
+              `❌ Erro ao criar sessão individual ${sessaoData.agendamento_id}:`,
+              individualError.message,
+            );
+          }
+        }
+      }
     }
 
-    console.log(
-      `🚀 BATCH: Preparando para atualizar ${sessoesParaAtualizar.length} sessões...`,
-    );
-
-    try {
-      // Usar o novo método updateBatch para atualizar todas as sessões de uma vez
-      sessoesAtualizadas = await sessao.updateBatch(sessoesParaAtualizar);
-    } catch (error) {
-      console.error(
-        `⚠️ Erro ao atualizar em lote, tentando fallback individual:`,
-        error.message,
+    if (sessoesParaAtualizar.length > 0) {
+      console.log(
+        `🚀 BATCH: Atualizando ${sessoesParaAtualizar.length} sessões...`,
       );
-
-      // Fallback: tentar individual para todas as sessões
-      for (const sessaoData of sessoesParaAtualizar) {
-        try {
-          const { id, ...updateData } = sessaoData;
-          await sessao.update(id, updateData);
-          sessoesAtualizadas++;
-        } catch (individualError) {
-          console.error(
-            `❌ Erro ao atualizar sessão individual ${sessaoData.id}:`,
-            individualError.message,
-          );
+      try {
+        sessoesProcessadas += await sessao.updateBatch(sessoesParaAtualizar);
+      } catch (batchError) {
+        console.warn(
+          "⚠️ Erro na atualização em lote de sessões, tentando individual:",
+          batchError.message,
+        );
+        for (const sessaoData of sessoesParaAtualizar) {
+          try {
+            const { id, ...updateData } = sessaoData;
+            await sessao.update(id, updateData);
+            sessoesProcessadas++;
+          } catch (individualError) {
+            console.error(
+              `❌ Erro ao atualizar sessão individual ${sessaoData.id}:`,
+              individualError.message,
+            );
+          }
         }
       }
     }
 
-    console.log(
-      `✅ BATCH: ${sessoesAtualizadas} sessões atualizadas com sucesso`,
-    );
+    if (sessoesParaDeletar.length > 0) {
+      console.log(
+        `🚀 BATCH: Deletando ${sessoesParaDeletar.length} sessões...`,
+      );
+      try {
+        sessoesProcessadas += await sessao.removeBatch(sessoesParaDeletar);
+      } catch (batchError) {
+        console.warn(
+          "⚠️ Erro na exclusão em lote de sessões, tentando individual:",
+          batchError.message,
+        );
+        for (const sessaoId of sessoesParaDeletar) {
+          try {
+            await sessao.remove(sessaoId);
+            sessoesProcessadas++;
+          } catch (individualError) {
+            console.error(
+              `❌ Erro ao deletar sessão individual ${sessaoId}:`,
+              individualError.message,
+            );
+          }
+        }
+      }
+    }
+
+    console.log(`✅ ${sessoesProcessadas} sessões processadas com sucesso`);
   } catch (error) {
-    console.error("⚠️ Erro ao atualizar algumas sessões:", error.message);
-    // Não falhar o processo se houver erro na atualização das sessões
+    console.error("⚠️ Erro ao processar algumas sessões:", error.message);
   }
 
-  return sessoesAtualizadas;
+  return sessoesProcessadas;
 }
 
 // Função otimizada para atualizar agendamentos recorrentes (sem alterar dia da semana)

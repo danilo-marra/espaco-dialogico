@@ -131,10 +131,9 @@ async function postHandler(req, res) {
     // Criar um novo agendamento
     const novoAgendamento = await agendamento.create(agendamentoData);
 
-    // Só criar sessão se o agendamento não estiver cancelado
-    if (novoAgendamento.statusAgendamento !== "Cancelado") {
+    // Se o agendamento for marcado como "Sessão Realizada", criar a sessão correspondente
+    if (agendamentoData.sessaoRealizada) {
       try {
-        // Mapear os campos do agendamento para os campos da sessão
         const sessaoData = {
           terapeuta_id: novoAgendamento.terapeuta_id,
           paciente_id: novoAgendamento.paciente_id,
@@ -142,17 +141,14 @@ async function postHandler(req, res) {
             novoAgendamento.tipoAgendamento,
           ),
           valorSessao: novoAgendamento.valorAgendamento,
-          statusSessao: mapearStatusAgendamentoParaStatusSessao(
-            novoAgendamento.statusAgendamento,
-          ),
+          statusSessao: "Pagamento Pendente", // Status inicial padrão
           agendamento_id: novoAgendamento.id,
         };
 
-        // Criar a sessão
         await sessao.create(sessaoData);
       } catch (error) {
-        console.error("Erro ao criar sessão para o agendamento:", error);
-        // Não falhar a criação do agendamento se houver erro na sessão
+        console.error("Erro ao criar sessão para o novo agendamento:", error);
+        // Considerar se a falha na criação da sessão deve reverter o agendamento
       }
     }
 
@@ -178,19 +174,6 @@ function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
       return "Atendimento"; // Alterado de "Supervisão" para "Atendimento"
     default:
       return "Atendimento";
-  }
-}
-
-function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
-  switch (statusAgendamento) {
-    case "Confirmado":
-      return "Pagamento Pendente";
-    case "Remarcado":
-      return "Pagamento Pendente";
-    case "Cancelado":
-      return "Pagamento Pendente"; // Não criar sessões para agendamentos cancelados
-    default:
-      return "Pagamento Pendente";
   }
 }
 

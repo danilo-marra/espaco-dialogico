@@ -161,7 +161,7 @@ const filterSessoesByMonth = (
     // Verifica se a data do agendamento está dentro do mês selecionado
     if (sessao.agendamentoInfo?.dataAgendamento) {
       try {
-        const data = new Date(sessao.agendamentoInfo.dataAgendamento);
+        const data = parseAnyDate(sessao.agendamentoInfo.dataAgendamento);
         if (!isNaN(data.getTime())) {
           // Usar uma comparação mais robusta que considera apenas ano e mês
           const anoMesSessao = format(data, "yyyy-MM");

@@ -78,6 +78,7 @@ export interface Agendamento {
   valorAgendamento: number;
   statusAgendamento: "Confirmado" | "Remarcado" | "Cancelado";
   observacoesAgendamento: string;
+  sessaoRealizada?: boolean;
 
   // Campos para recorrência
   periodicidade?: "Não repetir" | "Semanal" | "Quinzenal";

@@ -134,6 +134,7 @@ export function NovoAgendamentoModal({
       periodicidade: "Não repetir",
       diasDaSemana: [] as DiaSemana[],
       dataFimRecorrencia: null,
+      sessaoRealizada: false,
     },
   });
 
@@ -245,6 +246,7 @@ export function NovoAgendamentoModal({
         const formattedRequestData = {
           ...requestData,
           dataAgendamento: formatDateForAPI(data.dataAgendamento),
+          sessaoRealizada: data.sessaoRealizada, // garantir envio
         };
 
         // Usando o Redux action em vez do axios diretamente
@@ -294,6 +296,7 @@ export function NovoAgendamentoModal({
           valorAgendamento: Number(data.valorAgendamento || 0),
           statusAgendamento: String(data.statusAgendamento || ""),
           observacoesAgendamento: String(data.observacoesAgendamento || ""),
+          sessaoRealizada: data.sessaoRealizada, // garantir envio
         };
 
         // Verificar se terapeuta_id e paciente_id estão presentes
@@ -357,11 +360,10 @@ export function NovoAgendamentoModal({
             `${result.metadata.numeroFinalCriado} agendamentos criados (limitado a máximo de 35)`,
             { duration: 5000 },
           );
-          // Para limitação, não chamar onSuccess() para evitar toast duplo
-          // Apenas fechar modal (o componente pai fará o mutate quando necessário)
+          // Chamar onSuccess para garantir o refresh, mesmo com limitação
+          onSuccess();
           onClose();
         } else {
-          // Para casos normais, chamar onSuccess() para que o pai exiba o toast padrão
           onSuccess();
           onClose();
         }
@@ -704,6 +706,19 @@ export function NovoAgendamentoModal({
                   {errors.statusAgendamento.message?.toString()}
                 </span>
               )}
+            </div>
+
+            {/* Sessão Realizada */}
+            <div className="flex items-center col-span-1 md:col-span-2">
+              <input
+                type="checkbox"
+                id="sessaoRealizada"
+                className="mr-2 h-4 w-4"
+                {...register("sessaoRealizada")}
+              />
+              <label htmlFor="sessaoRealizada" className="font-medium">
+                Sessão Realizada (gera registro de sessão)
+              </label>
             </div>
 
             {/* Periodicidade do Agendamento */}
