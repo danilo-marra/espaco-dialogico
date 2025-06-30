@@ -91,6 +91,31 @@ async function getHandler(req, res) {
           calcularRepasse(s.valor_sessao, s.terapeuta_dt_entrada);
         return acc + parseFloat(repasse || 0);
       }, 0),
+      percentualRepasseMedio:
+        sessoes.length > 0
+          ? Math.round(
+              sessoes.reduce((acc, s) => {
+                let percentual = 45;
+                if (
+                  s.valor_repasse !== undefined &&
+                  s.valor_repasse !== null &&
+                  s.valor_sessao > 0
+                ) {
+                  percentual = Math.round(
+                    (s.valor_repasse / s.valor_sessao) * 100,
+                  );
+                } else if (s.terapeuta_dt_entrada) {
+                  const dataEntrada = new Date(s.terapeuta_dt_entrada);
+                  const hoje = new Date();
+                  const diffMs = hoje.getTime() - dataEntrada.getTime();
+                  const umAnoMs = 365.25 * 24 * 60 * 60 * 1000;
+                  const anosNaClinica = diffMs / umAnoMs;
+                  percentual = anosNaClinica >= 1 ? 50 : 45;
+                }
+                return acc + percentual;
+              }, 0) / sessoes.length,
+            )
+          : 0,
     };
 
     return res.status(200).json({

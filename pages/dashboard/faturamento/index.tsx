@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Head from "next/head";
 import { format, addMonths } from "date-fns";
+import { CalendarCheck } from "@phosphor-icons/react";
 import { ptBR } from "date-fns/locale";
 import {
   CaretLeft,
@@ -10,7 +11,6 @@ import {
   Receipt,
   User,
   MagnifyingGlass,
-  Tag,
 } from "@phosphor-icons/react";
 import { useFetchFaturamento } from "hooks/useFetchFaturamento";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
@@ -38,44 +38,6 @@ export default function Faturamento() {
     terapeutaId: selectedTerapeuta,
     paciente: searchPaciente,
   });
-
-  const percentualRepasseMedio = useMemo(() => {
-    if (!faturamento?.sessoes?.length) return 0;
-
-    const somaPercentuais = faturamento.sessoes.reduce((acc, sessao) => {
-      let percentual = 45;
-      if (
-        sessao.repasse !== undefined &&
-        sessao.repasse !== null &&
-        sessao.valor > 0
-      ) {
-        percentual = Math.round((sessao.repasse / sessao.valor) * 100);
-      } else if (sessao.terapeuta_dt_entrada) {
-        const dataEntrada = parseAnyDate(sessao.terapeuta_dt_entrada);
-        const hoje = new Date();
-        const diffMs = hoje.getTime() - dataEntrada.getTime();
-        const umAnoMs = 365.25 * 24 * 60 * 60 * 1000;
-        const anosNaClinica = diffMs / umAnoMs;
-        percentual = anosNaClinica >= 1 ? 50 : 45;
-      }
-      return acc + percentual;
-    }, 0);
-
-    return Math.round(somaPercentuais / faturamento.sessoes.length);
-  }, [faturamento?.sessoes]);
-
-  // Calcular totais filtrados (se houver filtros ativos)
-  const totaisCalculados = useMemo(() => {
-    if (!faturamento?.sessoes) return { totalValor: 0, totalRepasse: 0 };
-
-    return faturamento.sessoes.reduce(
-      (acc, sessao) => ({
-        totalValor: acc.totalValor + sessao.valor,
-        totalRepasse: acc.totalRepasse + sessao.repasse,
-      }),
-      { totalValor: 0, totalRepasse: 0 },
-    );
-  }, [faturamento?.sessoes]);
 
   // Verificar se o usuário tem acesso
   if (!user || !["admin", "secretaria", "terapeuta"].includes(user.role)) {
@@ -118,26 +80,22 @@ export default function Faturamento() {
 
       <main className="flex-1 bg-gray-100 p-4 min-w-0 sm:p-6 lg:p-8">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold">Faturamento</h1>
-          <p className="text-gray-600 mt-1">
-            {user.role === "terapeuta"
-              ? "Visualize seus atendimentos e valores recebidos"
-              : "Visualize o faturamento detalhado por terapeuta"}
-          </p>
+        <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
+          <h1 className="text-xl font-semibold sm:text-2xl">Faturamento</h1>
         </div>
 
-        {/* Navegação de Data */}
-        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-6">
+        {/* Date Navigation */}
+        <div className="flex items-center justify-between p-4 bg-white rounded shadow mb-4">
           <button
+            type="button"
+            aria-label="Mês Anterior"
             onClick={() => handleMonthChange(-1)}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretLeft size={24} weight="fill" />
           </button>
-
-          <div className="flex items-center space-x-4">
-            <h2 className="text-xl font-semibold">
+          <div className="flex items-center justify-center min-w-0 px-2 sm:px-4">
+            <h2 className="text-sm font-semibold text-center sm:text-lg md:text-xl">
               {format(currentDate, "MMMM yyyy", { locale: ptBR }).replace(
                 /^\w/,
                 (c) => c.toUpperCase(),
@@ -149,38 +107,46 @@ export default function Faturamento() {
               dateFormat="MM/yyyy"
               showMonthYearPicker
               customInput={
-                <button className="hover:bg-gray-100 p-1 rounded">
+                <button
+                  type="button"
+                  className="hover:bg-gray-100 p-1 rounded flex-shrink-0 ml-2"
+                >
                   <Calendar size={20} />
                 </button>
               }
             />
           </div>
-
           <button
+            type="button"
+            aria-label="Próximo Mês"
             onClick={() => handleMonthChange(1)}
-            className="hover:bg-gray-100 p-2 rounded-full transition-colors"
+            className="hover:bg-gray-100 p-2 rounded-full transition-colors flex-shrink-0"
           >
             <CaretRight size={24} weight="fill" />
           </button>
         </div>
 
-        {/* Filtros (apenas para admin/secretaria) */}
+        {/* Filtros */}
         {(user.role === "admin" || user.role === "secretaria") && (
-          <div className="bg-white p-4 rounded shadow mb-6">
-            <h3 className="text-lg font-medium mb-4">Filtros</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Filtro por Terapeuta */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Tag size={16} className="inline mr-1" />
-                  Terapeuta
+          <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2">
+            {/* Filtro por Terapeuta */}
+            <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <User size={24} className="text-gray-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <label
+                  htmlFor="terapeutas"
+                  className="text-sm font-medium text-gray-700 block mb-2"
+                >
+                  Filtrar por Terapeuta
                 </label>
                 <select
+                  className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
+                  name="terapeutas"
+                  id="terapeutas"
                   value={selectedTerapeuta}
                   onChange={(e) => setSelectedTerapeuta(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-azul focus:border-transparent"
                 >
-                  <option value="Todos">Todos os Terapeutas</option>
+                  <option value="Todos">Todos os terapeutas</option>
                   {terapeutas?.map((terapeuta) => (
                     <option key={terapeuta.id} value={terapeuta.id}>
                       {terapeuta.nome}
@@ -188,19 +154,28 @@ export default function Faturamento() {
                   ))}
                 </select>
               </div>
+            </div>
 
-              {/* Filtro por Paciente */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MagnifyingGlass size={16} className="inline mr-1" />
+            {/* Busca por Paciente */}
+            <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              <MagnifyingGlass
+                size={24}
+                className="text-gray-500 flex-shrink-0"
+              />
+              <div className="flex-1 min-w-0">
+                <label
+                  htmlFor="searchPaciente"
+                  className="text-sm font-medium text-gray-700 block mb-2"
+                >
                   Buscar Paciente
                 </label>
                 <input
                   type="text"
+                  id="searchPaciente"
+                  className="w-full text-sm lg:text-base text-gray-800 focus:outline-none focus:ring-2 focus:ring-azul/20 rounded px-3 py-2 border border-gray-200"
+                  placeholder="Nome do paciente..."
                   value={searchPaciente}
                   onChange={(e) => setSearchPaciente(e.target.value)}
-                  placeholder="Digite o nome do paciente..."
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-azul focus:border-transparent"
                 />
               </div>
             </div>
@@ -208,88 +183,80 @@ export default function Faturamento() {
         )}
 
         {/* Cards de Resumo */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white p-6 rounded shadow">
-            <div className="flex items-center space-x-3">
-              <Receipt size={32} className="text-blue-500" />
-              <div>
-                <h3 className="text-sm text-gray-500 uppercase">
-                  Total de Sessões
-                </h3>
-                <p className="text-2xl font-semibold">
-                  {faturamento?.resumo.totalSessoes || 0}
-                </p>
-              </div>
+        <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-blue-100 rounded-full">
+              <Receipt size={24} className="text-blue-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Total de Sessões
+              </h3>
+              <span className="text-2xl font-bold text-gray-900">
+                {faturamento?.resumo.totalSessoes || 0}
+              </span>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded shadow">
-            <div className="flex items-center space-x-3">
-              <CurrencyDollar size={32} className="text-green-500" />
-              <div>
-                <h3 className="text-sm text-gray-500 uppercase">Valor Total</h3>
-                <p className="text-2xl font-semibold text-green-600">
-                  R$ {totaisCalculados.totalValor.toFixed(2).replace(".", ",")}
-                </p>
-              </div>
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-green-100 rounded-full">
+              <CurrencyDollar size={24} className="text-green-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Valor Total
+              </h3>
+              <span className="text-2xl font-bold text-gray-900">
+                R${" "}
+                {faturamento?.resumo.valorTotalSessoes
+                  .toFixed(2)
+                  .replace(".", ",")}
+              </span>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded shadow">
-            <div className="flex items-center space-x-3">
-              <User size={32} className="text-purple-500" />
-              <div>
-                <h3 className="text-sm text-gray-500 uppercase">
-                  {user.role === "terapeuta" ? "Seu Repasse" : "Total Repasses"}
-                </h3>
-                <p className="text-2xl font-semibold text-purple-600">
-                  R${" "}
-                  {totaisCalculados.totalRepasse.toFixed(2).replace(".", ",")}
-                  {faturamento?.sessoes?.length > 0 && (
-                    <span className="ml-2 text-base text-gray-500 font-normal align-middle">
-                      ({percentualRepasseMedio}%)
-                    </span>
-                  )}
-                </p>
-              </div>
+          <div className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <div className="p-3 bg-purple-100 rounded-full">
+              <User size={24} className="text-purple-600" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {user.role === "terapeuta" ? "Seu Repasse" : "Total Repasses"}
+              </h3>
+              <span className="text-2xl font-bold text-gray-900">
+                R${" "}
+                {faturamento?.resumo.valorTotalRepasse
+                  .toFixed(2)
+                  .replace(".", ",")}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Tabela de Sessões */}
-        <div className="bg-white rounded shadow">
-          <div className="p-6 border-b">
-            <h3 className="text-lg font-semibold">Detalhamento das Sessões</h3>
-          </div>
-
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="bg-rosa text-white">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Horário
-                  </th>
+                  <th className="p-3 text-left text-sm font-medium">Data</th>
+                  <th className="p-3 text-left text-sm font-medium">Horário</th>
                   {(user.role === "admin" || user.role === "secretaria") && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="p-3 text-left text-sm font-medium">
                       Terapeuta
                     </th>
                   )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="p-3 text-left text-sm font-medium">
                     Paciente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                     Tipo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
                     Modalidade
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Valor
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                  <th className="p-3 text-left text-sm font-medium">Valor</th>
+                  <th className="p-3 text-left text-sm font-medium">
                     {user.role === "terapeuta" ? "Seu Repasse" : "Repasse"}
                   </th>
                 </tr>
@@ -298,34 +265,63 @@ export default function Faturamento() {
                 {faturamento?.sessoes.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={user.role === "terapeuta" ? 8 : 9}
-                      className="px-6 py-12 text-center text-gray-500"
+                      colSpan={user.role === "terapeuta" ? 8 : 8}
+                      className="text-center py-12 px-4"
                     >
-                      Nenhuma sessão encontrada para este período
+                      <div className="max-w-md mx-auto">
+                        <CalendarCheck
+                          size={64}
+                          className="mx-auto mb-4 text-gray-300"
+                        />
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Nenhuma sessão encontrada
+                        </h3>
+                        <p className="text-gray-600">
+                          Tente ajustar os filtros de busca para encontrar o que
+                          está procurando.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  faturamento?.sessoes.map((sessao) => (
-                    <tr key={sessao.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {format(parseAnyDate(sessao.data), "dd/MM/yyyy", {
-                          locale: ptBR,
-                        })}
+                  faturamento?.sessoes.map((sessao, index) => (
+                    <tr
+                      key={sessao.id}
+                      className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+                    >
+                      <td className="p-3">
+                        <div className="text-sm lg:text-base text-gray-900">
+                          {format(parseAnyDate(sessao.data), "dd/MM/yyyy", {
+                            locale: ptBR,
+                          })}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {sessao.horario}
+                      <td className="p-3">
+                        <div className="text-sm lg:text-base text-gray-900">
+                          {sessao.horario}
+                        </div>
                       </td>
                       {(user.role === "admin" ||
                         user.role === "secretaria") && (
-                        <td className="px-6 py-4 text-sm">
-                          {sessao.terapeuta}
+                        <td className="p-3">
+                          <div className="font-medium text-gray-900 text-sm lg:text-base">
+                            {sessao.terapeuta}
+                          </div>
                         </td>
                       )}
-                      <td className="px-6 py-4 text-sm">{sessao.paciente}</td>
-                      <td className="px-6 py-4 text-sm">{sessao.tipo}</td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="p-3">
+                        <div className="text-sm lg:text-base text-gray-900">
+                          {sessao.paciente}
+                        </div>
+                      </td>
+                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                          {sessao.tipo}
+                        </span>
+                      </td>
+                      <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
                         <span
-                          className={`px-2 py-1 text-xs rounded-full ${
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             sessao.modalidade === "Online"
                               ? "bg-blue-100 text-blue-800"
                               : "bg-green-100 text-green-800"
@@ -334,11 +330,15 @@ export default function Faturamento() {
                           {sessao.modalidade}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">
-                        R$ {sessao.valor.toFixed(2).replace(".", ",")}
+                      <td className="p-3">
+                        <div className="text-sm lg:text-base font-semibold text-gray-900">
+                          R$ {sessao.valor.toFixed(2).replace(".", ",")}
+                        </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-green-600">
-                        R$ {sessao.repasse.toFixed(2).replace(".", ",")}
+                      <td className="p-3">
+                        <div className="text-sm font-medium text-green-600">
+                          R$ {sessao.repasse.toFixed(2).replace(".", ",")}
+                        </div>
                       </td>
                     </tr>
                   ))
