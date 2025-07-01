@@ -17,6 +17,7 @@ interface AuthHook {
   logout: () => void;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  canEdit: boolean;
 }
 
 const useAuth = (): AuthHook => {
@@ -92,6 +93,7 @@ const useAuth = (): AuthHook => {
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
+    canEdit: user?.role === "admin" || user?.role === "secretaria",
   };
 };
 

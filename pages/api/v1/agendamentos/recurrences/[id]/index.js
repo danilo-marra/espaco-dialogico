@@ -211,7 +211,8 @@ async function postHandler(req, res) {
         const sessoesData = agendamentosRecorrentes
           .filter(
             (agendamentoCreated) =>
-              agendamentoCreated.statusAgendamento !== "Cancelado",
+              agendamentoCreated.statusAgendamento !== "Cancelado" &&
+              agendamentoCreated.sessaoRealizada,
           )
           .map((agendamentoCreated) => {
             return {
@@ -656,7 +657,9 @@ async function atualizarSessoesDeAgendamentos(
         agendamento_id: agendamentoAtualizado.id,
       });
 
-      const shouldCreateSession = agendamentoData.sessaoRealizada;
+      const shouldCreateSession =
+        agendamentoData.sessaoRealizada &&
+        agendamentoAtualizado.statusAgendamento !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;
 
@@ -703,10 +706,29 @@ async function atualizarSessoesDeAgendamentos(
           sessoesProcessadas++;
         }
       } else {
-        // sessaoRealizada é false, então deletar sessão se existir
+        // sessaoRealizada é false OU agendamento foi cancelado, então deletar sessão se existir
         if (sessionAlreadyExists) {
           await sessao.remove(sessaoExistente[0].id);
           sessoesProcessadas++;
+        }
+      }
+
+      // Lógica adicional: Se o agendamento foi cancelado, sempre remover a sessão (mesmo que sessaoRealizada seja true)
+      if (
+        agendamentoAtualizado.statusAgendamento === "Cancelado" &&
+        sessionAlreadyExists &&
+        shouldCreateSession
+      ) {
+        try {
+          await sessao.remove(sessaoExistente[0].id);
+          console.log(
+            `Sessão removida para agendamento cancelado: ${agendamentoAtualizado.id}`,
+          );
+        } catch (error) {
+          console.error(
+            `Erro ao remover sessão do agendamento cancelado ${agendamentoAtualizado.id}:`,
+            error,
+          );
         }
       }
     }
@@ -739,7 +761,9 @@ async function atualizarSessoesDeAgendamentosOtimizado(
         agendamento_id: agendamentoAtualizado.id,
       });
 
-      const shouldCreateSession = agendamentoData.sessaoRealizada;
+      const shouldCreateSession =
+        agendamentoData.sessaoRealizada &&
+        agendamentoAtualizado.statusAgendamento !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;
 
@@ -785,8 +809,20 @@ async function atualizarSessoesDeAgendamentosOtimizado(
           });
         }
       } else {
-        // sessaoRealizada é false, então deletar sessão se existir
+        // sessaoRealizada é false OU agendamento foi cancelado, então deletar sessão se existir
         if (sessionAlreadyExists) {
+          sessoesParaDeletar.push(sessaoExistente[0].id);
+        }
+      }
+
+      // Lógica adicional: Se o agendamento foi cancelado, sempre remover a sessão
+      if (
+        agendamentoAtualizado.statusAgendamento === "Cancelado" &&
+        sessionAlreadyExists &&
+        shouldCreateSession
+      ) {
+        // Se a sessão não foi adicionada para deletar ainda, adicionar
+        if (!sessoesParaDeletar.includes(sessaoExistente[0].id)) {
           sessoesParaDeletar.push(sessaoExistente[0].id);
         }
       }

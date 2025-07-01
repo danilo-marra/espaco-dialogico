@@ -63,6 +63,7 @@ export function EditarSessaoModal({
       tipoSessao: sessao?.tipoSessao,
       valorSessao: sessao?.valorSessao,
       valorRepasse: sessao?.valorRepasse,
+      repasseRealizado: sessao?.repasseRealizado || false,
       statusSessao: sessao?.statusSessao,
     },
   });
@@ -108,6 +109,9 @@ export function EditarSessaoModal({
 
       // Formatando o valor da sessão
       setValorInput(sessao.valorSessao.toString().replace(".", ","));
+
+      // Configurar o valor de repasse realizado
+      setValue("repasseRealizado", sessao.repasseRealizado || false);
 
       // Configurar o valor de repasse personalizado se existir
       if (sessao.valorRepasse !== undefined) {
@@ -164,6 +168,7 @@ export function EditarSessaoModal({
         tipoSessao: data.tipoSessao,
         valorSessao: data.valorSessao,
         statusSessao: data.statusSessao,
+        repasseRealizado: data.repasseRealizado || false,
       };
 
       // Adicionar o valorRepasse apenas se estamos usando um valor personalizado
@@ -175,12 +180,15 @@ export function EditarSessaoModal({
       }
 
       // Enviar dados para a API através do Redux
-      await dispatch(
+      const result = await dispatch(
         updateSessao({
           id: sessao.id,
           sessao: sessaoData,
         }),
       ).unwrap();
+
+      // Debug: log da resposta da API
+      console.log("Resposta da API:", result);
 
       // Invalidar cache global do SWR para que todos os componentes que usam dados de sessões sejam atualizados
       // Isso garante que o dashboard de transações também seja atualizado
@@ -394,6 +402,27 @@ export function EditarSessaoModal({
                     {percentualRepasseCalculado}%)
                   </p>
                 )}
+
+                {/* Campo Repasse Realizado */}
+                <div className="mt-4">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="repasseRealizado"
+                      {...register("repasseRealizado")}
+                      className="mr-3 h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="repasseRealizado"
+                      className="text-sm font-medium"
+                    >
+                      Repasse realizado
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Marque quando o repasse ao terapeuta for realizado
+                  </p>
+                </div>
               </div>
             </div>
 
