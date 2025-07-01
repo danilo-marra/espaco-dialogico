@@ -259,6 +259,7 @@ async function update(id, sessaoData) {
   addField("valor_repasse", sessaoData.valorRepasse);
   addField("status_sessao", sessaoData.statusSessao);
   addField("agendamento_id", sessaoData.agendamento_id);
+  addField("repasse_realizado", sessaoData.repasseRealizado);
 
   // Se não houver campos para atualizar, retornar a sessão existente
   if (fieldsToUpdate.length === 0) {
@@ -386,6 +387,7 @@ function formatSessaoResult(row) {
     valorSessao: parseFloat(row.valor_sessao),
     valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : undefined,
     statusSessao: row.status_sessao,
+    repasseRealizado: row.repasse_realizado || false,
     created_at: row.created_at,
     updated_at: row.updated_at,
 

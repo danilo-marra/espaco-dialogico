@@ -116,31 +116,6 @@ export function EditarAgendamentoModal({
   // Determinar quais pacientes mostrar baseado no role
   const pacientes = isUserTerapeuta ? terapeutaPacientes : allPacientes;
 
-  // Debug específico para terapeuta
-  useEffect(() => {
-    if (isUserTerapeuta) {
-      console.log("🧑‍⚕️ DEBUG TERAPEUTA:");
-      console.log("- currentTerapeuta:", currentTerapeuta);
-      console.log("- terapeutaPacientes:", terapeutaPacientes?.length);
-      console.log("- terapeutaDataLoading:", terapeutaDataLoading);
-      console.log("- user email:", user?.email);
-      console.log("- user id:", user?.id);
-      console.log("- user:", user);
-    } else {
-      console.log("👨‍💼 DEBUG ADMIN:");
-      console.log("- allPacientes:", allPacientes?.length);
-      console.log("- terapeutas:", terapeutas?.length);
-    }
-  }, [
-    isUserTerapeuta,
-    currentTerapeuta,
-    terapeutaPacientes,
-    terapeutaDataLoading,
-    allPacientes,
-    terapeutas,
-    user,
-  ]);
-
   // Para terapeutas, aguardar a associação do terapeuta antes de prosseguir
   const terapeutaAssociado = isUserTerapeuta ? currentTerapeuta : true;
 
@@ -181,10 +156,6 @@ export function EditarAgendamentoModal({
     if (open && agendamento?.id) {
       setIsLoadingAgendamento(true);
 
-      console.log(
-        "🔍 agendamento (props) sessaoRealizada:",
-        agendamento?.sessaoRealizada,
-      );
       // Primeiro, verificar se temos dados atualizados no Redux
       const agendamentoRedux = agendamentos.find(
         (a) => a.id === agendamento.id,
@@ -192,10 +163,6 @@ export function EditarAgendamentoModal({
 
       // Se encontramos no Redux, usamos essa versão mais atualizada
       if (agendamentoRedux) {
-        console.log(
-          "🔍 agendamentoRedux sessaoRealizada:",
-          agendamentoRedux.sessaoRealizada,
-        );
         setAgendamentoAtualizado(agendamentoRedux);
         setIsLoadingAgendamento(false);
       } else {
@@ -203,10 +170,6 @@ export function EditarAgendamentoModal({
         axiosInstance
           .get<Agendamento>(`/agendamentos/${agendamento.id}`)
           .then((response) => {
-            console.log(
-              "🔍 API response sessaoRealizada:",
-              response.data.sessaoRealizada,
-            );
             setAgendamentoAtualizado(response.data);
           })
           .catch((error) => {
@@ -290,20 +253,6 @@ export function EditarAgendamentoModal({
       pacientesCarregados &&
       terapeutaAssociado // Aguardar associação do terapeuta para usuários tipo "terapeuta"
     ) {
-      console.log(
-        "Inicializando formulário com dados do agendamento:",
-        agendamentoToUse,
-      );
-      console.log("Paciente ID:", agendamentoToUse.paciente_id);
-      console.log("Terapeuta ID:", agendamentoToUse.terapeuta_id);
-      console.log("Terapeutas carregados:", terapeutasCarregados);
-      console.log("Pacientes carregados:", pacientesCarregados);
-      console.log("🔍 isUserTerapeuta:", isUserTerapeuta);
-      console.log("🔍 terapeutaDataLoading:", terapeutaDataLoading);
-      console.log("🔍 terapeutaPacientes length:", terapeutaPacientes?.length);
-      console.log("🔍 terapeutaAssociado:", terapeutaAssociado);
-      console.log("🔍 currentTerapeuta:", currentTerapeuta);
-
       setValue("paciente_id", agendamentoToUse.paciente_id);
       setValue("terapeuta_id", agendamentoToUse.terapeuta_id);
 
@@ -334,10 +283,6 @@ export function EditarAgendamentoModal({
       );
 
       // Carregar o estado de sessaoRealizada
-      console.log(
-        "🔍 Setting sessaoRealizada to:",
-        agendamentoToUse.sessaoRealizada,
-      );
       setValue("sessaoRealizada", agendamentoToUse.sessaoRealizada);
 
       // Formatar o valor para exibição
@@ -360,7 +305,6 @@ export function EditarAgendamentoModal({
 
       // Marcar como inicializado para evitar sobreposições futuras
       setFormInitialized(true);
-      console.log("Formulário inicializado com sucesso");
     }
   }, [
     agendamento,
@@ -379,20 +323,8 @@ export function EditarAgendamentoModal({
 
   // Selecionar paciente e terapeuta
   const selectedTerapeutaId = watch("terapeuta_id");
-  const selectedPacienteId = watch("paciente_id");
   const selectedModalidade = watch("modalidadeAgendamento");
-
-  // Debug: logs para verificar os valores selecionados
-  useEffect(() => {
-    console.log("Debug - selectedTerapeutaId:", selectedTerapeutaId);
-    console.log("Debug - selectedPacienteId:", selectedPacienteId);
-    console.log("Debug - pacientes disponíveis:", pacientes?.length);
-    console.log(
-      "Debug - agendamento atual:",
-      agendamento?.terapeuta_id,
-      agendamento?.paciente_id,
-    );
-  }, [selectedTerapeutaId, selectedPacienteId, pacientes, agendamento]);
+  const selectedStatus = watch("statusAgendamento");
 
   // Efeito para ajustar o local de agendamento quando a modalidade muda
   useEffect(() => {
@@ -400,6 +332,13 @@ export function EditarAgendamentoModal({
       setValue("localAgendamento", "Não Precisa de Sala");
     }
   }, [selectedModalidade, setValue]);
+
+  // Efeito para desmarcar sessaoRealizada automaticamente quando status for "Cancelado"
+  useEffect(() => {
+    if (selectedStatus === "Cancelado") {
+      setValue("sessaoRealizada", false);
+    }
+  }, [selectedStatus, setValue]);
 
   // Filtrar pacientes pelo terapeuta selecionado
   // IMPORTANTE: Usar o terapeuta do agendamento como fallback se selectedTerapeutaId ainda não estiver disponível
@@ -410,16 +349,6 @@ export function EditarAgendamentoModal({
       ? pacientes?.filter((p) => p.terapeuta_id === terapeutaIdParaFiltro)
       : [];
   }, [terapeutaIdParaFiltro, pacientes]);
-
-  // Debug: log para verificar a filtragem
-  useEffect(() => {
-    console.log("Debug - terapeutaIdParaFiltro:", terapeutaIdParaFiltro);
-    console.log("Debug - filteredPacientes:", filteredPacientes?.length);
-    console.log(
-      "Debug - filteredPacientes nomes:",
-      filteredPacientes?.map((p) => p.nome),
-    );
-  }, [terapeutaIdParaFiltro, filteredPacientes]);
 
   // Handler para envio do formulário
   const onSubmit = async (data: AgendamentoFormInputs) => {
@@ -890,11 +819,20 @@ export function EditarAgendamentoModal({
                       className="mr-2 h-4 w-4"
                       checked={field.value}
                       onChange={(e) => field.onChange(e.target.checked)}
+                      disabled={selectedStatus === "Cancelado"}
                     />
                   )}
                 />
-                <label htmlFor="sessaoRealizada" className="font-medium">
+                <label
+                  htmlFor="sessaoRealizada"
+                  className={`font-medium ${selectedStatus === "Cancelado" ? "text-gray-400" : ""}`}
+                >
                   Sessão Realizada (gera/atualiza registro de sessão)
+                  {selectedStatus === "Cancelado" && (
+                    <span className="text-sm text-gray-500 block">
+                      Agendamentos cancelados não podem ter sessão realizada
+                    </span>
+                  )}
                 </label>
               </div>
 

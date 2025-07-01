@@ -194,35 +194,52 @@ async function seedAgendamentos() {
           values: [agendamento.id],
         });
 
-        // Se não existe sessão para este agendamento, criar uma
+        // Se não existe sessão para este agendamento, verificar se deve criar uma
         if (parseInt(sessaoCheck.rows[0].count) === 0) {
-          await database.query({
-            text: `
-              INSERT INTO sessoes (
-                terapeuta_id,
-                paciente_id,
-                tipo_sessao,
-                valor_sessao,
-                status_sessao,
-                agendamento_id
-              )
-              VALUES ($1, $2, $3, $4, $5, $6)
-            `,
-            values: [
-              agendamento.terapeuta_id,
-              agendamento.paciente_id,
-              mapearTipoAgendamentoParaTipoSessao(agendamento.tipo_agendamento),
-              agendamento.valor_agendamento,
-              mapearStatusAgendamentoParaStatusSessao(
-                agendamento.status_agendamento,
-              ),
-              agendamento.id,
-            ],
-          });
+          // Simular se a sessão foi realizada para agendamentos existentes
+          let sessaoRealizada = false;
+          if (
+            agendamento.status_agendamento === "Confirmado" ||
+            agendamento.status_agendamento === "Remarcado"
+          ) {
+            sessaoRealizada = Math.random() < 0.7; // 70% de chance
+          }
 
-          console.log(
-            `  ✓ Criada sessão para o agendamento ID: ${agendamento.id}`,
-          );
+          // Criar sessão apenas se não estiver cancelado E se a sessão foi realizada
+          if (
+            agendamento.status_agendamento !== "Cancelado" &&
+            sessaoRealizada
+          ) {
+            await database.query({
+              text: `
+                INSERT INTO sessoes (
+                  terapeuta_id,
+                  paciente_id,
+                  tipo_sessao,
+                  valor_sessao,
+                  status_sessao,
+                  agendamento_id
+                )
+                VALUES ($1, $2, $3, $4, $5, $6)
+              `,
+              values: [
+                agendamento.terapeuta_id,
+                agendamento.paciente_id,
+                mapearTipoAgendamentoParaTipoSessao(
+                  agendamento.tipo_agendamento,
+                ),
+                agendamento.valor_agendamento,
+                mapearStatusAgendamentoParaStatusSessao(
+                  agendamento.status_agendamento,
+                ),
+                agendamento.id,
+              ],
+            });
+
+            console.log(
+              `  ✓ Criada sessão para o agendamento ID: ${agendamento.id}`,
+            );
+          }
         }
       }
 
@@ -298,6 +315,19 @@ async function seedAgendamentos() {
             ])
           : null;
 
+      // Simular se a sessão foi realizada (70% de chance para agendamentos confirmados/remarcados)
+      let sessaoRealizada = false;
+      if (
+        status_agendamento === "Confirmado" ||
+        status_agendamento === "Remarcado"
+      ) {
+        sessaoRealizada = Math.random() < 0.7; // 70% de chance
+      }
+      // Agendamentos cancelados nunca têm sessão realizada
+      if (status_agendamento === "Cancelado") {
+        sessaoRealizada = false;
+      }
+
       // Inserir o agendamento e criar uma sessão correspondente em uma transação
       insertPromises.push(
         (async () => {
@@ -341,28 +371,30 @@ async function seedAgendamentos() {
 
             const agendamento_id = agendamentoResult.rows[0].id;
 
-            // Criar a sessão vinculada ao agendamento
-            await database.query({
-              text: `
-                INSERT INTO sessoes (
+            // Criar a sessão vinculada ao agendamento APENAS se não estiver cancelado E se a sessão foi realizada
+            if (status_agendamento !== "Cancelado" && sessaoRealizada) {
+              await database.query({
+                text: `
+                  INSERT INTO sessoes (
+                    terapeuta_id,
+                    paciente_id,
+                    tipo_sessao,
+                    valor_sessao,
+                    status_sessao,
+                    agendamento_id
+                  )
+                  VALUES ($1, $2, $3, $4, $5, $6)
+                `,
+                values: [
                   terapeuta_id,
                   paciente_id,
-                  tipo_sessao,
-                  valor_sessao,
-                  status_sessao,
-                  agendamento_id
-                )
-                VALUES ($1, $2, $3, $4, $5, $6)
-              `,
-              values: [
-                terapeuta_id,
-                paciente_id,
-                mapearTipoAgendamentoParaTipoSessao(tipo_agendamento),
-                valor_agendamento,
-                mapearStatusAgendamentoParaStatusSessao(status_agendamento),
-                agendamento_id,
-              ],
-            });
+                  mapearTipoAgendamentoParaTipoSessao(tipo_agendamento),
+                  valor_agendamento,
+                  mapearStatusAgendamentoParaStatusSessao(status_agendamento),
+                  agendamento_id,
+                ],
+              });
+            }
 
             // Commit transaction
             await database.query({ text: "COMMIT" });
@@ -381,9 +413,8 @@ async function seedAgendamentos() {
     const results = await Promise.all(insertPromises);
 
     // Exibir os agendamentos criados
-    console.log(
-      `\n✅ ${results.length} agendamentos criados com sucesso (com sessões correspondentes):`,
-    );
+    console.log(`\n✅ ${results.length} agendamentos criados com sucesso:`);
+
     results.forEach((result, index) => {
       const agendamento = result.rows[0];
       console.log(
@@ -400,6 +431,9 @@ async function seedAgendamentos() {
 
     console.log(
       `\n📊 Total de sessões no sistema: ${sessoesCount.rows[0].count}`,
+    );
+    console.log(
+      `ℹ️ Nota: Sessões são criadas apenas para agendamentos com 'Sessão Realizada' = true`,
     );
   } catch (error) {
     console.error(`\n❌ Erro ao inserir dados na tabela agendamentos:`);

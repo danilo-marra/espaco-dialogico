@@ -126,8 +126,12 @@ async function putHandler(req, res) {
         ? agendamentoAtualizado.sessao_realizada
         : agendamentoAtualizado.sessaoRealizada;
 
-    // Se `sessaoRealizada` mudou de false para true, criar a sessão
-    if (!sessaoRealizadaAntes && sessaoRealizadaDepois) {
+    // Se `sessaoRealizada` mudou de false para true E não está cancelado, criar a sessão
+    if (
+      !sessaoRealizadaAntes &&
+      sessaoRealizadaDepois &&
+      agendamentoAtualizado.statusAgendamento !== "Cancelado"
+    ) {
       try {
         const sessaoData = {
           terapeuta_id: agendamentoAtualizado.terapeuta_id,
@@ -147,14 +151,25 @@ async function putHandler(req, res) {
         );
       }
     }
-    // Se `sessaoRealizada` mudou de true para false, remover a sessão associada
-    else if (sessaoRealizadaAntes && !sessaoRealizadaDepois) {
+    // Se `sessaoRealizada` mudou de true para false OU se o status mudou para "Cancelado", remover a sessão associada
+    else if (
+      (sessaoRealizadaAntes && !sessaoRealizadaDepois) ||
+      agendamentoAtualizado.statusAgendamento === "Cancelado"
+    ) {
       try {
         const sessoesAssociadas = await sessao.getFiltered({
           agendamento_id: id,
         });
         for (const sessaoAssociada of sessoesAssociadas) {
           await sessao.remove(sessaoAssociada.id);
+        }
+
+        // Se o agendamento foi cancelado, garantir que sessaoRealizada seja false no banco
+        if (agendamentoAtualizado.statusAgendamento === "Cancelado") {
+          console.log(
+            "Agendamento cancelado - removendo sessões e desmarcando sessaoRealizada",
+          );
+          await agendamento.update(id, { sessaoRealizada: false });
         }
       } catch (error) {
         console.error(

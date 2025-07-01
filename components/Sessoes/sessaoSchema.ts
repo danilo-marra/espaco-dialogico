@@ -16,6 +16,7 @@ export const SessaoEditSchema = z.object({
     })
     .positive("O valor deve ser maior que zero"),
   valorRepasse: z.number().nullable().optional(),
+  repasseRealizado: z.boolean().optional(),
   statusSessao: z.enum(
     [
       "Pagamento Pendente",

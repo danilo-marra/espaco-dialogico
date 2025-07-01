@@ -9,7 +9,6 @@ import {
   UsersThree,
   EnvelopeSimple,
   User,
-  CurrencyDollar,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -135,7 +134,7 @@ const Menu = () => {
                 <hr />
               </>
             )}
-            {hasPermission("faturamento") && (
+            {/* {hasPermission("faturamento") && (
               <>
                 <li className="hover:text-blue-300 cursor-pointer">
                   <Link
@@ -148,7 +147,7 @@ const Menu = () => {
                 </li>
                 <hr />
               </>
-            )}
+            )} */}
             {hasPermission("terapeutas") && (
               <>
                 <li className="hover:text-blue-300 cursor-pointer">

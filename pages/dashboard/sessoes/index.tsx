@@ -8,7 +8,6 @@ import {
   ChartPie,
   MagnifyingGlass,
   Info,
-  PencilSimple,
   FileText,
   PaperPlaneTilt,
   CaretUp,
@@ -16,6 +15,9 @@ import {
 } from "@phosphor-icons/react";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "store/store";
+import { updateSessao } from "store/sessoesSlice";
 import { Sessao } from "tipos";
 
 import { useFetchSessoes } from "hooks/useFetchSessoes";
@@ -216,11 +218,22 @@ const calcularRepasse = (
   return valorSessao * percentualRepasse;
 };
 
+// Função para determinar o estado do checkbox de um grupo
+const getGroupRepasseState = (sessoes: Sessao[]) => {
+  const totalSessoes = sessoes.length;
+  const sessoesComRepasse = sessoes.filter((s) => s.repasseRealizado).length;
+
+  if (sessoesComRepasse === 0) return "none"; // nenhuma marcada
+  if (sessoesComRepasse === totalSessoes) return "all"; // todas marcadas
+  return "partial"; // algumas marcadas
+};
+
 export default function Sessoes() {
   // Utilizar hooks do Redux
   const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
   const { terapeutas } = useFetchTerapeutas();
-  const { isAdmin } = useAuth();
+  const { canEdit } = useAuth();
+  const dispatch = useDispatch<AppDispatch>();
 
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
@@ -235,6 +248,9 @@ export default function Sessoes() {
   // );
   const [expandedTherapists, setExpandedTherapists] = useState<string[]>([]);
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
+  const [loadingBulkUpdate, setLoadingBulkUpdate] = useState<string | null>(
+    null,
+  );
 
   const toggleAccordion = (type: "terapeuta" | "paciente", id: string) => {
     if (type === "terapeuta") {
@@ -370,6 +386,42 @@ export default function Sessoes() {
     setSessaoEditando(null);
     mutate();
     toast.success("Sessão atualizada com sucesso!");
+  };
+
+  // Função para atualizar repasse realizado de todas as sessões de um grupo
+  const handleBulkUpdateRepasse = async (
+    sessoes: Sessao[],
+    repasseRealizado: boolean,
+    groupId: string,
+    groupName: string,
+  ) => {
+    try {
+      setLoadingBulkUpdate(groupId);
+
+      // Atualizar todas as sessões do grupo
+      const updatePromises = sessoes.map((sessao) =>
+        dispatch(
+          updateSessao({
+            id: sessao.id,
+            sessao: { repasseRealizado },
+          }),
+        ).unwrap(),
+      );
+
+      await Promise.all(updatePromises);
+
+      // Invalidar cache
+      mutate();
+
+      toast.success(
+        `Repasse ${repasseRealizado ? "marcado como realizado" : "desmarcado"} para todas as sessões de ${groupName}`,
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar repasses:", error);
+      toast.error("Erro ao atualizar repasses em lote");
+    } finally {
+      setLoadingBulkUpdate(null);
+    }
   };
 
   const handleDateChange = (date: Date) => {
@@ -748,210 +800,304 @@ export default function Sessoes() {
                       <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                         Data
                       </th>
-                      {isAdmin && (
-                        <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
-                          Ações
-                        </th>
-                      )}
+                      <th className="p-3 text-center text-sm font-medium hidden xl:table-cell">
+                        Repasse
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {Object.keys(groupedSessoesByTerapeuta).length > 0 ? (
                       Object.entries(groupedSessoesByTerapeuta).map(
-                        ([terapeutaId, sessoesDoTerapeuta]) => (
-                          <React.Fragment key={terapeutaId}>
-                            <tr
-                              className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                              onClick={() =>
-                                toggleAccordion("terapeuta", terapeutaId)
-                              }
-                            >
-                              <td colSpan={isAdmin ? 8 : 7} className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-gray-800">
-                                    {sessoesDoTerapeuta[0].terapeutaInfo
-                                      ?.nome || "Terapeuta Não Atribuído"}{" "}
-                                    ({sessoesDoTerapeuta.length} sessões)
-                                  </span>
-                                  {expandedTherapists.includes(terapeutaId) ? (
-                                    <CaretUp size={20} />
-                                  ) : (
-                                    <CaretDown size={20} />
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                            {expandedTherapists.includes(terapeutaId) &&
-                              sessoesDoTerapeuta.map((sessao, index) => {
-                                const dataExibicao = formatSessaoDate(sessao);
-                                const valorRepasse = obterValorRepasse(sessao);
-                                let percentualRepasse = 0;
+                        ([terapeutaId, sessoesDoTerapeuta]) => {
+                          const groupRepasseState =
+                            getGroupRepasseState(sessoesDoTerapeuta);
+                          const terapeutaNome =
+                            sessoesDoTerapeuta[0].terapeutaInfo?.nome ||
+                            "Terapeuta Não Atribuído";
 
-                                if (
-                                  sessao.valorRepasse !== undefined &&
-                                  sessao.valorRepasse !== null
-                                ) {
-                                  percentualRepasse = Math.round(
-                                    (sessao.valorRepasse / sessao.valorSessao) *
-                                      100,
-                                  );
-                                } else {
-                                  if (sessao.terapeutaInfo?.dt_entrada) {
-                                    const dataEntrada = parseAnyDate(
-                                      sessao.terapeutaInfo.dt_entrada,
-                                    );
-                                    const hoje = new Date();
-                                    const diferencaEmMilissegundos =
-                                      hoje.getTime() - dataEntrada.getTime();
-                                    const umAnoEmMilissegundos =
-                                      365.25 * 24 * 60 * 60 * 1000;
-                                    const anosNaClinica =
-                                      diferencaEmMilissegundos /
-                                      umAnoEmMilissegundos;
-                                    percentualRepasse =
-                                      anosNaClinica >= 1 ? 50 : 45;
-                                  } else {
-                                    percentualRepasse = 45;
+                          return (
+                            <React.Fragment key={terapeutaId}>
+                              <tr
+                                className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                                onClick={(e) => {
+                                  // Não expandir/contrair se clicou no checkbox
+                                  if (
+                                    (e.target as HTMLElement).closest(
+                                      'input[type="checkbox"]',
+                                    )
+                                  ) {
+                                    return;
                                   }
-                                }
-
-                                return (
-                                  <tr
-                                    key={sessao.id}
-                                    className={`hover:bg-gray-50 transition-colors ${
-                                      index % 2 === 0
-                                        ? "bg-white"
-                                        : "bg-gray-50/50"
-                                    }`}
-                                  >
-                                    <td className="p-3 pl-8">
-                                      <div className="font-medium text-gray-900 text-sm lg:text-base">
-                                        {sessao.terapeutaInfo?.nome || (
-                                          <span className="text-orange-600 font-medium">
-                                            Não atribuído
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm lg:text-base text-gray-900">
-                                        {sessao.pacienteInfo?.nome || (
-                                          <span className="text-orange-600 font-medium">
-                                            Não atribuído
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="lg:hidden mt-1 space-y-1">
-                                        <div className="text-xs text-gray-500">
-                                          Tipo: {sessao.tipoSessao}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          Data: {dataExibicao}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                                        {sessao.tipoSessao}
+                                  toggleAccordion("terapeuta", terapeutaId);
+                                }}
+                              >
+                                <td colSpan={8} className="p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <span className="font-bold text-gray-800">
+                                        {terapeutaNome} (
+                                        {sessoesDoTerapeuta.length} sessões)
                                       </span>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm lg:text-base font-semibold text-gray-900">
-                                        R${" "}
-                                        {sessao.valorSessao
-                                          .toFixed(2)
-                                          .replace(".", ",")}
-                                      </div>
-                                      <div className="xl:hidden text-xs text-gray-500 mt-1">
-                                        Repasse: R${" "}
-                                        {valorRepasse
-                                          .toFixed(2)
-                                          .replace(".", ",")}{" "}
-                                        ( {percentualRepasse}%)
-                                      </div>
-                                    </td>
-                                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
-                                      <div className="text-sm font-medium text-green-600">
-                                        R${" "}
-                                        {valorRepasse
-                                          .toFixed(2)
-                                          .replace(".", ",")}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {percentualRepasse}% do valor
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <span
-                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                          sessao.statusSessao ===
-                                          "Pagamento Pendente"
-                                            ? "bg-yellow-100 text-yellow-800"
-                                            : sessao.statusSessao ===
-                                                "Pagamento Realizado"
-                                              ? "bg-green-100 text-green-800"
-                                              : sessao.statusSessao ===
-                                                  "Nota Fiscal Emitida"
-                                                ? "bg-blue-100 text-blue-800"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Enviada"
-                                                  ? "bg-purple-100 text-purple-800"
-                                                  : "bg-gray-100 text-gray-800"
-                                        }`}
-                                      >
-                                        <span className="hidden sm:inline">
-                                          {sessao.statusSessao}
-                                        </span>
-                                        <span className="sm:hidden">
-                                          {sessao.statusSessao ===
-                                          "Pagamento Pendente"
-                                            ? "Pendente"
-                                            : sessao.statusSessao ===
-                                                "Pagamento Realizado"
-                                              ? "Realizado"
-                                              : sessao.statusSessao ===
-                                                  "Nota Fiscal Emitida"
-                                                ? "NF Emitida"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Enviada"
-                                                  ? "NF Enviada"
-                                                  : sessao.statusSessao}
-                                        </span>
-                                      </span>
-                                    </td>
-                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                      {dataExibicao}
-                                    </td>
-                                    {isAdmin && (
-                                      <td className="p-3 sticky right-0 bg-white">
-                                        <div className="flex items-center justify-center">
-                                          <button
-                                            onClick={() =>
-                                              handleEditSessao(sessao)
+                                      {canEdit && (
+                                        <div
+                                          className="flex items-center space-x-2"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={
+                                              groupRepasseState === "all"
                                             }
-                                            className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
-                                            title="Editar sessão"
-                                          >
-                                            <PencilSimple
-                                              size={16}
-                                              weight="bold"
-                                            />
-                                          </button>
+                                            ref={(input) => {
+                                              if (input) {
+                                                input.indeterminate =
+                                                  groupRepasseState ===
+                                                  "partial";
+                                              }
+                                            }}
+                                            onChange={async (e) => {
+                                              const newState = e.target.checked;
+                                              await handleBulkUpdateRepasse(
+                                                sessoesDoTerapeuta,
+                                                newState,
+                                                terapeutaId,
+                                                terapeutaNome,
+                                              );
+                                            }}
+                                            disabled={
+                                              loadingBulkUpdate === terapeutaId
+                                            }
+                                            className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                                            title={
+                                              groupRepasseState === "all"
+                                                ? "Desmarcar repasse de todas as sessões"
+                                                : groupRepasseState ===
+                                                    "partial"
+                                                  ? "Marcar repasse de todas as sessões (algumas já marcadas)"
+                                                  : "Marcar repasse de todas as sessões"
+                                            }
+                                          />
+                                          <span className="text-xs text-gray-600">
+                                            {loadingBulkUpdate === terapeutaId
+                                              ? "Atualizando..."
+                                              : "Repasse em lote"}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {expandedTherapists.includes(
+                                      terapeutaId,
+                                    ) ? (
+                                      <CaretUp size={20} />
+                                    ) : (
+                                      <CaretDown size={20} />
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {expandedTherapists.includes(terapeutaId) &&
+                                sessoesDoTerapeuta.map((sessao, index) => {
+                                  const dataExibicao = formatSessaoDate(sessao);
+                                  const valorRepasse =
+                                    obterValorRepasse(sessao);
+                                  let percentualRepasse = 0;
+
+                                  if (
+                                    sessao.valorRepasse !== undefined &&
+                                    sessao.valorRepasse !== null
+                                  ) {
+                                    percentualRepasse = Math.round(
+                                      (sessao.valorRepasse /
+                                        sessao.valorSessao) *
+                                        100,
+                                    );
+                                  } else {
+                                    if (sessao.terapeutaInfo?.dt_entrada) {
+                                      const dataEntrada = parseAnyDate(
+                                        sessao.terapeutaInfo.dt_entrada,
+                                      );
+                                      const hoje = new Date();
+                                      const diferencaEmMilissegundos =
+                                        hoje.getTime() - dataEntrada.getTime();
+                                      const umAnoEmMilissegundos =
+                                        365.25 * 24 * 60 * 60 * 1000;
+                                      const anosNaClinica =
+                                        diferencaEmMilissegundos /
+                                        umAnoEmMilissegundos;
+                                      percentualRepasse =
+                                        anosNaClinica >= 1 ? 50 : 45;
+                                    } else {
+                                      percentualRepasse = 45;
+                                    }
+                                  }
+
+                                  return (
+                                    <tr
+                                      key={sessao.id}
+                                      className={`hover:bg-blue-50 cursor-pointer transition-colors ${
+                                        index % 2 === 0
+                                          ? "bg-white"
+                                          : "bg-gray-50/50"
+                                      }`}
+                                      onClick={() =>
+                                        canEdit && handleEditSessao(sessao)
+                                      }
+                                    >
+                                      <td className="p-3 pl-8">
+                                        <div className="font-medium text-gray-900 text-sm lg:text-base">
+                                          {sessao.terapeutaInfo?.nome || (
+                                            <span className="text-orange-600 font-medium">
+                                              Não atribuído
+                                            </span>
+                                          )}
                                         </div>
                                       </td>
-                                    )}
-                                  </tr>
-                                );
-                              })}
-                          </React.Fragment>
-                        ),
+                                      <td className="p-3">
+                                        <div className="text-sm lg:text-base text-gray-900">
+                                          {sessao.pacienteInfo?.nome || (
+                                            <span className="text-orange-600 font-medium">
+                                              Não atribuído
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="lg:hidden mt-1 space-y-1">
+                                          <div className="text-xs text-gray-500">
+                                            Tipo: {sessao.tipoSessao}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Data: {dataExibicao}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                                          {sessao.tipoSessao}
+                                        </span>
+                                      </td>
+                                      <td className="p-3">
+                                        <div className="text-sm lg:text-base font-semibold text-gray-900">
+                                          R${" "}
+                                          {sessao.valorSessao
+                                            .toFixed(2)
+                                            .replace(".", ",")}
+                                        </div>
+                                        <div className="xl:hidden text-xs text-gray-500 mt-1">
+                                          Repasse: R${" "}
+                                          {valorRepasse
+                                            .toFixed(2)
+                                            .replace(".", ",")}{" "}
+                                          ( {percentualRepasse}%)
+                                        </div>
+                                      </td>
+                                      <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                                        <div className="text-sm font-medium text-green-600">
+                                          R${" "}
+                                          {valorRepasse
+                                            .toFixed(2)
+                                            .replace(".", ",")}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {percentualRepasse}% do valor
+                                        </div>
+                                      </td>
+                                      <td className="p-3">
+                                        <span
+                                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                            sessao.statusSessao ===
+                                            "Pagamento Pendente"
+                                              ? "bg-yellow-100 text-yellow-800"
+                                              : sessao.statusSessao ===
+                                                  "Pagamento Realizado"
+                                                ? "bg-green-100 text-green-800"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Emitida"
+                                                  ? "bg-blue-100 text-blue-800"
+                                                  : sessao.statusSessao ===
+                                                      "Nota Fiscal Enviada"
+                                                    ? "bg-purple-100 text-purple-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                          }`}
+                                        >
+                                          <span className="hidden sm:inline">
+                                            {sessao.statusSessao}
+                                          </span>
+                                          <span className="sm:hidden">
+                                            {sessao.statusSessao ===
+                                            "Pagamento Pendente"
+                                              ? "Pendente"
+                                              : sessao.statusSessao ===
+                                                  "Pagamento Realizado"
+                                                ? "Realizado"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Emitida"
+                                                  ? "NF Emitida"
+                                                  : sessao.statusSessao ===
+                                                      "Nota Fiscal Enviada"
+                                                    ? "NF Enviada"
+                                                    : sessao.statusSessao}
+                                          </span>
+                                        </span>
+                                      </td>
+                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                        {dataExibicao}
+                                      </td>
+                                      <td className="p-3 hidden xl:table-cell text-center">
+                                        <div className="flex justify-center">
+                                          {sessao.repasseRealizado ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                              ✓ Realizado
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                              Pendente
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              {/* Totalizador para o grupo de terapeuta */}
+                              {expandedTherapists.includes(terapeutaId) && (
+                                <tr className="bg-gray-50 font-semibold">
+                                  <td
+                                    colSpan={3}
+                                    className="p-3 pl-8 text-right text-sm text-gray-700"
+                                  >
+                                    Total:
+                                  </td>
+                                  <td className="p-3 text-sm text-gray-900">
+                                    R${" "}
+                                    {sessoesDoTerapeuta
+                                      .reduce(
+                                        (total, sessao) =>
+                                          total + sessao.valorSessao,
+                                        0,
+                                      )
+                                      .toFixed(2)
+                                      .replace(".", ",")}
+                                  </td>
+                                  <td className="p-3 hidden xl:table-cell text-sm text-green-600">
+                                    R${" "}
+                                    {sessoesDoTerapeuta
+                                      .reduce(
+                                        (total, sessao) =>
+                                          total + obterValorRepasse(sessao),
+                                        0,
+                                      )
+                                      .toFixed(2)
+                                      .replace(".", ",")}
+                                  </td>
+                                  <td colSpan={3} className="p-3"></td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        },
                       )
                     ) : (
                       <tr>
-                        <td
-                          colSpan={isAdmin ? 8 : 7}
-                          className="text-center py-12 px-4"
-                        >
+                        <td colSpan={8} className="text-center py-12 px-4">
                           <div className="max-w-md mx-auto">
                             <CalendarCheck
                               size={64}
@@ -1001,210 +1147,302 @@ export default function Sessoes() {
                       <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                         Data
                       </th>
-                      {isAdmin && (
-                        <th className="p-3 text-center text-sm font-medium sticky right-0 bg-rosa">
-                          Ações
-                        </th>
-                      )}
+                      <th className="p-3 text-center text-sm font-medium hidden xl:table-cell">
+                        Repasse
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {Object.keys(groupedSessoesByPaciente).length > 0 ? (
                       Object.entries(groupedSessoesByPaciente).map(
-                        ([pacienteId, sessoesDoPaciente]) => (
-                          <React.Fragment key={pacienteId}>
-                            <tr
-                              className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                              onClick={() =>
-                                toggleAccordion("paciente", pacienteId)
-                              }
-                            >
-                              <td colSpan={isAdmin ? 8 : 7} className="p-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="font-bold text-gray-800">
-                                    {sessoesDoPaciente[0].pacienteInfo?.nome ||
-                                      "Paciente Não Atribuído"}{" "}
-                                    ({sessoesDoPaciente.length} sessões)
-                                  </span>
-                                  {expandedPatients.includes(pacienteId) ? (
-                                    <CaretUp size={20} />
-                                  ) : (
-                                    <CaretDown size={20} />
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                            {expandedPatients.includes(pacienteId) &&
-                              sessoesDoPaciente.map((sessao, index) => {
-                                const dataExibicao = formatSessaoDate(sessao);
-                                const valorRepasse = obterValorRepasse(sessao);
-                                let percentualRepasse = 0;
+                        ([pacienteId, sessoesDoPaciente]) => {
+                          const groupRepasseState =
+                            getGroupRepasseState(sessoesDoPaciente);
+                          const pacienteNome =
+                            sessoesDoPaciente[0].pacienteInfo?.nome ||
+                            "Paciente Não Atribuído";
 
-                                if (
-                                  sessao.valorRepasse !== undefined &&
-                                  sessao.valorRepasse !== null
-                                ) {
-                                  percentualRepasse = Math.round(
-                                    (sessao.valorRepasse / sessao.valorSessao) *
-                                      100,
-                                  );
-                                } else {
-                                  if (sessao.terapeutaInfo?.dt_entrada) {
-                                    const dataEntrada = parseAnyDate(
-                                      sessao.terapeutaInfo.dt_entrada,
-                                    );
-                                    const hoje = new Date();
-                                    const diferencaEmMilissegundos =
-                                      hoje.getTime() - dataEntrada.getTime();
-                                    const umAnoEmMilissegundos =
-                                      365.25 * 24 * 60 * 60 * 1000;
-                                    const anosNaClinica =
-                                      diferencaEmMilissegundos /
-                                      umAnoEmMilissegundos;
-                                    percentualRepasse =
-                                      anosNaClinica >= 1 ? 50 : 45;
-                                  } else {
-                                    percentualRepasse = 45;
+                          return (
+                            <React.Fragment key={pacienteId}>
+                              <tr
+                                className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
+                                onClick={(e) => {
+                                  // Não expandir/contrair se clicou no checkbox
+                                  if (
+                                    (e.target as HTMLElement).closest(
+                                      'input[type="checkbox"]',
+                                    )
+                                  ) {
+                                    return;
                                   }
-                                }
-
-                                return (
-                                  <tr
-                                    key={sessao.id}
-                                    className={`hover:bg-gray-50 transition-colors ${
-                                      index % 2 === 0
-                                        ? "bg-white"
-                                        : "bg-gray-50/50"
-                                    }`}
-                                  >
-                                    <td className="p-3 pl-8">
-                                      <div className="font-medium text-gray-900 text-sm lg:text-base">
-                                        {sessao.pacienteInfo?.nome || (
-                                          <span className="text-orange-600 font-medium">
-                                            Não atribuído
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm lg:text-base text-gray-900">
-                                        {sessao.terapeutaInfo?.nome || (
-                                          <span className="text-orange-600 font-medium">
-                                            Não atribuído
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="lg:hidden mt-1 space-y-1">
-                                        <div className="text-xs text-gray-500">
-                                          Tipo: {sessao.tipoSessao}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          Data: {dataExibicao}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                      <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                                        {sessao.tipoSessao}
+                                  toggleAccordion("paciente", pacienteId);
+                                }}
+                              >
+                                <td colSpan={8} className="p-3">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                      <span className="font-bold text-gray-800">
+                                        {pacienteNome} (
+                                        {sessoesDoPaciente.length} sessões)
                                       </span>
-                                    </td>
-                                    <td className="p-3">
-                                      <div className="text-sm lg:text-base font-semibold text-gray-900">
-                                        R${" "}
-                                        {sessao.valorSessao
-                                          .toFixed(2)
-                                          .replace(".", ",")}
-                                      </div>
-                                      <div className="xl:hidden text-xs text-gray-500 mt-1">
-                                        Repasse: R${" "}
-                                        {valorRepasse
-                                          .toFixed(2)
-                                          .replace(".", ",")}{" "}
-                                        ( {percentualRepasse}%)
-                                      </div>
-                                    </td>
-                                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
-                                      <div className="text-sm font-medium text-green-600">
-                                        R${" "}
-                                        {valorRepasse
-                                          .toFixed(2)
-                                          .replace(".", ",")}
-                                      </div>
-                                      <div className="text-xs text-gray-500">
-                                        {percentualRepasse}% do valor
-                                      </div>
-                                    </td>
-                                    <td className="p-3">
-                                      <span
-                                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                          sessao.statusSessao ===
-                                          "Pagamento Pendente"
-                                            ? "bg-yellow-100 text-yellow-800"
-                                            : sessao.statusSessao ===
-                                                "Pagamento Realizado"
-                                              ? "bg-green-100 text-green-800"
-                                              : sessao.statusSessao ===
-                                                  "Nota Fiscal Emitida"
-                                                ? "bg-blue-100 text-blue-800"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Enviada"
-                                                  ? "bg-purple-100 text-purple-800"
-                                                  : "bg-gray-100 text-gray-800"
-                                        }`}
-                                      >
-                                        <span className="hidden sm:inline">
-                                          {sessao.statusSessao}
-                                        </span>
-                                        <span className="sm:hidden">
-                                          {sessao.statusSessao ===
-                                          "Pagamento Pendente"
-                                            ? "Pendente"
-                                            : sessao.statusSessao ===
-                                                "Pagamento Realizado"
-                                              ? "Realizado"
-                                              : sessao.statusSessao ===
-                                                  "Nota Fiscal Emitida"
-                                                ? "NF Emitida"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Enviada"
-                                                  ? "NF Enviada"
-                                                  : sessao.statusSessao}
-                                        </span>
-                                      </span>
-                                    </td>
-                                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                      {dataExibicao}
-                                    </td>
-                                    {isAdmin && (
-                                      <td className="p-3 sticky right-0 bg-white">
-                                        <div className="flex items-center justify-center">
-                                          <button
-                                            onClick={() =>
-                                              handleEditSessao(sessao)
+                                      {canEdit && (
+                                        <div
+                                          className="flex items-center space-x-2"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={
+                                              groupRepasseState === "all"
                                             }
-                                            className="text-green-500 hover:text-green-700 p-2 rounded-md hover:bg-green-50 transition-all duration-200"
-                                            title="Editar sessão"
-                                          >
-                                            <PencilSimple
-                                              size={16}
-                                              weight="bold"
-                                            />
-                                          </button>
+                                            ref={(input) => {
+                                              if (input) {
+                                                input.indeterminate =
+                                                  groupRepasseState ===
+                                                  "partial";
+                                              }
+                                            }}
+                                            onChange={async (e) => {
+                                              const newState = e.target.checked;
+                                              await handleBulkUpdateRepasse(
+                                                sessoesDoPaciente,
+                                                newState,
+                                                pacienteId,
+                                                pacienteNome,
+                                              );
+                                            }}
+                                            disabled={
+                                              loadingBulkUpdate === pacienteId
+                                            }
+                                            className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                                            title={
+                                              groupRepasseState === "all"
+                                                ? "Desmarcar repasse de todas as sessões"
+                                                : groupRepasseState ===
+                                                    "partial"
+                                                  ? "Marcar repasse de todas as sessões (algumas já marcadas)"
+                                                  : "Marcar repasse de todas as sessões"
+                                            }
+                                          />
+                                          <span className="text-xs text-gray-600">
+                                            {loadingBulkUpdate === pacienteId
+                                              ? "Atualizando..."
+                                              : "Repasse em lote"}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {expandedPatients.includes(pacienteId) ? (
+                                      <CaretUp size={20} />
+                                    ) : (
+                                      <CaretDown size={20} />
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                              {expandedPatients.includes(pacienteId) &&
+                                sessoesDoPaciente.map((sessao, index) => {
+                                  const dataExibicao = formatSessaoDate(sessao);
+                                  const valorRepasse =
+                                    obterValorRepasse(sessao);
+                                  let percentualRepasse = 0;
+
+                                  if (
+                                    sessao.valorRepasse !== undefined &&
+                                    sessao.valorRepasse !== null
+                                  ) {
+                                    percentualRepasse = Math.round(
+                                      (sessao.valorRepasse /
+                                        sessao.valorSessao) *
+                                        100,
+                                    );
+                                  } else {
+                                    if (sessao.terapeutaInfo?.dt_entrada) {
+                                      const dataEntrada = parseAnyDate(
+                                        sessao.terapeutaInfo.dt_entrada,
+                                      );
+                                      const hoje = new Date();
+                                      const diferencaEmMilissegundos =
+                                        hoje.getTime() - dataEntrada.getTime();
+                                      const umAnoEmMilissegundos =
+                                        365.25 * 24 * 60 * 60 * 1000;
+                                      const anosNaClinica =
+                                        diferencaEmMilissegundos /
+                                        umAnoEmMilissegundos;
+                                      percentualRepasse =
+                                        anosNaClinica >= 1 ? 50 : 45;
+                                    } else {
+                                      percentualRepasse = 45;
+                                    }
+                                  }
+
+                                  return (
+                                    <tr
+                                      key={sessao.id}
+                                      className={`hover:bg-blue-50 cursor-pointer transition-colors ${
+                                        index % 2 === 0
+                                          ? "bg-white"
+                                          : "bg-gray-50/50"
+                                      }`}
+                                      onClick={() =>
+                                        canEdit && handleEditSessao(sessao)
+                                      }
+                                    >
+                                      <td className="p-3 pl-8">
+                                        <div className="font-medium text-gray-900 text-sm lg:text-base">
+                                          {sessao.pacienteInfo?.nome || (
+                                            <span className="text-orange-600 font-medium">
+                                              Não atribuído
+                                            </span>
+                                          )}
                                         </div>
                                       </td>
-                                    )}
-                                  </tr>
-                                );
-                              })}
-                          </React.Fragment>
-                        ),
+                                      <td className="p-3">
+                                        <div className="text-sm lg:text-base text-gray-900">
+                                          {sessao.terapeutaInfo?.nome || (
+                                            <span className="text-orange-600 font-medium">
+                                              Não atribuído
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="lg:hidden mt-1 space-y-1">
+                                          <div className="text-xs text-gray-500">
+                                            Tipo: {sessao.tipoSessao}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Data: {dataExibicao}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
+                                          {sessao.tipoSessao}
+                                        </span>
+                                      </td>
+                                      <td className="p-3">
+                                        <div className="text-sm lg:text-base font-semibold text-gray-900">
+                                          R${" "}
+                                          {sessao.valorSessao
+                                            .toFixed(2)
+                                            .replace(".", ",")}
+                                        </div>
+                                        <div className="xl:hidden text-xs text-gray-500 mt-1">
+                                          Repasse: R${" "}
+                                          {valorRepasse
+                                            .toFixed(2)
+                                            .replace(".", ",")}{" "}
+                                          ( {percentualRepasse}%)
+                                        </div>
+                                      </td>
+                                      <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                                        <div className="text-sm font-medium text-green-600">
+                                          R${" "}
+                                          {valorRepasse
+                                            .toFixed(2)
+                                            .replace(".", ",")}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {percentualRepasse}% do valor
+                                        </div>
+                                      </td>
+                                      <td className="p-3">
+                                        <span
+                                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                            sessao.statusSessao ===
+                                            "Pagamento Pendente"
+                                              ? "bg-yellow-100 text-yellow-800"
+                                              : sessao.statusSessao ===
+                                                  "Pagamento Realizado"
+                                                ? "bg-green-100 text-green-800"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Emitida"
+                                                  ? "bg-blue-100 text-blue-800"
+                                                  : sessao.statusSessao ===
+                                                      "Nota Fiscal Enviada"
+                                                    ? "bg-purple-100 text-purple-800"
+                                                    : "bg-gray-100 text-gray-800"
+                                          }`}
+                                        >
+                                          <span className="hidden sm:inline">
+                                            {sessao.statusSessao}
+                                          </span>
+                                          <span className="sm:hidden">
+                                            {sessao.statusSessao ===
+                                            "Pagamento Pendente"
+                                              ? "Pendente"
+                                              : sessao.statusSessao ===
+                                                  "Pagamento Realizado"
+                                                ? "Realizado"
+                                                : sessao.statusSessao ===
+                                                    "Nota Fiscal Emitida"
+                                                  ? "NF Emitida"
+                                                  : sessao.statusSessao ===
+                                                      "Nota Fiscal Enviada"
+                                                    ? "NF Enviada"
+                                                    : sessao.statusSessao}
+                                          </span>
+                                        </span>
+                                      </td>
+                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                                        {dataExibicao}
+                                      </td>
+                                      <td className="p-3 hidden xl:table-cell text-center">
+                                        <div className="flex justify-center">
+                                          {sessao.repasseRealizado ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                              ✓ Realizado
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                              Pendente
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              {/* Totalizador para o grupo de paciente */}
+                              {expandedPatients.includes(pacienteId) && (
+                                <tr className="bg-gray-50 font-semibold">
+                                  <td
+                                    colSpan={3}
+                                    className="p-3 pl-8 text-right text-sm text-gray-700"
+                                  >
+                                    Total:
+                                  </td>
+                                  <td className="p-3 text-sm text-gray-900">
+                                    R${" "}
+                                    {sessoesDoPaciente
+                                      .reduce(
+                                        (total, sessao) =>
+                                          total + sessao.valorSessao,
+                                        0,
+                                      )
+                                      .toFixed(2)
+                                      .replace(".", ",")}
+                                  </td>
+                                  <td className="p-3 hidden xl:table-cell text-sm text-green-600">
+                                    R${" "}
+                                    {sessoesDoPaciente
+                                      .reduce(
+                                        (total, sessao) =>
+                                          total + obterValorRepasse(sessao),
+                                        0,
+                                      )
+                                      .toFixed(2)
+                                      .replace(".", ",")}
+                                  </td>
+                                  <td colSpan={3} className="p-3"></td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        },
                       )
                     ) : (
                       <tr>
-                        <td
-                          colSpan={isAdmin ? 8 : 7}
-                          className="text-center py-12 px-4"
-                        >
+                        <td colSpan={8} className="text-center py-12 px-4">
                           <div className="max-w-md mx-auto">
                             <CalendarCheck
                               size={64}

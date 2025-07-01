@@ -47,6 +47,7 @@ export interface Sessao {
 
   // Campos específicos da sessão
   valorRepasse?: number;
+  repasseRealizado?: boolean;
   statusSessao:
     | "Pagamento Pendente"
     | "Pagamento Realizado"

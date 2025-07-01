@@ -36,6 +36,13 @@ async function postHandler(request, response) {
       });
     }
 
+    // Não criar sessão para agendamentos cancelados
+    if (agendamentoData.statusAgendamento === "Cancelado") {
+      return response.status(400).json({
+        error: "Não é possível criar sessão para agendamento cancelado",
+      });
+    }
+
     // Verificar se já existe uma sessão para este agendamento
     let sessaoExistente = null;
     try {
