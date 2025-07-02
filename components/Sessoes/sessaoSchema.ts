@@ -17,17 +17,12 @@ export const SessaoEditSchema = z.object({
     .positive("O valor deve ser maior que zero"),
   valorRepasse: z.number().nullable().optional(),
   repasseRealizado: z.boolean().optional(),
-  statusSessao: z.enum(
-    [
-      "Pagamento Pendente",
-      "Pagamento Realizado",
-      "Nota Fiscal Emitida",
-      "Nota Fiscal Enviada",
-    ],
-    {
-      required_error: "Selecione o status da sessão",
-    },
-  ),
+  pagamentoRealizado: z.boolean().optional(),
+  notaFiscal: z
+    .enum(["Não Emitida", "Emitida", "Enviada"], {
+      required_error: "Selecione o status da nota fiscal",
+    })
+    .optional(),
 });
 
 export type SessaoEditFormInputs = z.infer<typeof SessaoEditSchema>;

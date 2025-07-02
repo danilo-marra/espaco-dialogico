@@ -34,23 +34,27 @@ async function create(sessaoData) {
         INSERT INTO sessoes (
           terapeuta_id,
           paciente_id,
+          agendamento_id,
           tipo_sessao,
           valor_sessao,
           valor_repasse,
-          status_sessao,
-          agendamento_id
+          repasse_realizado,
+          pagamento_realizado,
+          nota_fiscal
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
       `,
       values: [
         sessaoData.terapeuta_id,
         sessaoData.paciente_id,
-        sessaoData.tipoSessao,
-        sessaoData.valorSessao,
-        sessaoData.valorRepasse,
-        sessaoData.statusSessao || "Pagamento Pendente",
-        sessaoData.agendamento_id,
+        sessaoData.agendamento_id || null,
+        sessaoData.tipo_sessao,
+        sessaoData.valor_sessao,
+        sessaoData.valor_repasse || null,
+        sessaoData.repasse_realizado || false,
+        sessaoData.pagamento_realizado || false,
+        sessaoData.nota_fiscal || "Não Emitida",
       ],
     });
 
@@ -63,8 +67,9 @@ async function create(sessaoData) {
 }
 
 async function getAll() {
-  const result = await database.query({
-    text: `
+  try {
+    const result = await database.query({
+      text: `
       SELECT 
         s.*,
         t.nome as terapeuta_nome,
@@ -83,110 +88,142 @@ async function getAll() {
         p.endereco_responsavel as paciente_endereco_responsavel,
         p.origem as paciente_origem,
         p.dt_entrada as paciente_dt_entrada,
-        a.data_agendamento,
-        a.horario_agendamento,
-        a.local_agendamento,
-        a.modalidade_agendamento,
-        a.tipo_agendamento,
-        a.valor_agendamento,
-        a.status_agendamento
-      FROM 
-        sessoes s
-      JOIN 
-        terapeutas t ON s.terapeuta_id = t.id
-      JOIN 
-        pacientes p ON s.paciente_id = p.id
-      LEFT JOIN
-        agendamentos a ON s.agendamento_id = a.id
-      ORDER BY 
-        COALESCE(a.data_agendamento, s.created_at) DESC
+        a.data_agendamento as agendamento_data,
+        a.horario_agendamento as agendamento_horario,
+        a.local_agendamento as agendamento_local,
+        a.modalidade_agendamento as agendamento_modalidade,
+        a.status_agendamento as agendamento_status,
+        a.observacoes_agendamento as agendamento_observacoes
+      FROM sessoes s
+      LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
+      LEFT JOIN pacientes p ON s.paciente_id = p.id
+      LEFT JOIN agendamentos a ON s.agendamento_id = a.id
+      ORDER BY s.created_at DESC
     `,
-  });
-
-  return result.rows.map(formatSessaoResult);
+    });
+    return result.rows.map(formatSessaoResult);
+  } catch (error) {
+    console.error("Erro ao buscar sessões:", error);
+    throw error;
+  }
 }
 
 async function getFiltered(filters) {
-  const conditions = [];
-  const values = [];
-  let paramCounter = 1;
+  try {
+    const conditions = [];
+    const values = [];
+    let paramCounter = 1;
 
-  if (filters.terapeuta_id) {
-    conditions.push(`s.terapeuta_id = $${paramCounter}`);
-    values.push(filters.terapeuta_id);
-    paramCounter++;
+    if (filters.terapeuta_id) {
+      conditions.push(`s.terapeuta_id = $${paramCounter}`);
+      values.push(filters.terapeuta_id);
+      paramCounter++;
+    }
+
+    if (filters.paciente_id) {
+      conditions.push(`s.paciente_id = $${paramCounter}`);
+      values.push(filters.paciente_id);
+      paramCounter++;
+    }
+
+    if (filters.tipo_sessao) {
+      conditions.push(`s.tipo_sessao = $${paramCounter}`);
+      values.push(filters.tipo_sessao);
+      paramCounter++;
+    }
+
+    if (filters.pagamento_realizado !== undefined) {
+      conditions.push(`s.pagamento_realizado = $${paramCounter}`);
+      values.push(filters.pagamento_realizado);
+      paramCounter++;
+    }
+
+    if (filters.nota_fiscal) {
+      conditions.push(`s.nota_fiscal = $${paramCounter}`);
+      values.push(filters.nota_fiscal);
+      paramCounter++;
+    }
+
+    if (filters.repasse_realizado !== undefined) {
+      conditions.push(`s.repasse_realizado = $${paramCounter}`);
+      values.push(filters.repasse_realizado);
+      paramCounter++;
+    }
+
+    if (filters.dataInicio && filters.dataFim) {
+      conditions.push(
+        `s.data_sessao BETWEEN $${paramCounter} AND $${paramCounter + 1}`,
+      );
+      values.push(filters.dataInicio, filters.dataFim);
+      paramCounter += 2;
+    }
+
+    if (filters.agendamento_id) {
+      conditions.push(`s.agendamento_id = $${paramCounter}`);
+      values.push(filters.agendamento_id);
+      paramCounter++;
+    }
+
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const result = await database.query({
+      text: `
+    SELECT 
+      s.*,
+      t.nome as terapeuta_nome,
+      t.foto as terapeuta_foto,
+      t.telefone as terapeuta_telefone,
+      t.email as terapeuta_email,
+      t.endereco as terapeuta_endereco,
+      t.dt_entrada as terapeuta_dt_entrada,
+      t.chave_pix as terapeuta_chave_pix,
+      p.nome as paciente_nome,
+      p.dt_nascimento as paciente_dt_nascimento,
+      p.nome_responsavel as paciente_nome_responsavel,
+      p.telefone_responsavel as paciente_telefone_responsavel,
+      p.email_responsavel as paciente_email_responsavel,
+      p.cpf_responsavel as paciente_cpf_responsavel,
+      p.endereco_responsavel as paciente_endereco_responsavel,
+      p.origem as paciente_origem,
+      p.dt_entrada as paciente_dt_entrada,
+      a.data_agendamento as agendamento_data,
+      a.horario_agendamento as agendamento_horario,
+      a.local_agendamento as agendamento_local,
+      a.modalidade_agendamento as agendamento_modalidade,
+      a.status_agendamento as agendamento_status,
+      a.observacoes_agendamento as agendamento_observacoes
+    FROM sessoes s
+    LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
+    LEFT JOIN pacientes p ON s.paciente_id = p.id
+    LEFT JOIN agendamentos a ON s.agendamento_id = a.id
+    ${whereClause}
+    ORDER BY 
+      COALESCE(a.data_agendamento, s.created_at) DESC
+    ${filters.limit ? `LIMIT $${paramCounter}` : ""}
+    ${filters.offset ? `OFFSET $${filters.limit ? paramCounter + 1 : paramCounter}` : ""}
+  `,
+      values:
+        filters.limit || filters.offset
+          ? [
+              ...values,
+              ...(filters.limit ? [filters.limit] : []),
+              ...(filters.offset ? [filters.offset] : []),
+            ]
+          : values,
+    });
+
+    return result.rows.map(formatSessaoResult);
+  } catch (error) {
+    console.error("Erro ao buscar sessões filtradas:", error);
+    throw error;
   }
-
-  if (filters.paciente_id) {
-    conditions.push(`s.paciente_id = $${paramCounter}`);
-    values.push(filters.paciente_id);
-    paramCounter++;
-  }
-
-  if (filters.status) {
-    conditions.push(`s.status_sessao = $${paramCounter}`);
-    values.push(filters.status);
-    paramCounter++;
-  }
-
-  // Adicionar filtro por agendamento_id
-  if (filters.agendamento_id) {
-    conditions.push(`s.agendamento_id = $${paramCounter}`);
-    values.push(filters.agendamento_id);
-    paramCounter++;
-  }
-
-  const whereClause =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
-
-  const result = await database.query({
-    text: `
-      SELECT 
-        s.*,
-        t.nome as terapeuta_nome,
-        t.foto as terapeuta_foto,
-        t.telefone as terapeuta_telefone,
-        t.email as terapeuta_email,
-        t.endereco as terapeuta_endereco,
-        t.dt_entrada as terapeuta_dt_entrada,
-        t.chave_pix as terapeuta_chave_pix,
-        p.nome as paciente_nome,
-        p.dt_nascimento as paciente_dt_nascimento,
-        p.nome_responsavel as paciente_nome_responsavel,
-        p.telefone_responsavel as paciente_telefone_responsavel,
-        p.email_responsavel as paciente_email_responsavel,
-        p.cpf_responsavel as paciente_cpf_responsavel,
-        p.endereco_responsavel as paciente_endereco_responsavel,
-        p.origem as paciente_origem,
-        p.dt_entrada as paciente_dt_entrada,
-        a.data_agendamento,
-        a.horario_agendamento,
-        a.local_agendamento,
-        a.modalidade_agendamento,
-        a.tipo_agendamento,
-        a.valor_agendamento,
-        a.status_agendamento
-      FROM 
-        sessoes s
-      JOIN 
-        terapeutas t ON s.terapeuta_id = t.id
-      JOIN 
-        pacientes p ON s.paciente_id = p.id
-      LEFT JOIN
-        agendamentos a ON s.agendamento_id = a.id
-      ${whereClause}
-      ORDER BY 
-        COALESCE(a.data_agendamento, s.created_at) DESC
-    `,
-    values: values,
-  });
-
-  return result.rows.map(formatSessaoResult);
 }
 
 async function getById(id) {
-  const result = await database.query({
-    text: `
+  try {
+    const result = await database.query({
+      text: `
       SELECT 
         s.*,
         t.nome as terapeuta_nome,
@@ -205,34 +242,32 @@ async function getById(id) {
         p.endereco_responsavel as paciente_endereco_responsavel,
         p.origem as paciente_origem,
         p.dt_entrada as paciente_dt_entrada,
-        a.data_agendamento,
-        a.horario_agendamento,
-        a.local_agendamento,
-        a.modalidade_agendamento,
-        a.tipo_agendamento,
-        a.valor_agendamento,
-        a.status_agendamento
-      FROM 
-        sessoes s
-      JOIN 
-        terapeutas t ON s.terapeuta_id = t.id
-      JOIN 
-        pacientes p ON s.paciente_id = p.id
-      LEFT JOIN
-        agendamentos a ON s.agendamento_id = a.id
-      WHERE 
-        s.id = $1
+        a.data_agendamento as agendamento_data,
+        a.horario_agendamento as agendamento_horario,
+        a.local_agendamento as agendamento_local,
+        a.modalidade_agendamento as agendamento_modalidade,
+        a.status_agendamento as agendamento_status,
+        a.observacoes_agendamento as agendamento_observacoes
+      FROM sessoes s
+      LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
+      LEFT JOIN pacientes p ON s.paciente_id = p.id
+      LEFT JOIN agendamentos a ON s.agendamento_id = a.id
+      WHERE s.id = $1
     `,
-    values: [id],
-  });
-
-  if (result.rowCount === 0) {
-    throw new NotFoundError({
-      message: "Sessão não encontrada",
+      values: [id],
     });
-  }
 
-  return formatSessaoResult(result.rows[0]);
+    if (result.rowCount === 0) {
+      throw new NotFoundError({
+        message: "Sessão não encontrada",
+      });
+    }
+
+    return formatSessaoResult(result.rows[0]);
+  } catch (error) {
+    console.error("Erro ao buscar sessão por ID:", error);
+    throw error;
+  }
 }
 
 async function update(id, sessaoData) {
@@ -254,12 +289,15 @@ async function update(id, sessaoData) {
   }
 
   // Adicionar cada campo que precisa ser atualizado
+  addField("terapeuta_id", sessaoData.terapeuta_id);
+  addField("paciente_id", sessaoData.paciente_id);
+  addField("agendamento_id", sessaoData.agendamento_id);
   addField("tipo_sessao", sessaoData.tipoSessao);
   addField("valor_sessao", sessaoData.valorSessao);
   addField("valor_repasse", sessaoData.valorRepasse);
-  addField("status_sessao", sessaoData.statusSessao);
-  addField("agendamento_id", sessaoData.agendamento_id);
   addField("repasse_realizado", sessaoData.repasseRealizado);
+  addField("pagamento_realizado", sessaoData.pagamentoRealizado);
+  addField("nota_fiscal", sessaoData.notaFiscal);
 
   // Se não houver campos para atualizar, retornar a sessão existente
   if (fieldsToUpdate.length === 0) {
@@ -270,17 +308,24 @@ async function update(id, sessaoData) {
   values.push(id);
 
   // Executar o update
-  await database.query({
-    text: `
+  try {
+    await database.query({
+      text: `
       UPDATE sessoes
       SET ${fieldsToUpdate.join(", ")}, updated_at = CURRENT_TIMESTAMP
       WHERE id = $${paramCounter}
     `,
-    values: values,
-  });
+      values: values,
+    });
 
-  // Retornar a sessão atualizada
-  return await getById(id);
+    // Retornar a sessão atualizada
+    return await getById(id);
+  } catch (error) {
+    console.error("Erro ao atualizar sessão:", error);
+    throw new ValidationError({
+      message: `Erro ao atualizar sessão: ${error.message}`,
+    });
+  }
 }
 
 async function remove(id) {
@@ -377,6 +422,60 @@ async function removeBatchByIds(sessaoIds) {
   }
 }
 
+async function updateRepasseStatusBatch(sessoesIds, repasseRealizado) {
+  if (!Array.isArray(sessoesIds) || sessoesIds.length === 0) {
+    return 0;
+  }
+
+  try {
+    const placeholders = sessoesIds
+      .map((_, index) => `$${index + 2}`)
+      .join(", ");
+    const result = await database.query({
+      text: `
+        UPDATE sessoes
+        SET repasse_realizado = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (${placeholders})
+      `,
+      values: [repasseRealizado, ...sessoesIds],
+    });
+
+    return result.rowCount;
+  } catch (error) {
+    console.error("Erro ao atualizar status do repasse em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao atualizar status do repasse em lote: ${error.message}`,
+    });
+  }
+}
+
+async function updatePagamentoStatusBatch(sessoesIds, pagamentoRealizado) {
+  if (!Array.isArray(sessoesIds) || sessoesIds.length === 0) {
+    return 0;
+  }
+
+  try {
+    const placeholders = sessoesIds
+      .map((_, index) => `$${index + 2}`)
+      .join(", ");
+    const result = await database.query({
+      text: `
+        UPDATE sessoes
+        SET pagamento_realizado = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id IN (${placeholders})
+      `,
+      values: [pagamentoRealizado, ...sessoesIds],
+    });
+
+    return result.rowCount;
+  } catch (error) {
+    console.error("Erro ao atualizar status do pagamento em lote:", error);
+    throw new ValidationError({
+      message: `Erro ao atualizar status do pagamento em lote: ${error.message}`,
+    });
+  }
+}
+
 function formatSessaoResult(row) {
   return {
     id: row.id,
@@ -385,9 +484,10 @@ function formatSessaoResult(row) {
     agendamento_id: row.agendamento_id,
     tipoSessao: row.tipo_sessao,
     valorSessao: parseFloat(row.valor_sessao),
-    valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : undefined,
-    statusSessao: row.status_sessao,
+    valorRepasse: row.valor_repasse ? parseFloat(row.valor_repasse) : null,
     repasseRealizado: row.repasse_realizado || false,
+    pagamentoRealizado: row.pagamento_realizado || false,
+    notaFiscal: row.nota_fiscal || "Não Emitida",
     created_at: row.created_at,
     updated_at: row.updated_at,
 
@@ -420,15 +520,15 @@ function formatSessaoResult(row) {
     // Informações do agendamento
     agendamentoInfo: {
       id: row.agendamento_id,
-      dataAgendamento: row.data_agendamento,
-      horarioAgendamento: row.horario_agendamento,
-      localAgendamento: row.local_agendamento,
-      modalidadeAgendamento: row.modalidade_agendamento,
+      dataAgendamento: row.agendamento_data,
+      horarioAgendamento: row.agendamento_horario,
+      localAgendamento: row.agendamento_local,
+      modalidadeAgendamento: row.agendamento_modalidade,
       tipoAgendamento: row.tipo_agendamento,
       valorAgendamento: row.valor_agendamento
         ? parseFloat(row.valor_agendamento)
         : undefined,
-      statusAgendamento: row.status_agendamento,
+      statusAgendamento: row.agendamento_status,
     },
   };
 }
@@ -462,19 +562,21 @@ async function createBatch(sessoesData) {
           });
         }
 
-        const base = index * 7;
+        const base = index * 9;
         placeholders.push(
-          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7})`,
+          `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9})`,
         );
 
         allValues.push(
           sessaoData.terapeuta_id,
           sessaoData.paciente_id,
+          sessaoData.agendamento_id || null,
           sessaoData.tipoSessao || "Atendimento",
           sessaoData.valorSessao || 0,
           sessaoData.valorRepasse || null,
-          sessaoData.statusSessao || "Pagamento Pendente",
-          sessaoData.agendamento_id || null,
+          sessaoData.repasse_realizado || false,
+          sessaoData.pagamento_realizado || false,
+          sessaoData.notaFiscal || "Não Emitida",
         );
       });
 
@@ -489,13 +591,15 @@ async function createBatch(sessoesData) {
       const result = await database.query({
         text: `
           INSERT INTO sessoes (
-            terapeuta_id,
-            paciente_id,
-            tipo_sessao,
-            valor_sessao,
-            valor_repasse,
-            status_sessao,
-            agendamento_id
+          terapeuta_id, 
+          paciente_id, 
+          agendamento_id,
+          tipo_sessao, 
+          valor_sessao, 
+          valor_repasse,
+          repasse_realizado,
+          pagamento_realizado,
+          nota_fiscal
           )
           VALUES ${placeholders.join(", ")}
           RETURNING id
@@ -571,9 +675,19 @@ async function updateBatch(sessoesData) {
           values.push(sessaoData.valorRepasse);
         }
 
-        if (sessaoData.statusSessao !== undefined) {
-          updateFields.push(`status_sessao = $${valueIndex++}`);
-          values.push(sessaoData.statusSessao);
+        if (sessaoData.repasseRealizado !== undefined) {
+          updateFields.push(`repasse_realizado = $${valueIndex++}`);
+          values.push(sessaoData.repasseRealizado);
+        }
+
+        if (sessaoData.pagamentoRealizado !== undefined) {
+          updateFields.push(`pagamento_realizado = $${valueIndex++}`);
+          values.push(sessaoData.pagamentoRealizado);
+        }
+
+        if (sessaoData.notaFiscal !== undefined) {
+          updateFields.push(`nota_fiscal = $${valueIndex++}`);
+          values.push(sessaoData.notaFiscal);
         }
 
         // Se não há campos para atualizar, pular esta sessão
@@ -627,6 +741,8 @@ const sessao = {
   remove,
   removeBatchByAgendamentosIds,
   removeBatchByIds,
+  updateRepasseStatusBatch,
+  updatePagamentoStatusBatch,
 };
 
 export default sessao;

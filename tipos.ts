@@ -48,11 +48,8 @@ export interface Sessao {
   // Campos específicos da sessão
   valorRepasse?: number;
   repasseRealizado?: boolean;
-  statusSessao:
-    | "Pagamento Pendente"
-    | "Pagamento Realizado"
-    | "Nota Fiscal Emitida"
-    | "Nota Fiscal Enviada";
+  pagamentoRealizado?: boolean;
+  notaFiscal?: "Não Emitida" | "Emitida" | "Enviada";
 
   // Datas de controle
   created_at?: string;

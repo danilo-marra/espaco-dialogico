@@ -10,14 +10,9 @@ import {
   Info,
   FileText,
   PaperPlaneTilt,
-  CaretUp,
-  CaretDown,
 } from "@phosphor-icons/react";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "store/store";
-import { updateSessao } from "store/sessoesSlice";
 import { Sessao } from "tipos";
 
 import { useFetchSessoes } from "hooks/useFetchSessoes";
@@ -25,12 +20,13 @@ import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, addMonths } from "date-fns";
-import { formatSessaoDate, parseAnyDate } from "utils/dateUtils";
+import { parseAnyDate } from "utils/dateUtils";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
 import { toast } from "sonner";
-import { Tabs, Tab } from "components/common/Tabs";
+import { SessoesTable } from "components/Sessoes/SessoesTable";
+import api from "utils/api";
 
 // Função auxiliar para obter o valor de repasse correto
 function obterValorRepasse(sessao: Sessao): number {
@@ -48,14 +44,11 @@ function obterValorRepasse(sessao: Sessao): number {
   return sessao.valorSessao * 0.45;
 }
 
-// Status de sessão para filtro
-const STATUS_SESSOES = [
-  "Todos",
-  "Pagamento Pendente",
-  "Pagamento Realizado",
-  "Nota Fiscal Emitida",
-  "Nota Fiscal Enviada",
-];
+// Status de sessão para filtro - ATUALIZADO
+const STATUS_SESSOES = ["Todos", "Pagamento Pendente", "Pagamento Realizado"];
+
+// Status de repasse para filtro
+const STATUS_REPASSE = ["Todos", "Repasse Pendente", "Repasse Realizado"];
 
 // Tipos de sessão para filtro
 const TIPOS_SESSOES = [
@@ -71,6 +64,7 @@ const filterSessoes = (
   sessoes: Sessao[],
   selectedTerapeuta: string,
   selectedStatus: string,
+  selectedRepasse: string,
   selectedTipo: string,
   selectedMonth: Date,
   searchPaciente: string = "",
@@ -100,9 +94,18 @@ const filterSessoes = (
         (sessao.terapeutaInfo &&
           String(sessao.terapeutaInfo.id) === String(selectedTerapeuta));
 
-      // Filtrar por status
+      // Filtrar por status - ATUALIZADO para usar pagamentoRealizado
       const matchesStatus =
-        selectedStatus === "Todos" || sessao.statusSessao === selectedStatus;
+        selectedStatus === "Todos" ||
+        (selectedStatus === "Pagamento Realizado" &&
+          sessao.pagamentoRealizado) ||
+        (selectedStatus === "Pagamento Pendente" && !sessao.pagamentoRealizado);
+
+      // Filtrar por repasse
+      const matchesRepasse =
+        selectedRepasse === "Todos" ||
+        (selectedRepasse === "Repasse Realizado" && sessao.repasseRealizado) ||
+        (selectedRepasse === "Repasse Pendente" && !sessao.repasseRealizado);
 
       // Filtrar por tipo
       const matchesTipo =
@@ -143,6 +146,7 @@ const filterSessoes = (
       return (
         matchesTerapeuta &&
         matchesStatus &&
+        matchesRepasse &&
         matchesTipo &&
         matchesMonth &&
         matchesPacienteSearch
@@ -218,46 +222,36 @@ const calcularRepasse = (
   return valorSessao * percentualRepasse;
 };
 
-// Função para determinar o estado do checkbox de um grupo
-const getGroupRepasseState = (sessoes: Sessao[]) => {
-  const totalSessoes = sessoes.length;
-  const sessoesComRepasse = sessoes.filter((s) => s.repasseRealizado).length;
-
-  if (sessoesComRepasse === 0) return "none"; // nenhuma marcada
-  if (sessoesComRepasse === totalSessoes) return "all"; // todas marcadas
-  return "partial"; // algumas marcadas
-};
-
 export default function Sessoes() {
   // Utilizar hooks do Redux
   const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
   const { terapeutas } = useFetchTerapeutas();
   const { canEdit } = useAuth();
-  const dispatch = useDispatch<AppDispatch>();
 
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
+  const [selectedRepasse, setSelectedRepasse] = useState("Todos");
   const [selectedTipo, setSelectedTipo] = useState("Todos");
   const [searchPaciente, setSearchPaciente] = useState("");
   const [showLegend, setShowLegend] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
-  // const [activeTab, setActiveTab] = useState<"terapeutas" | "pacientes">(
-  //   "terapeutas",
-  // );
   const [expandedTherapists, setExpandedTherapists] = useState<string[]>([]);
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
   const [loadingBulkUpdate, setLoadingBulkUpdate] = useState<string | null>(
     null,
   );
+  const [loadingBulkPagamento, setLoadingBulkPagamento] = useState<
+    string | null
+  >(null);
 
   const toggleAccordion = (type: "terapeuta" | "paciente", id: string) => {
     if (type === "terapeuta") {
       setExpandedTherapists((prev) =>
         prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
       );
-    } else {
+    } else if (type === "paciente") {
       setExpandedPatients((prev) =>
         prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
       );
@@ -272,6 +266,7 @@ export default function Sessoes() {
             sessoes,
             selectedTerapeuta,
             selectedStatus,
+            selectedRepasse,
             selectedTipo,
             currentDate,
             searchPaciente,
@@ -282,6 +277,7 @@ export default function Sessoes() {
       sessoes,
       selectedTerapeuta,
       selectedStatus,
+      selectedRepasse,
       selectedTipo,
       currentDate,
       searchPaciente,
@@ -303,21 +299,6 @@ export default function Sessoes() {
     );
   }, [filteredSessoes]);
 
-  // Agrupar sessões por paciente
-  const groupedSessoesByPaciente = useMemo(() => {
-    return filteredSessoes.reduce(
-      (acc, sessao) => {
-        const pacienteId = sessao.pacienteInfo?.id || "unassigned";
-        if (!acc[pacienteId]) {
-          acc[pacienteId] = [];
-        }
-        acc[pacienteId].push(sessao);
-        return acc;
-      },
-      {} as Record<string, Sessao[]>,
-    );
-  }, [filteredSessoes]);
-
   // Valor total das notas fiscais emitidas - com segurança
   const valorNotasFiscaisEmitidas = useMemo(() => {
     if (!Array.isArray(sessoes)) return 0;
@@ -325,9 +306,9 @@ export default function Sessoes() {
     // Filtrar pelo mês atual primeiro
     const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-    // Depois filtrar por status "Nota Fiscal Emitida"
+    // Depois filtrar por nota fiscal emitida
     return sessoesMes
-      .filter((sessao) => sessao.statusSessao === "Nota Fiscal Emitida")
+      .filter((sessao) => sessao.notaFiscal === "Emitida")
       .reduce((total, sessao) => total + (sessao.valorSessao || 0), 0);
   }, [sessoes, currentDate]);
 
@@ -338,9 +319,9 @@ export default function Sessoes() {
     // Filtrar pelo mês atual primeiro
     const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-    // Depois filtrar por status "Nota Fiscal Enviada"
+    // Depois filtrar por nota fiscal enviada
     return sessoesMes
-      .filter((sessao) => sessao.statusSessao === "Nota Fiscal Enviada")
+      .filter((sessao) => sessao.notaFiscal === "Enviada")
       .reduce((total, sessao) => {
         // Verificar se temos as informações do terapeuta
         if (!sessao.terapeutaInfo || !sessao.terapeutaInfo.dt_entrada)
@@ -358,10 +339,8 @@ export default function Sessoes() {
     // Filtrar pelo mês atual primeiro
     const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-    // Depois filtrar por status pendente
-    return sessoesMes.filter(
-      (sessao) => sessao.statusSessao === "Pagamento Pendente",
-    ).length;
+    // Depois filtrar por pagamento pendente
+    return sessoesMes.filter((sessao) => !sessao.pagamentoRealizado).length;
   }, [sessoes, currentDate]);
 
   const sessoesRealizadas = useMemo(() => {
@@ -370,10 +349,8 @@ export default function Sessoes() {
     // Filtrar pelo mês atual primeiro
     const sessoesMes = filterSessoesByMonth(sessoes, currentDate);
 
-    // Depois filtrar por status realizado
-    return sessoesMes.filter(
-      (sessao) => sessao.statusSessao === "Pagamento Realizado",
-    ).length;
+    // Depois filtrar por pagamento realizado
+    return sessoesMes.filter((sessao) => sessao.pagamentoRealizado).length;
   }, [sessoes, currentDate]);
 
   // Handlers
@@ -395,34 +372,94 @@ export default function Sessoes() {
     groupId: string,
     groupName: string,
   ) => {
+    setLoadingBulkUpdate(groupId);
     try {
-      setLoadingBulkUpdate(groupId);
+      const sessoesIds = sessoes.map((s) => s.id);
+      await api.patch("/sessoes/bulk-update-repasse", {
+        sessoesIds,
+        repasseRealizado,
+      });
 
-      // Atualizar todas as sessões do grupo
-      const updatePromises = sessoes.map((sessao) =>
-        dispatch(
-          updateSessao({
-            id: sessao.id,
-            sessao: { repasseRealizado },
-          }),
-        ).unwrap(),
-      );
-
-      await Promise.all(updatePromises);
-
-      // Invalidar cache
-      mutate();
+      // Atualizar o cache local do SWR
+      mutate((currentData) => {
+        if (!currentData) return currentData;
+        const newData = currentData.map((sessao: Sessao) =>
+          sessoesIds.includes(sessao.id)
+            ? { ...sessao, repasseRealizado: repasseRealizado }
+            : sessao,
+        );
+        return newData;
+      }, false); // Otimista: atualiza a UI antes da resposta final
 
       toast.success(
-        `Repasse ${repasseRealizado ? "marcado como realizado" : "desmarcado"} para todas as sessões de ${groupName}`,
+        `Repasse de ${sessoes.length} sessões para ${groupName} atualizado com sucesso!`,
       );
     } catch (error) {
-      console.error("Erro ao atualizar repasses:", error);
-      toast.error("Erro ao atualizar repasses em lote");
+      console.error("Erro ao atualizar repasses em lote:", error);
+      toast.error("Ocorreu um erro ao atualizar os repasses.");
+      mutate(); // Reverter em caso de erro
     } finally {
       setLoadingBulkUpdate(null);
     }
   };
+
+  // Função para atualizar pagamento realizado de todas as sessões de um grupo
+  const handleBulkUpdatePagamento = async (
+    sessoes: Sessao[],
+    pagamentoRealizado: boolean,
+    groupId: string,
+    groupName: string,
+  ) => {
+    setLoadingBulkPagamento(groupId);
+    try {
+      const sessoesIds = sessoes.map((s) => s.id);
+      await api.patch("/sessoes/bulk-update-pagamento", {
+        sessoesIds,
+        pagamentoRealizado,
+      });
+
+      // Atualizar o cache local do SWR
+      mutate((currentData) => {
+        if (!currentData) return currentData;
+        const newData = currentData.map((sessao: Sessao) =>
+          sessoesIds.includes(sessao.id)
+            ? { ...sessao, pagamentoRealizado: pagamentoRealizado }
+            : sessao,
+        );
+        return newData;
+      }, false); // Otimista: atualiza a UI antes da resposta final
+
+      toast.success(
+        `Pagamento de ${sessoes.length} sessões para ${groupName} atualizado com sucesso!`,
+      );
+    } catch (error) {
+      console.error("Erro ao atualizar pagamentos em lote:", error);
+      toast.error("Ocorreu um erro ao atualizar os pagamentos.");
+      mutate(); // Reverter em caso de erro
+    } finally {
+      setLoadingBulkPagamento(null);
+    }
+  };
+
+  // Função comentada - não está sendo usada no novo layout
+  // const handleUpdatePagamento = async (sessao: Sessao, pago: boolean) => {
+  //   try {
+  //     await dispatch(
+  //       updateSessao({
+  //         id: sessao.id,
+  //         sessao: { pagamentoRealizado: pago },
+  //       }),
+  //     ).unwrap();
+
+  //     mutate(); // Revalida os dados
+  //     toast.success(
+  //       `Pagamento da sessão de ${sessao.pacienteInfo?.nome} ${pago ? "marcado como realizado" : "desmarcado"}.`,
+  //     );
+  //   } catch (error) {
+  //     toast.error("Erro ao atualizar o status do pagamento.");
+  //     console.error("Erro ao atualizar pagamento:", error);
+  //   }
+  // };
 
   const handleDateChange = (date: Date) => {
     setCurrentDate(date);
@@ -658,7 +695,7 @@ export default function Sessoes() {
         </div>
 
         {/* Filtros */}
-        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 mb-6 lg:grid-cols-2 xl:grid-cols-5">
           {/* Filtro por Terapeuta */}
           <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <User size={24} className="text-gray-500 flex-shrink-0" />
@@ -688,7 +725,7 @@ export default function Sessoes() {
             </div>
           </div>
 
-          {/* Filtro por Status */}
+          {/* Filtro por Pagamento */}
           <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <Receipt size={24} className="text-gray-500 flex-shrink-0" />
             <div className="flex-1 min-w-0">
@@ -696,7 +733,7 @@ export default function Sessoes() {
                 htmlFor="status"
                 className="text-sm font-medium text-gray-700 block mb-2"
               >
-                Filtrar por Status
+                Filtrar por Pagamento
               </label>
               <select
                 className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
@@ -708,6 +745,34 @@ export default function Sessoes() {
                 }}
               >
                 {STATUS_SESSOES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Filtro por Repasse */}
+          <div className="flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+            <PaperPlaneTilt size={24} className="text-gray-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <label
+                htmlFor="repasse"
+                className="text-sm font-medium text-gray-700 block mb-2"
+              >
+                Filtrar por Repasse
+              </label>
+              <select
+                className="w-full text-sm lg:text-base border border-gray-200 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-azul/20 focus:border-azul"
+                name="repasse"
+                id="repasse"
+                value={selectedRepasse}
+                onChange={(e) => {
+                  setSelectedRepasse(e.target.value);
+                }}
+              >
+                {STATUS_REPASSE.map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
@@ -771,700 +836,18 @@ export default function Sessoes() {
           </div>
         </div>
 
-        <Tabs initialActiveTab="Terapeutas">
-          <Tab label="Terapeutas">
-            {/* Tabela de Sessões */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-              <div className="overflow-x-auto">
-                <table className="w-full divide-y divide-gray-200">
-                  <thead className="bg-rosa text-white">
-                    <tr>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Terapeuta
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Paciente
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                        Tipo de Sessão
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Valor
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
-                        Repasse
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Status
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                        Data
-                      </th>
-                      <th className="p-3 text-center text-sm font-medium hidden xl:table-cell">
-                        Repasse
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {Object.keys(groupedSessoesByTerapeuta).length > 0 ? (
-                      Object.entries(groupedSessoesByTerapeuta).map(
-                        ([terapeutaId, sessoesDoTerapeuta]) => {
-                          const groupRepasseState =
-                            getGroupRepasseState(sessoesDoTerapeuta);
-                          const terapeutaNome =
-                            sessoesDoTerapeuta[0].terapeutaInfo?.nome ||
-                            "Terapeuta Não Atribuído";
-
-                          return (
-                            <React.Fragment key={terapeutaId}>
-                              <tr
-                                className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                                onClick={(e) => {
-                                  // Não expandir/contrair se clicou no checkbox
-                                  if (
-                                    (e.target as HTMLElement).closest(
-                                      'input[type="checkbox"]',
-                                    )
-                                  ) {
-                                    return;
-                                  }
-                                  toggleAccordion("terapeuta", terapeutaId);
-                                }}
-                              >
-                                <td colSpan={8} className="p-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                      <span className="font-bold text-gray-800">
-                                        {terapeutaNome} (
-                                        {sessoesDoTerapeuta.length} sessões)
-                                      </span>
-                                      {canEdit && (
-                                        <div
-                                          className="flex items-center space-x-2"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={
-                                              groupRepasseState === "all"
-                                            }
-                                            ref={(input) => {
-                                              if (input) {
-                                                input.indeterminate =
-                                                  groupRepasseState ===
-                                                  "partial";
-                                              }
-                                            }}
-                                            onChange={async (e) => {
-                                              const newState = e.target.checked;
-                                              await handleBulkUpdateRepasse(
-                                                sessoesDoTerapeuta,
-                                                newState,
-                                                terapeutaId,
-                                                terapeutaNome,
-                                              );
-                                            }}
-                                            disabled={
-                                              loadingBulkUpdate === terapeutaId
-                                            }
-                                            className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
-                                            title={
-                                              groupRepasseState === "all"
-                                                ? "Desmarcar repasse de todas as sessões"
-                                                : groupRepasseState ===
-                                                    "partial"
-                                                  ? "Marcar repasse de todas as sessões (algumas já marcadas)"
-                                                  : "Marcar repasse de todas as sessões"
-                                            }
-                                          />
-                                          <span className="text-xs text-gray-600">
-                                            {loadingBulkUpdate === terapeutaId
-                                              ? "Atualizando..."
-                                              : "Repasse em lote"}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    {expandedTherapists.includes(
-                                      terapeutaId,
-                                    ) ? (
-                                      <CaretUp size={20} />
-                                    ) : (
-                                      <CaretDown size={20} />
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                              {expandedTherapists.includes(terapeutaId) &&
-                                sessoesDoTerapeuta.map((sessao, index) => {
-                                  const dataExibicao = formatSessaoDate(sessao);
-                                  const valorRepasse =
-                                    obterValorRepasse(sessao);
-                                  let percentualRepasse = 0;
-
-                                  if (
-                                    sessao.valorRepasse !== undefined &&
-                                    sessao.valorRepasse !== null
-                                  ) {
-                                    percentualRepasse = Math.round(
-                                      (sessao.valorRepasse /
-                                        sessao.valorSessao) *
-                                        100,
-                                    );
-                                  } else {
-                                    if (sessao.terapeutaInfo?.dt_entrada) {
-                                      const dataEntrada = parseAnyDate(
-                                        sessao.terapeutaInfo.dt_entrada,
-                                      );
-                                      const hoje = new Date();
-                                      const diferencaEmMilissegundos =
-                                        hoje.getTime() - dataEntrada.getTime();
-                                      const umAnoEmMilissegundos =
-                                        365.25 * 24 * 60 * 60 * 1000;
-                                      const anosNaClinica =
-                                        diferencaEmMilissegundos /
-                                        umAnoEmMilissegundos;
-                                      percentualRepasse =
-                                        anosNaClinica >= 1 ? 50 : 45;
-                                    } else {
-                                      percentualRepasse = 45;
-                                    }
-                                  }
-
-                                  return (
-                                    <tr
-                                      key={sessao.id}
-                                      className={`hover:bg-blue-50 cursor-pointer transition-colors ${
-                                        index % 2 === 0
-                                          ? "bg-white"
-                                          : "bg-gray-50/50"
-                                      }`}
-                                      onClick={() =>
-                                        canEdit && handleEditSessao(sessao)
-                                      }
-                                    >
-                                      <td className="p-3 pl-8">
-                                        <div className="font-medium text-gray-900 text-sm lg:text-base">
-                                          {sessao.terapeutaInfo?.nome || (
-                                            <span className="text-orange-600 font-medium">
-                                              Não atribuído
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="p-3">
-                                        <div className="text-sm lg:text-base text-gray-900">
-                                          {sessao.pacienteInfo?.nome || (
-                                            <span className="text-orange-600 font-medium">
-                                              Não atribuído
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="lg:hidden mt-1 space-y-1">
-                                          <div className="text-xs text-gray-500">
-                                            Tipo: {sessao.tipoSessao}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            Data: {dataExibicao}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                                          {sessao.tipoSessao}
-                                        </span>
-                                      </td>
-                                      <td className="p-3">
-                                        <div className="text-sm lg:text-base font-semibold text-gray-900">
-                                          R${" "}
-                                          {sessao.valorSessao
-                                            .toFixed(2)
-                                            .replace(".", ",")}
-                                        </div>
-                                        <div className="xl:hidden text-xs text-gray-500 mt-1">
-                                          Repasse: R${" "}
-                                          {valorRepasse
-                                            .toFixed(2)
-                                            .replace(".", ",")}{" "}
-                                          ( {percentualRepasse}%)
-                                        </div>
-                                      </td>
-                                      <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
-                                        <div className="text-sm font-medium text-green-600">
-                                          R${" "}
-                                          {valorRepasse
-                                            .toFixed(2)
-                                            .replace(".", ",")}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {percentualRepasse}% do valor
-                                        </div>
-                                      </td>
-                                      <td className="p-3">
-                                        <span
-                                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                            sessao.statusSessao ===
-                                            "Pagamento Pendente"
-                                              ? "bg-yellow-100 text-yellow-800"
-                                              : sessao.statusSessao ===
-                                                  "Pagamento Realizado"
-                                                ? "bg-green-100 text-green-800"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Emitida"
-                                                  ? "bg-blue-100 text-blue-800"
-                                                  : sessao.statusSessao ===
-                                                      "Nota Fiscal Enviada"
-                                                    ? "bg-purple-100 text-purple-800"
-                                                    : "bg-gray-100 text-gray-800"
-                                          }`}
-                                        >
-                                          <span className="hidden sm:inline">
-                                            {sessao.statusSessao}
-                                          </span>
-                                          <span className="sm:hidden">
-                                            {sessao.statusSessao ===
-                                            "Pagamento Pendente"
-                                              ? "Pendente"
-                                              : sessao.statusSessao ===
-                                                  "Pagamento Realizado"
-                                                ? "Realizado"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Emitida"
-                                                  ? "NF Emitida"
-                                                  : sessao.statusSessao ===
-                                                      "Nota Fiscal Enviada"
-                                                    ? "NF Enviada"
-                                                    : sessao.statusSessao}
-                                          </span>
-                                        </span>
-                                      </td>
-                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                        {dataExibicao}
-                                      </td>
-                                      <td className="p-3 hidden xl:table-cell text-center">
-                                        <div className="flex justify-center">
-                                          {sessao.repasseRealizado ? (
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                              ✓ Realizado
-                                            </span>
-                                          ) : (
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                              Pendente
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              {/* Totalizador para o grupo de terapeuta */}
-                              {expandedTherapists.includes(terapeutaId) && (
-                                <tr className="bg-gray-50 font-semibold">
-                                  <td
-                                    colSpan={3}
-                                    className="p-3 pl-8 text-right text-sm text-gray-700"
-                                  >
-                                    Total:
-                                  </td>
-                                  <td className="p-3 text-sm text-gray-900">
-                                    R${" "}
-                                    {sessoesDoTerapeuta
-                                      .reduce(
-                                        (total, sessao) =>
-                                          total + sessao.valorSessao,
-                                        0,
-                                      )
-                                      .toFixed(2)
-                                      .replace(".", ",")}
-                                  </td>
-                                  <td className="p-3 hidden xl:table-cell text-sm text-green-600">
-                                    R${" "}
-                                    {sessoesDoTerapeuta
-                                      .reduce(
-                                        (total, sessao) =>
-                                          total + obterValorRepasse(sessao),
-                                        0,
-                                      )
-                                      .toFixed(2)
-                                      .replace(".", ",")}
-                                  </td>
-                                  <td colSpan={3} className="p-3"></td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        },
-                      )
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="text-center py-12 px-4">
-                          <div className="max-w-md mx-auto">
-                            <CalendarCheck
-                              size={64}
-                              className="mx-auto mb-4 text-gray-300"
-                            />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                              Nenhuma sessão encontrada
-                            </h3>
-                            <p className="text-gray-600">
-                              Tente ajustar os filtros de busca para encontrar o
-                              que está procurando.
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </Tab>
-          <Tab label="Pacientes">
-            {/* Conteúdo da aba de pacientes */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-              <div className="overflow-x-auto">
-                <table className="w-full divide-y divide-gray-200">
-                  <thead className="bg-rosa text-white">
-                    <tr>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Paciente
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Terapeuta
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                        Tipo de Sessão
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Valor
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
-                        Repasse
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium">
-                        Status
-                      </th>
-                      <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
-                        Data
-                      </th>
-                      <th className="p-3 text-center text-sm font-medium hidden xl:table-cell">
-                        Repasse
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {Object.keys(groupedSessoesByPaciente).length > 0 ? (
-                      Object.entries(groupedSessoesByPaciente).map(
-                        ([pacienteId, sessoesDoPaciente]) => {
-                          const groupRepasseState =
-                            getGroupRepasseState(sessoesDoPaciente);
-                          const pacienteNome =
-                            sessoesDoPaciente[0].pacienteInfo?.nome ||
-                            "Paciente Não Atribuído";
-
-                          return (
-                            <React.Fragment key={pacienteId}>
-                              <tr
-                                className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                                onClick={(e) => {
-                                  // Não expandir/contrair se clicou no checkbox
-                                  if (
-                                    (e.target as HTMLElement).closest(
-                                      'input[type="checkbox"]',
-                                    )
-                                  ) {
-                                    return;
-                                  }
-                                  toggleAccordion("paciente", pacienteId);
-                                }}
-                              >
-                                <td colSpan={8} className="p-3">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                      <span className="font-bold text-gray-800">
-                                        {pacienteNome} (
-                                        {sessoesDoPaciente.length} sessões)
-                                      </span>
-                                      {canEdit && (
-                                        <div
-                                          className="flex items-center space-x-2"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <input
-                                            type="checkbox"
-                                            checked={
-                                              groupRepasseState === "all"
-                                            }
-                                            ref={(input) => {
-                                              if (input) {
-                                                input.indeterminate =
-                                                  groupRepasseState ===
-                                                  "partial";
-                                              }
-                                            }}
-                                            onChange={async (e) => {
-                                              const newState = e.target.checked;
-                                              await handleBulkUpdateRepasse(
-                                                sessoesDoPaciente,
-                                                newState,
-                                                pacienteId,
-                                                pacienteNome,
-                                              );
-                                            }}
-                                            disabled={
-                                              loadingBulkUpdate === pacienteId
-                                            }
-                                            className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
-                                            title={
-                                              groupRepasseState === "all"
-                                                ? "Desmarcar repasse de todas as sessões"
-                                                : groupRepasseState ===
-                                                    "partial"
-                                                  ? "Marcar repasse de todas as sessões (algumas já marcadas)"
-                                                  : "Marcar repasse de todas as sessões"
-                                            }
-                                          />
-                                          <span className="text-xs text-gray-600">
-                                            {loadingBulkUpdate === pacienteId
-                                              ? "Atualizando..."
-                                              : "Repasse em lote"}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    {expandedPatients.includes(pacienteId) ? (
-                                      <CaretUp size={20} />
-                                    ) : (
-                                      <CaretDown size={20} />
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                              {expandedPatients.includes(pacienteId) &&
-                                sessoesDoPaciente.map((sessao, index) => {
-                                  const dataExibicao = formatSessaoDate(sessao);
-                                  const valorRepasse =
-                                    obterValorRepasse(sessao);
-                                  let percentualRepasse = 0;
-
-                                  if (
-                                    sessao.valorRepasse !== undefined &&
-                                    sessao.valorRepasse !== null
-                                  ) {
-                                    percentualRepasse = Math.round(
-                                      (sessao.valorRepasse /
-                                        sessao.valorSessao) *
-                                        100,
-                                    );
-                                  } else {
-                                    if (sessao.terapeutaInfo?.dt_entrada) {
-                                      const dataEntrada = parseAnyDate(
-                                        sessao.terapeutaInfo.dt_entrada,
-                                      );
-                                      const hoje = new Date();
-                                      const diferencaEmMilissegundos =
-                                        hoje.getTime() - dataEntrada.getTime();
-                                      const umAnoEmMilissegundos =
-                                        365.25 * 24 * 60 * 60 * 1000;
-                                      const anosNaClinica =
-                                        diferencaEmMilissegundos /
-                                        umAnoEmMilissegundos;
-                                      percentualRepasse =
-                                        anosNaClinica >= 1 ? 50 : 45;
-                                    } else {
-                                      percentualRepasse = 45;
-                                    }
-                                  }
-
-                                  return (
-                                    <tr
-                                      key={sessao.id}
-                                      className={`hover:bg-blue-50 cursor-pointer transition-colors ${
-                                        index % 2 === 0
-                                          ? "bg-white"
-                                          : "bg-gray-50/50"
-                                      }`}
-                                      onClick={() =>
-                                        canEdit && handleEditSessao(sessao)
-                                      }
-                                    >
-                                      <td className="p-3 pl-8">
-                                        <div className="font-medium text-gray-900 text-sm lg:text-base">
-                                          {sessao.pacienteInfo?.nome || (
-                                            <span className="text-orange-600 font-medium">
-                                              Não atribuído
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="p-3">
-                                        <div className="text-sm lg:text-base text-gray-900">
-                                          {sessao.terapeutaInfo?.nome || (
-                                            <span className="text-orange-600 font-medium">
-                                              Não atribuído
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="lg:hidden mt-1 space-y-1">
-                                          <div className="text-xs text-gray-500">
-                                            Tipo: {sessao.tipoSessao}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            Data: {dataExibicao}
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                                          {sessao.tipoSessao}
-                                        </span>
-                                      </td>
-                                      <td className="p-3">
-                                        <div className="text-sm lg:text-base font-semibold text-gray-900">
-                                          R${" "}
-                                          {sessao.valorSessao
-                                            .toFixed(2)
-                                            .replace(".", ",")}
-                                        </div>
-                                        <div className="xl:hidden text-xs text-gray-500 mt-1">
-                                          Repasse: R${" "}
-                                          {valorRepasse
-                                            .toFixed(2)
-                                            .replace(".", ",")}{" "}
-                                          ( {percentualRepasse}%)
-                                        </div>
-                                      </td>
-                                      <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
-                                        <div className="text-sm font-medium text-green-600">
-                                          R${" "}
-                                          {valorRepasse
-                                            .toFixed(2)
-                                            .replace(".", ",")}
-                                        </div>
-                                        <div className="text-xs text-gray-500">
-                                          {percentualRepasse}% do valor
-                                        </div>
-                                      </td>
-                                      <td className="p-3">
-                                        <span
-                                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                            sessao.statusSessao ===
-                                            "Pagamento Pendente"
-                                              ? "bg-yellow-100 text-yellow-800"
-                                              : sessao.statusSessao ===
-                                                  "Pagamento Realizado"
-                                                ? "bg-green-100 text-green-800"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Emitida"
-                                                  ? "bg-blue-100 text-blue-800"
-                                                  : sessao.statusSessao ===
-                                                      "Nota Fiscal Enviada"
-                                                    ? "bg-purple-100 text-purple-800"
-                                                    : "bg-gray-100 text-gray-800"
-                                          }`}
-                                        >
-                                          <span className="hidden sm:inline">
-                                            {sessao.statusSessao}
-                                          </span>
-                                          <span className="sm:hidden">
-                                            {sessao.statusSessao ===
-                                            "Pagamento Pendente"
-                                              ? "Pendente"
-                                              : sessao.statusSessao ===
-                                                  "Pagamento Realizado"
-                                                ? "Realizado"
-                                                : sessao.statusSessao ===
-                                                    "Nota Fiscal Emitida"
-                                                  ? "NF Emitida"
-                                                  : sessao.statusSessao ===
-                                                      "Nota Fiscal Enviada"
-                                                    ? "NF Enviada"
-                                                    : sessao.statusSessao}
-                                          </span>
-                                        </span>
-                                      </td>
-                                      <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
-                                        {dataExibicao}
-                                      </td>
-                                      <td className="p-3 hidden xl:table-cell text-center">
-                                        <div className="flex justify-center">
-                                          {sessao.repasseRealizado ? (
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                              ✓ Realizado
-                                            </span>
-                                          ) : (
-                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                              Pendente
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                              {/* Totalizador para o grupo de paciente */}
-                              {expandedPatients.includes(pacienteId) && (
-                                <tr className="bg-gray-50 font-semibold">
-                                  <td
-                                    colSpan={3}
-                                    className="p-3 pl-8 text-right text-sm text-gray-700"
-                                  >
-                                    Total:
-                                  </td>
-                                  <td className="p-3 text-sm text-gray-900">
-                                    R${" "}
-                                    {sessoesDoPaciente
-                                      .reduce(
-                                        (total, sessao) =>
-                                          total + sessao.valorSessao,
-                                        0,
-                                      )
-                                      .toFixed(2)
-                                      .replace(".", ",")}
-                                  </td>
-                                  <td className="p-3 hidden xl:table-cell text-sm text-green-600">
-                                    R${" "}
-                                    {sessoesDoPaciente
-                                      .reduce(
-                                        (total, sessao) =>
-                                          total + obterValorRepasse(sessao),
-                                        0,
-                                      )
-                                      .toFixed(2)
-                                      .replace(".", ",")}
-                                  </td>
-                                  <td colSpan={3} className="p-3"></td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          );
-                        },
-                      )
-                    ) : (
-                      <tr>
-                        <td colSpan={8} className="text-center py-12 px-4">
-                          <div className="max-w-md mx-auto">
-                            <CalendarCheck
-                              size={64}
-                              className="mx-auto mb-4 text-gray-300"
-                            />
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                              Nenhuma sessão encontrada
-                            </h3>
-                            <p className="text-gray-600">
-                              Tente ajustar os filtros de busca para encontrar o
-                              que está procurando.
-                            </p>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </Tab>
-        </Tabs>
+        <SessoesTable
+          groupedSessoes={groupedSessoesByTerapeuta}
+          canEdit={canEdit}
+          handleEditSessao={handleEditSessao}
+          handleBulkUpdateRepasse={handleBulkUpdateRepasse}
+          loadingBulkUpdate={loadingBulkUpdate}
+          expandedTherapists={expandedTherapists}
+          expandedPatients={expandedPatients}
+          toggleAccordion={toggleAccordion}
+          handleBulkUpdatePagamento={handleBulkUpdatePagamento}
+          loadingBulkPagamento={loadingBulkPagamento}
+        />
 
         {/* Edit Session Modal */}
         {sessaoEditando && (

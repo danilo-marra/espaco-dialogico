@@ -1,6 +1,5 @@
 import Head from "next/head";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
 import {
   InstagramLogo,
@@ -45,12 +44,6 @@ function Home() {
               alt="Espaço Dialógico"
               className="mr-4"
             />
-            <Link
-              href="/dashboard/"
-              className="text-azul hover:text-blue-800 font-medium bg-azul/10 px-3 py-1 rounded-md transition-colors ml-4 text-sm"
-            >
-              Admin
-            </Link>
           </div>
 
           {/* Desktop Navigation */}

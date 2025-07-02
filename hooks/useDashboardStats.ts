@@ -136,11 +136,25 @@ export function useDashboardStats(): {
       color: statusColors[status as keyof typeof statusColors] || "#6b7280",
     }));
 
-    // Sessões por status
+    // Sessões por status (baseado em pagamentoRealizado e notaFiscal)
     const sessoesPorStatus = Object.entries(
       sessoes.reduce(
         (acc, sessao) => {
-          acc[sessao.statusSessao] = (acc[sessao.statusSessao] || 0) + 1;
+          let status: string;
+          if (sessao.pagamentoRealizado && sessao.notaFiscal === "Enviada") {
+            status = "Nota Fiscal Enviada";
+          } else if (
+            sessao.pagamentoRealizado &&
+            sessao.notaFiscal === "Emitida"
+          ) {
+            status = "Nota Fiscal Emitida";
+          } else if (sessao.pagamentoRealizado) {
+            status = "Pagamento Realizado";
+          } else {
+            status = "Pagamento Pendente";
+          }
+
+          acc[status] = (acc[status] || 0) + 1;
           return acc;
         },
         {} as Record<string, number>,

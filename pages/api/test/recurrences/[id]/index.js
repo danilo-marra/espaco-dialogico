@@ -18,15 +18,6 @@ async function postHandler(req, res) {
     const { agendamentoBase, diasDaSemana, dataFimRecorrencia, periodicidade } =
       req.body;
 
-    // Debug: Log dos dados recebidos
-    console.log("=== DADOS RECEBIDOS NA API (TESTE) ===");
-    console.log("recurrenceId:", recurrenceId);
-    console.log("agendamentoBase:", JSON.stringify(agendamentoBase, null, 2));
-    console.log("diasDaSemana:", diasDaSemana);
-    console.log("dataFimRecorrencia:", dataFimRecorrencia);
-    console.log("periodicidade:", periodicidade);
-    console.log("===============================");
-
     // Validar os dados necessários
     if (
       !agendamentoBase ||

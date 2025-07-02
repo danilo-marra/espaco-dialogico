@@ -44,8 +44,11 @@ async function postHandler(request, response) {
       paciente_id,
       tipoSessao,
       valorSessao,
-      statusSessao = "Pagamento Pendente",
+      valorRepasse,
       agendamento_id,
+      pagamentoRealizado = false,
+      notaFiscal = "Não Emitida",
+      repasseRealizado = false,
     } = request.body;
 
     // Validação básica dos campos obrigatórios
@@ -77,16 +80,11 @@ async function postHandler(request, response) {
       });
     }
 
-    // Validar status da sessão
-    const statusSessaoValidos = [
-      "Pagamento Pendente",
-      "Pagamento Realizado",
-      "Nota Fiscal Emitida",
-      "Nota Fiscal Enviada",
-    ];
-    if (statusSessao && !statusSessaoValidos.includes(statusSessao)) {
+    // ATUALIZADO: Validar nota fiscal
+    const notasFiscaisValidas = ["Não Emitida", "Emitida", "Enviada"];
+    if (notaFiscal && !notasFiscaisValidas.includes(notaFiscal)) {
       return response.status(400).json({
-        error: "Status de sessão inválido",
+        error: "Status de nota fiscal inválido",
       });
     }
 
@@ -96,8 +94,11 @@ async function postHandler(request, response) {
       paciente_id,
       tipoSessao,
       valorSessao,
-      statusSessao,
+      valorRepasse,
       agendamento_id,
+      pagamentoRealizado,
+      notaFiscal,
+      repasseRealizado,
     });
 
     return response.status(201).json(novaSessao);
