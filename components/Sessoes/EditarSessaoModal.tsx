@@ -64,7 +64,8 @@ export function EditarSessaoModal({
       valorSessao: sessao?.valorSessao,
       valorRepasse: sessao?.valorRepasse,
       repasseRealizado: sessao?.repasseRealizado || false,
-      statusSessao: sessao?.statusSessao,
+      pagamentoRealizado: sessao?.pagamentoRealizado || false,
+      notaFiscal: sessao?.notaFiscal || "Não Emitida",
     },
   });
 
@@ -108,13 +109,17 @@ export function EditarSessaoModal({
       }
 
       // Formatando o valor da sessão
-      setValorInput(sessao.valorSessao.toString().replace(".", ","));
+      setValorInput(sessao.valorSessao?.toString().replace(".", ",") || "");
 
       // Configurar o valor de repasse realizado
       setValue("repasseRealizado", sessao.repasseRealizado || false);
 
+      // NOVOS CAMPOS: Configurar pagamento realizado e nota fiscal
+      setValue("pagamentoRealizado", sessao.pagamentoRealizado || false);
+      setValue("notaFiscal", sessao.notaFiscal || "Não Emitida");
+
       // Configurar o valor de repasse personalizado se existir
-      if (sessao.valorRepasse !== undefined) {
+      if (sessao.valorRepasse !== undefined && sessao.valorRepasse !== null) {
         setUseCustomRepasse(true);
         setValorRepasseInput(sessao.valorRepasse.toString().replace(".", ","));
         setValue("valorRepasse", sessao.valorRepasse);
@@ -167,8 +172,10 @@ export function EditarSessaoModal({
       > = {
         tipoSessao: data.tipoSessao,
         valorSessao: data.valorSessao,
-        statusSessao: data.statusSessao,
         repasseRealizado: data.repasseRealizado || false,
+        // NOVOS CAMPOS:
+        pagamentoRealizado: data.pagamentoRealizado || false,
+        notaFiscal: data.notaFiscal || "Não Emitida",
       };
 
       // Adicionar o valorRepasse apenas se estamos usando um valor personalizado
@@ -268,6 +275,49 @@ export function EditarSessaoModal({
                 )}
               </div>
 
+              {/* Campos do Responsável */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                <h4 className="text-sm font-medium text-gray-800 mb-3">
+                  Informações do Responsável
+                </h4>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Nome do Responsável
+                  </label>
+                  <input
+                    type="text"
+                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
+                    value={sessao?.pacienteInfo?.nome_responsavel || ""}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Telefone do Responsável
+                  </label>
+                  <input
+                    type="text"
+                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
+                    value={sessao?.pacienteInfo?.telefone_responsavel || ""}
+                    disabled
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Email do Responsável
+                  </label>
+                  <input
+                    type="email"
+                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
+                    value={sessao?.pacienteInfo?.email_responsavel || ""}
+                    disabled
+                  />
+                </div>
+              </div>
+
               <div>
                 <label
                   htmlFor="tipoSessao"
@@ -321,32 +371,52 @@ export function EditarSessaoModal({
                 )}
               </div>
 
+              {/* Checkbox - Pagamento Realizado */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Status do Pagamento
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="pagamentoRealizado"
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    {...register("pagamentoRealizado")}
+                  />
+                  <label
+                    htmlFor="pagamentoRealizado"
+                    className="text-sm text-gray-700"
+                  >
+                    Pagamento realizado
+                  </label>
+                </div>
+                {errors.pagamentoRealizado && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.pagamentoRealizado.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Select - Nota Fiscal */}
               <div>
                 <label
-                  htmlFor="statusSessao"
+                  htmlFor="notaFiscal"
                   className="block text-sm font-medium"
                 >
-                  Status do Pagamento <span className="text-red-500">*</span>
+                  Nota Fiscal <span className="text-red-500">*</span>
                 </label>
                 <select
                   className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                  id="statusSessao"
-                  {...register("statusSessao")}
+                  id="notaFiscal"
+                  {...register("notaFiscal")}
                 >
-                  <option value="Pagamento Pendente">Pagamento Pendente</option>
-                  <option value="Pagamento Realizado">
-                    Pagamento Realizado
-                  </option>
-                  <option value="Nota Fiscal Emitida">
-                    Nota Fiscal Emitida
-                  </option>
-                  <option value="Nota Fiscal Enviada">
-                    Nota Fiscal Enviada
-                  </option>
+                  <option value="Não Emitida">Nota Fiscal não Emitida</option>
+                  <option value="Emitida">Nota Fiscal Emitida</option>
+                  <option value="Enviada">Nota Fiscal Enviada</option>
                 </select>
-                {errors.statusSessao && (
+                {errors.notaFiscal && (
                   <p className="text-red-500 text-sm mt-1">
-                    {errors.statusSessao.message}
+                    {errors.notaFiscal.message}
                   </p>
                 )}
               </div>

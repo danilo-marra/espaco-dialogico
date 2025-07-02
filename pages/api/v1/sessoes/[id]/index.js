@@ -12,6 +12,7 @@ router.get(getHandler);
 router.put(putHandler);
 router.delete(deleteHandler);
 
+// Exportar o handler com tratamento de erros
 export default router.handler(controller.errorHandlers);
 
 // Buscar uma sessão específica por ID
@@ -36,17 +37,44 @@ async function putHandler(request, response) {
       tipoSessao,
       valorSessao,
       valorRepasse,
-      statusSessao,
       repasseRealizado,
+      pagamentoRealizado,
+      notaFiscal,
     } = request.body;
+
+    // Validar tipo de sessão se fornecido
+    if (tipoSessao) {
+      const tiposSessaoValidos = [
+        "Anamnese",
+        "Atendimento",
+        "Avaliação",
+        "Visitar Escolar",
+      ];
+      if (!tiposSessaoValidos.includes(tipoSessao)) {
+        return response.status(400).json({
+          error: "Tipo de sessão inválido",
+        });
+      }
+    }
+
+    // Validar valor da sessão se fornecido
+    if (notaFiscal) {
+      const notasFiscaisValidas = ["Não Emitida", "Emitida", "Enviada"];
+      if (!notasFiscaisValidas.includes(notaFiscal)) {
+        return response.status(400).json({
+          error: "Status de nota fiscal inválido",
+        });
+      }
+    }
 
     // Usar o método update do modelo
     const updatedSessao = await sessao.update(id, {
       tipoSessao,
       valorSessao,
       valorRepasse,
-      statusSessao,
       repasseRealizado,
+      pagamentoRealizado,
+      notaFiscal,
     });
 
     return response.status(200).json(updatedSessao);

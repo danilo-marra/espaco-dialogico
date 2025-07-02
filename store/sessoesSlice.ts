@@ -51,6 +51,40 @@ export const updateSessao = createAsyncThunk<
   }
 });
 
+// NOVO: Thunk para criar uma sessão
+export const createSessao = createAsyncThunk<
+  Sessao,
+  Partial<Sessao>,
+  { rejectValue: string }
+>("sessoes/createSessao", async (sessaoData, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.post<Sessao>(API_ENDPOINT, sessaoData);
+    return response.data;
+  } catch (error: any) {
+    if (isAxiosError(error)) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+    return rejectWithValue("Erro ao criar sessão");
+  }
+});
+
+// NOVO: Thunk para deletar uma sessão
+export const deleteSessao = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>("sessoes/deleteSessao", async (id, { rejectWithValue }) => {
+  try {
+    await axiosInstance.delete(`${API_ENDPOINT}/${id}`);
+    return id;
+  } catch (error: any) {
+    if (isAxiosError(error)) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+    return rejectWithValue("Erro ao deletar sessão");
+  }
+});
+
 // Slice de Sessões
 const sessoesSlice = createSlice({
   name: "sessoes",
@@ -58,6 +92,16 @@ const sessoesSlice = createSlice({
   reducers: {
     clearErrors: (state) => {
       state.error = null;
+    },
+    // NOVO: Action para atualizar múltiplas sessões localmente
+    updateMultipleSessoes: (
+      state,
+      action: PayloadAction<{ ids: string[]; updates: Partial<Sessao> }>,
+    ) => {
+      const { ids, updates } = action.payload;
+      state.data = state.data.map((sessao) =>
+        ids.includes(sessao.id) ? { ...sessao, ...updates } : sessao,
+      );
     },
   },
   extraReducers: (builder) => {
@@ -98,8 +142,42 @@ const sessoesSlice = createSlice({
       state.loading = false;
       state.error = action.payload || "Erro ao atualizar sessão";
     });
+
+    // NOVO: Create Sessão
+    builder.addCase(createSessao.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      createSessao.fulfilled,
+      (state, action: PayloadAction<Sessao>) => {
+        state.loading = false;
+        state.data.unshift(action.payload); // Add to beginning
+      },
+    );
+    builder.addCase(createSessao.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Erro ao criar sessão";
+    });
+
+    // NOVO: Delete Sessão
+    builder.addCase(deleteSessao.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      deleteSessao.fulfilled,
+      (state, action: PayloadAction<string>) => {
+        state.loading = false;
+        state.data = state.data.filter((s) => s.id !== action.payload);
+      },
+    );
+    builder.addCase(deleteSessao.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Erro ao deletar sessão";
+    });
   },
 });
 
-export const { clearErrors } = sessoesSlice.actions;
+export const { clearErrors, updateMultipleSessoes } = sessoesSlice.actions;
 export default sessoesSlice.reducer;
