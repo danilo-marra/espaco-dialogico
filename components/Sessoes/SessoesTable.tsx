@@ -2,6 +2,10 @@ import { CaretDown, CaretUp, CalendarCheck } from "@phosphor-icons/react";
 import React from "react";
 import { Sessao } from "tipos";
 import { formatSessaoDate, parseAnyDate } from "utils/dateUtils";
+import {
+  getNotaFiscalStatusColor,
+  getPagamentoStatusColor,
+} from "utils/statusColors";
 
 // Função para determinar o estado do checkbox de um grupo
 const getGroupRepasseState = (sessoes: Sessao[]) => {
@@ -398,30 +402,23 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                         </td>
                                         <td className="p-3 text-center">
                                           <span
-                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                              sessao.notaFiscal ===
-                                              "Não Emitida"
-                                                ? "bg-gray-100 text-gray-800"
-                                                : sessao.notaFiscal ===
-                                                    "Emitida"
-                                                  ? "bg-blue-100 text-blue-800"
-                                                  : "bg-purple-100 text-purple-800"
-                                            }`}
+                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotaFiscalStatusColor(
+                                              sessao.notaFiscal ||
+                                                "Não Emitida",
+                                            )}`}
                                           >
                                             {sessao.notaFiscal}
                                           </span>
                                         </td>
                                         <td className="p-3 text-center">
                                           <div className="flex justify-center">
-                                            {sessao.pagamentoRealizado ? (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                ✓ Realizado
-                                              </span>
-                                            ) : (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                                Pendente
-                                              </span>
-                                            )}
+                                            <span
+                                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPagamentoStatusColor(sessao.pagamentoRealizado)}`}
+                                            >
+                                              {sessao.pagamentoRealizado
+                                                ? "✓ Realizado"
+                                                : "Pendente"}
+                                            </span>
                                           </div>
                                         </td>
                                       </tr>

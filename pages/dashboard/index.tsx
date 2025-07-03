@@ -6,7 +6,6 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { DashboardCharts } from "../../components/Dashboard/DashboardCharts";
 import { DashboardSummary } from "../../components/Dashboard/DashboardSummary";
 import { DashboardAlerts } from "../../components/Dashboard/DashboardAlerts";
-import { QuickMetrics } from "../../components/Dashboard/QuickMetrics";
 import PermissionGuard from "../../components/PermissionGuard";
 
 export default function Dashboard() {
@@ -45,17 +44,12 @@ export default function Dashboard() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6 text-azul">Dashboard</h1>
 
-        {/* Métricas rápidas - apenas para admins */}
+        {/* Seção de gráficos e estatísticas - apenas para admins - PRIMEIRO ITEM */}
         <PermissionGuard resource="usuarios">
           <div className="mb-8">
-            <QuickMetrics />
+            <DashboardCharts />
           </div>
         </PermissionGuard>
-
-        {/* Seção de alertas importantes */}
-        <div className="mb-8">
-          <DashboardAlerts />
-        </div>
 
         {/* Seção de resumo executivo - apenas para admins */}
         <PermissionGuard resource="transacoes">
@@ -64,12 +58,10 @@ export default function Dashboard() {
           </div>
         </PermissionGuard>
 
-        {/* Seção de gráficos e estatísticas - apenas para admins */}
-        <PermissionGuard resource="usuarios">
-          <div className="mb-8">
-            <DashboardCharts />
-          </div>
-        </PermissionGuard>
+        {/* Seção de alertas importantes - ÚLTIMO ITEM */}
+        <div className="mb-8">
+          <DashboardAlerts />
+        </div>
       </div>
     </>
   );

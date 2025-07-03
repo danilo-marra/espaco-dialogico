@@ -13,6 +13,7 @@ const ROLE_PERMISSIONS = {
     "faturamento",
     "convites",
     "usuarios",
+    "notas-fiscais",
     "perfil",
   ],
   terapeuta: ["agendamentos", "faturamento", "perfil"],
@@ -23,6 +24,7 @@ const ROLE_PERMISSIONS = {
     "terapeutas",
     "transacoes",
     "faturamento",
+    "notas-fiscais",
     "perfil",
   ],
 };
@@ -38,6 +40,7 @@ const ROUTE_RESOURCE_MAP = {
   "/dashboard/faturamento": "faturamento",
   "/dashboard/convites": "convites",
   "/dashboard/usuarios": "usuarios",
+  "/dashboard/notas-fiscais": "notas-fiscais",
   "/dashboard/perfil": "perfil",
 };
 

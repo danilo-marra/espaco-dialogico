@@ -2,7 +2,6 @@ import React from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../../src/components/ui/card";
@@ -124,82 +123,6 @@ export function DashboardSummary() {
           </Card>
         ))}
       </div>
-
-      {/* Card de insights rápidos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-azul">Insights Rápidos</CardTitle>
-          <CardDescription>
-            Principais métricas e tendências do seu negócio
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg bg-gray-50">
-              <h4 className="font-medium text-gray-900 mb-2">
-                Status Financeiro
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Receita Total:</span>
-                  <span className="font-medium text-green-600">
-                    {formatCurrency(stats.receita)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Gastos Total:</span>
-                  <span className="font-medium text-red-600">
-                    {formatCurrency(stats.gastos)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t pt-2">
-                  <span className="text-gray-600">Saldo:</span>
-                  <span
-                    className={`font-bold ${stats.saldoTotal >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {formatCurrency(stats.saldoTotal)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 border rounded-lg bg-gray-50">
-              <h4 className="font-medium text-gray-900 mb-2">
-                Crescimento Mensal
-              </h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Pacientes:</span>
-                  <span
-                    className={`font-medium ${stats.crescimentoMensal.pacientes >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {stats.crescimentoMensal.pacientes >= 0 ? "+" : ""}
-                    {stats.crescimentoMensal.pacientes.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sessões:</span>
-                  <span
-                    className={`font-medium ${stats.crescimentoMensal.sessoes >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {stats.crescimentoMensal.sessoes >= 0 ? "+" : ""}
-                    {stats.crescimentoMensal.sessoes.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Receita:</span>
-                  <span
-                    className={`font-medium ${stats.crescimentoMensal.receita >= 0 ? "text-green-600" : "text-red-600"}`}
-                  >
-                    {stats.crescimentoMensal.receita >= 0 ? "+" : ""}
-                    {stats.crescimentoMensal.receita.toFixed(1)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
