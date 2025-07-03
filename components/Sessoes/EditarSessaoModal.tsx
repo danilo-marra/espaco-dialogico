@@ -215,8 +215,8 @@ export function EditarSessaoModal({
   return (
     <Dialog.Root open={open} onOpenChange={onClose}>
       <Dialog.Portal>
-        <Dialog.Overlay className="bg-gray-500/25 data-[state=open]:animate-overlayShow fixed inset-0 z-50" />
-        <Dialog.Content className="data-[state=open]:animate-contentShow fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[768px] translate-x-[-50%] translate-y-[-50%] rounded-[6px] bg-white p-[25px] shadow-[hsl(206_22%_7%_/_35%)_0px_10px_38px_-10px,_hsl(206_22%_7%_/_20%)_0px_10px_20px_-15px] focus:outline-none overflow-y-auto z-50">
+        <Dialog.Overlay className="bg-gray-500/25 fixed inset-0 z-50" />
+        <Dialog.Content className="fixed top-[50%] left-[50%] max-h-[85vh] w-[90vw] max-w-[768px] translate-x-[-50%] translate-y-[-50%] rounded-md bg-white p-6 overflow-y-auto z-50">
           <Dialog.Title className="text-xl font-medium text-azul mb-4">
             Editar Sessão
           </Dialog.Title>
@@ -225,20 +225,21 @@ export function EditarSessaoModal({
           </Dialog.Description>
           <form
             onSubmit={handleSubmit(handleUpdateSessao)}
-            className="space-y-6 p-6 bg-white rounded-lg"
+            className="space-y-4"
           >
-            <h3 className="font-medium text-azul text-xl">
+            <h3 className="font-medium text-azul text-xl mt-6">
               Dados da Sessão
               {sessionDateDisplay ? ` do dia ${sessionDateDisplay}` : ""}
             </h3>
 
+            {/* Seção: Informações Básicas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label
                   htmlFor="terapeuta_id"
                   className="block text-sm font-medium"
                 >
-                  Terapeuta <span className="text-red-500">*</span>
+                  Terapeuta
                 </label>
                 <input
                   type="text"
@@ -259,7 +260,7 @@ export function EditarSessaoModal({
                   htmlFor="paciente_id"
                   className="block text-sm font-medium"
                 >
-                  Paciente <span className="text-red-500">*</span>
+                  Paciente
                 </label>
                 <input
                   type="text"
@@ -275,12 +276,67 @@ export function EditarSessaoModal({
                 )}
               </div>
 
-              {/* Campos do Responsável */}
-              <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                <h4 className="text-sm font-medium text-gray-800 mb-3">
-                  Informações do Responsável
-                </h4>
+              <div>
+                <label
+                  htmlFor="tipoSessao"
+                  className="block text-sm font-medium"
+                >
+                  Tipo de Sessão
+                </label>
+                <input
+                  type="text"
+                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
+                  id="tipoSessao"
+                  value={sessao.tipoSessao}
+                  disabled
+                  readOnly
+                />
+              </div>
 
+              <div>
+                <label
+                  htmlFor="valorSessao"
+                  className="block text-sm font-medium"
+                >
+                  Valor da Sessão
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-[10px] text-gray-500">
+                    R$
+                  </span>
+                  <input
+                    type="text"
+                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md pl-8 pr-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                    id="valorSessao"
+                    placeholder="0,00"
+                    value={valorInput}
+                    onChange={(e) => {
+                      // Limpar o valor (manter apenas os números)
+                      const numericValue = e.target.value.replace(/\D/g, "");
+                      // Converter para valor decimal
+                      const decimalValue = Number(numericValue) / 100;
+                      // Atualizar o valor no formulário
+                      setValue("valorSessao", decimalValue);
+                      // Formatar para exibição
+                      setValorInput(decimalValue.toFixed(2).replace(".", ","));
+                    }}
+                  />
+                </div>
+                {errors.valorSessao && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.valorSessao.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Seção: Informações do Responsável */}
+            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+              <h4 className="text-sm font-medium text-gray-800 mb-3">
+                Informações do Responsável
+              </h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Nome do Responsável
@@ -317,164 +373,128 @@ export function EditarSessaoModal({
                   />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label
-                  htmlFor="tipoSessao"
-                  className="block text-sm font-medium"
-                >
-                  Tipo de Sessão
-                </label>
-                <input
-                  type="text"
-                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px] bg-gray-100 cursor-not-allowed"
-                  id="tipoSessao"
-                  value={sessao.tipoSessao}
-                  disabled
-                  readOnly
-                />
-              </div>
+            {/* Seção: Controle Financeiro */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-medium text-azul">
+                Controle Financeiro
+              </h4>
 
-              <div>
-                <label
-                  htmlFor="valorSessao"
-                  className="block text-sm font-medium"
-                >
-                  Valor <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-[10px] text-gray-500">
-                    R$
-                  </span>
-                  <input
-                    type="text"
-                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md pl-8 pr-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                    id="valorSessao"
-                    placeholder="0,00"
-                    value={valorInput}
-                    onChange={(e) => {
-                      // Limpar o valor (manter apenas os números)
-                      const numericValue = e.target.value.replace(/\D/g, "");
-                      // Converter para valor decimal
-                      const decimalValue = Number(numericValue) / 100;
-                      // Atualizar o valor no formulário
-                      setValue("valorSessao", decimalValue);
-                      // Formatar para exibição
-                      setValorInput(decimalValue.toFixed(2).replace(".", ","));
-                    }}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Status do Pagamento
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="pagamentoRealizado"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      {...register("pagamentoRealizado")}
+                    />
+                    <label
+                      htmlFor="pagamentoRealizado"
+                      className="text-sm text-gray-700"
+                    >
+                      Pagamento realizado
+                    </label>
+                  </div>
+                  {errors.pagamentoRealizado && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.pagamentoRealizado.message}
+                    </p>
+                  )}
                 </div>
-                {errors.valorSessao && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.valorSessao.message}
-                  </p>
-                )}
-              </div>
 
-              {/* Checkbox - Pagamento Realizado */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Status do Pagamento
-                </label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="pagamentoRealizado"
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    {...register("pagamentoRealizado")}
-                  />
+                <div>
                   <label
-                    htmlFor="pagamentoRealizado"
-                    className="text-sm text-gray-700"
+                    htmlFor="notaFiscal"
+                    className="block text-sm font-medium"
                   >
-                    Pagamento realizado
+                    Nota Fiscal
                   </label>
+                  <select
+                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                    id="notaFiscal"
+                    {...register("notaFiscal")}
+                  >
+                    <option value="Não Emitida">Nota Fiscal não Emitida</option>
+                    <option value="Emitida">Nota Fiscal Emitida</option>
+                    <option value="Enviada">Nota Fiscal Enviada</option>
+                  </select>
+                  {errors.notaFiscal && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.notaFiscal.message}
+                    </p>
+                  )}
                 </div>
-                {errors.pagamentoRealizado && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.pagamentoRealizado.message}
-                  </p>
-                )}
               </div>
+            </div>
 
-              {/* Select - Nota Fiscal */}
-              <div>
-                <label
-                  htmlFor="notaFiscal"
-                  className="block text-sm font-medium"
-                >
-                  Nota Fiscal <span className="text-red-500">*</span>
-                </label>
-                <select
-                  className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                  id="notaFiscal"
-                  {...register("notaFiscal")}
-                >
-                  <option value="Não Emitida">Nota Fiscal não Emitida</option>
-                  <option value="Emitida">Nota Fiscal Emitida</option>
-                  <option value="Enviada">Nota Fiscal Enviada</option>
-                </select>
-                {errors.notaFiscal && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.notaFiscal.message}
-                  </p>
-                )}
-              </div>
+            {/* Seção: Repasse ao Terapeuta */}
+            <div className="space-y-4">
+              <h4 className="text-lg font-medium text-azul">
+                Repasse ao Terapeuta
+              </h4>
 
-              <div>
-                <label
-                  htmlFor="valorRepasse"
-                  className="block text-sm font-medium"
-                >
-                  Valor de Repasse
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-[10px] text-gray-500">
-                    R$
-                  </span>
-                  <input
-                    type="text"
-                    className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md pl-8 pr-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                    id="valorRepasse"
-                    placeholder="0,00"
-                    value={valorRepasseInput}
-                    onChange={(e) => {
-                      // Limpar o valor (manter apenas os números)
-                      const numericValue = e.target.value.replace(/\D/g, "");
-                      // Converter para valor decimal
-                      const decimalValue = Number(numericValue) / 100;
-                      // Atualizar o valor no formulário
-                      setValue("valorRepasse", decimalValue);
-                      // Formatar para exibição
-                      setValorRepasseInput(
-                        decimalValue.toFixed(2).replace(".", ","),
-                      );
-                    }}
-                    disabled={!useCustomRepasse}
-                  />
-                </div>
-                <div className="mt-2 flex items-center">
-                  <input
-                    type="checkbox"
-                    id="useCustomRepasse"
-                    checked={useCustomRepasse}
-                    onChange={(e) => setUseCustomRepasse(e.target.checked)}
-                    className="mr-2"
-                  />
-                  <label htmlFor="useCustomRepasse" className="text-sm">
-                    Usar valor de repasse personalizado
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label
+                    htmlFor="valorRepasse"
+                    className="block text-sm font-medium"
+                  >
+                    Valor de Repasse
                   </label>
-                </div>
-                {!useCustomRepasse && (
-                  <p className="text-sm mt-1">
-                    Valor calculado automaticamente: R${" "}
-                    {repasseCalculado.toFixed(2).replace(".", ",")} (
-                    {percentualRepasseCalculado}%)
-                  </p>
-                )}
+                  <div className="relative">
+                    <span className="absolute left-3 top-[10px] text-gray-500">
+                      R$
+                    </span>
+                    <input
+                      type="text"
+                      className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md pl-8 pr-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                      id="valorRepasse"
+                      placeholder="0,00"
+                      value={valorRepasseInput}
+                      onChange={(e) => {
+                        // Limpar o valor (manter apenas os números)
+                        const numericValue = e.target.value.replace(/\D/g, "");
+                        // Converter para valor decimal
+                        const decimalValue = Number(numericValue) / 100;
+                        // Atualizar o valor no formulário
+                        setValue("valorRepasse", decimalValue);
+                        // Formatar para exibição
+                        setValorRepasseInput(
+                          decimalValue.toFixed(2).replace(".", ","),
+                        );
+                      }}
+                      disabled={!useCustomRepasse}
+                    />
+                  </div>
 
-                {/* Campo Repasse Realizado */}
-                <div className="mt-4">
+                  <div className="mt-2 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="useCustomRepasse"
+                      checked={useCustomRepasse}
+                      onChange={(e) => setUseCustomRepasse(e.target.checked)}
+                      className="mr-2 h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                    />
+                    <label htmlFor="useCustomRepasse" className="text-sm">
+                      Usar valor de repasse personalizado
+                    </label>
+                  </div>
+
+                  {!useCustomRepasse && (
+                    <p className="text-sm mt-1 text-gray-600">
+                      Valor calculado automaticamente: R${" "}
+                      {repasseCalculado.toFixed(2).replace(".", ",")} (
+                      {percentualRepasseCalculado}%)
+                    </p>
+                  )}
+                </div>
+
+                <div>
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -496,29 +516,31 @@ export function EditarSessaoModal({
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded mr-2"
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-azul hover:bg-azul/75 text-white px-4 py-2 rounded"
+                className="px-4 py-2 bg-azul text-white rounded hover:bg-azul/75"
               >
                 {isSubmitting ? "Salvando..." : "Salvar"}
               </button>
             </div>
           </form>
 
-          <Dialog.Close
-            className="text-rosa hover:bg-rosa/50 focus:shadow-azul absolute top-[10px] right-[10px] inline-flex h-[25px] w-[25px] appearance-none items-center justify-center rounded-full focus:shadow-[0_0_0_2px] focus:outline-none"
-            aria-label="Close"
-          >
-            <X />
+          <Dialog.Close asChild>
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              aria-label="Close"
+            >
+              <X size={24} />
+            </button>
           </Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>

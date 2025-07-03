@@ -9,6 +9,7 @@ import {
   UsersThree,
   EnvelopeSimple,
   User,
+  Receipt,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -129,6 +130,20 @@ const Menu = () => {
                   >
                     <CalendarCheck size={24} />
                     <span>Sessões</span>
+                  </Link>
+                </li>
+                <hr />
+              </>
+            )}
+            {hasPermission("notas-fiscais") && (
+              <>
+                <li className="hover:text-blue-300 cursor-pointer">
+                  <Link
+                    href="/dashboard/notas-fiscais"
+                    className="flex items-center space-x-2 w-full"
+                  >
+                    <Receipt size={24} />
+                    <span>Notas Fiscais</span>
                   </Link>
                 </li>
                 <hr />
