@@ -6,6 +6,7 @@ import {
   getNotaFiscalStatusColor,
   getPagamentoStatusColor,
 } from "utils/statusColors";
+import { currencyFormatter } from "utils/formatter";
 
 // Função para determinar o estado do checkbox de um grupo
 const getGroupRepasseState = (sessoes: Sessao[]) => {
@@ -131,74 +132,151 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
   };
 
   const groupedData = groupByTerapeutaAndPaciente(groupedSessoes);
+
+  if (Object.keys(groupedData).length === 0) {
+    return (
+      <div className="text-center py-12 px-4 bg-white rounded-lg shadow-sm">
+        <div className="max-w-md mx-auto">
+          <CalendarCheck size={64} className="mx-auto mb-4 text-gray-300" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Nenhuma sessão encontrada
+          </h3>
+          <p className="text-gray-600">
+            Tente ajustar os filtros de busca para encontrar o que está
+            procurando.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-6">
-      <div className="overflow-x-auto">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-rosa text-white">
-            <tr>
-              <th className="p-3 text-left text-sm font-medium">
-                Terapeuta/Paciente
-              </th>
-              <th className="p-3 text-left text-sm font-medium">Data</th>
-              <th className="p-3 text-left text-sm font-medium">Tipo</th>
-              <th className="p-3 text-left text-sm font-medium">Valor</th>
-              <th className="p-3 text-center text-sm font-medium">
-                Nota Fiscal
-              </th>
-              <th className="p-3 text-center text-sm font-medium">Pagamento</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {Object.keys(groupedData).length > 0 ? (
-              Object.entries(groupedData).map(
-                ([terapeutaId, pacientesSessoes]) => {
-                  const allSessoesDoTerapeuta =
-                    Object.values(pacientesSessoes).flat();
-                  const groupRepasseState = getGroupRepasseState(
-                    allSessoesDoTerapeuta,
-                  );
-                  const terapeutaNome =
-                    allSessoesDoTerapeuta[0].terapeutaInfo?.nome ||
-                    "Terapeuta Não Atribuído";
+    <div className="space-y-4">
+      {Object.entries(groupedData).map(([terapeutaId, pacientesSessoes]) => {
+        const allSessoesDoTerapeuta = Object.values(pacientesSessoes).flat();
+        const groupRepasseState = getGroupRepasseState(allSessoesDoTerapeuta);
+        const terapeutaNome =
+          allSessoesDoTerapeuta[0].terapeutaInfo?.nome ||
+          "Terapeuta Não Atribuído";
+        const totalRepasseTerapeuta = allSessoesDoTerapeuta.reduce(
+          (total, sessao) => total + obterValorRepasse(sessao),
+          0,
+        );
+        const isTerapeutaExpanded = expandedTherapists.includes(terapeutaId);
 
-                  // Calcular total de repasse do terapeuta
-                  const totalRepasseTerapeuta = allSessoesDoTerapeuta.reduce(
-                    (total, sessao) => total + obterValorRepasse(sessao),
-                    0,
-                  );
-
-                  return (
-                    <React.Fragment key={terapeutaId}>
-                      {/* Linha do Terapeuta */}
-                      <tr
-                        className="bg-gray-200 text-gray-900 hover:bg-gray-200 cursor-pointer"
-                        onClick={(e) => {
-                          if (
-                            (e.target as HTMLElement).closest(
-                              'input[type="checkbox"]',
-                            )
-                          ) {
-                            return;
+        return (
+          <div
+            key={terapeutaId}
+            className="bg-white rounded-lg shadow-sm overflow-hidden"
+          >
+            {/* Cabeçalho do Terapeuta */}
+            <div
+              className="bg-gray-100 border-b border-gray-200 px-4 py-3 cursor-pointer"
+              onClick={() => toggleAccordion("terapeuta", terapeutaId)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {terapeutaNome}
+                  </h3>
+                  <span className="text-sm text-gray-600">
+                    ({allSessoesDoTerapeuta.length}{" "}
+                    {allSessoesDoTerapeuta.length === 1 ? "sessão" : "sessões"})
+                  </span>
+                  <span className="text-sm font-bold text-green-700">
+                    Repasse Total:{" "}
+                    {currencyFormatter.format(totalRepasseTerapeuta)}
+                  </span>
+                  {canEdit && (
+                    <div
+                      className="flex items-center space-x-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={groupRepasseState === "all"}
+                        ref={(input) => {
+                          if (input) {
+                            input.indeterminate =
+                              groupRepasseState === "partial";
                           }
-                          toggleAccordion("terapeuta", terapeutaId);
                         }}
+                        onChange={(e) =>
+                          handleBulkUpdateRepasse(
+                            allSessoesDoTerapeuta,
+                            e.target.checked,
+                            terapeutaId,
+                            terapeutaNome,
+                          )
+                        }
+                        disabled={loadingBulkUpdate === terapeutaId}
+                        className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                        title={
+                          groupRepasseState === "all"
+                            ? "Desmarcar repasse de todas as sessões"
+                            : "Marcar repasse de todas as sessões"
+                        }
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Repasse Realizado
+                        {loadingBulkUpdate === terapeutaId && "..."}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {isTerapeutaExpanded ? (
+                  <CaretUp size={20} />
+                ) : (
+                  <CaretDown size={20} />
+                )}
+              </div>
+            </div>
+
+            {/* Pacientes do Terapeuta (Conteúdo do Acordeão) */}
+            {isTerapeutaExpanded && (
+              <div className="p-4 space-y-3">
+                {Object.entries(pacientesSessoes).map(
+                  ([pacienteId, sessoesDoPaciente]) => {
+                    const pacienteKey = `${terapeutaId}-${pacienteId}`;
+                    const isPacienteExpanded =
+                      expandedPatients.includes(pacienteKey);
+                    const pacienteNome =
+                      sessoesDoPaciente[0].pacienteInfo?.nome ||
+                      "Paciente Não Identificado";
+                    const totalSessoesPaciente = sessoesDoPaciente.reduce(
+                      (acc, s) => acc + s.valorSessao,
+                      0,
+                    );
+                    const groupPagamentoState =
+                      getGroupPagamentoState(sessoesDoPaciente);
+
+                    return (
+                      <div
+                        key={pacienteKey}
+                        className="border border-gray-200 rounded-md"
                       >
-                        <td colSpan={6} className="p-3">
+                        {/* Cabeçalho do Paciente */}
+                        <div
+                          className="bg-gray-50 px-4 py-2 cursor-pointer"
+                          onClick={() =>
+                            toggleAccordion("paciente", pacienteKey)
+                          }
+                        >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <span className="font-bold text-gray-800">
-                                {terapeutaNome} ({allSessoesDoTerapeuta.length}{" "}
-                                {allSessoesDoTerapeuta.length === 1
+                              <span className="font-semibold text-gray-800">
+                                {pacienteNome}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                ({sessoesDoPaciente.length}{" "}
+                                {sessoesDoPaciente.length === 1
                                   ? "sessão"
                                   : "sessões"}
                                 )
                               </span>
-                              <span className="text-sm font-semibold text-gray-600">
-                                Repasse ao Terapeuta: R${" "}
-                                {totalRepasseTerapeuta
-                                  .toFixed(2)
-                                  .replace(".", ",")}
+                              <span className="text-sm font-semibold text-blue-600">
+                                Valor Total:{" "}
+                                {currencyFormatter.format(totalSessoesPaciente)}
                               </span>
                               {canEdit && (
                                 <div
@@ -207,253 +285,102 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                 >
                                   <input
                                     type="checkbox"
-                                    checked={groupRepasseState === "all"}
+                                    checked={groupPagamentoState === "all"}
                                     ref={(input) => {
                                       if (input) {
                                         input.indeterminate =
-                                          groupRepasseState === "partial";
+                                          groupPagamentoState === "partial";
                                       }
                                     }}
-                                    onChange={async (e) => {
-                                      const newState = e.target.checked;
-                                      await handleBulkUpdateRepasse(
-                                        allSessoesDoTerapeuta,
-                                        newState,
-                                        terapeutaId,
-                                        terapeutaNome,
-                                      );
-                                    }}
-                                    disabled={loadingBulkUpdate === terapeutaId}
-                                    className="h-4 w-4 text-azul focus:ring-azul border-gray-300 rounded"
+                                    onChange={(e) =>
+                                      handleBulkUpdatePagamento(
+                                        sessoesDoPaciente,
+                                        e.target.checked,
+                                        pacienteKey,
+                                        pacienteNome,
+                                      )
+                                    }
+                                    disabled={
+                                      loadingBulkPagamento === pacienteKey
+                                    }
+                                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                                     title={
-                                      groupRepasseState === "all"
-                                        ? "Desmarcar repasse de todas as sessões"
-                                        : groupRepasseState === "partial"
-                                          ? "Marcar repasse de todas as sessões (algumas já marcadas)"
-                                          : "Marcar repasse de todas as sessões"
+                                      groupPagamentoState === "all"
+                                        ? "Desmarcar pagamento de todas as sessões"
+                                        : "Marcar pagamento de todas as sessões"
                                     }
                                   />
-                                  <span className="text-sm font-semibold text-gray-600">
-                                    Repasse realizado{" "}
-                                    {loadingBulkUpdate === terapeutaId &&
-                                      "(Atualizando...)"}
+                                  <span className="text-sm font-medium text-gray-600">
+                                    Pagamento Recebido
+                                    {loadingBulkPagamento === pacienteKey &&
+                                      "..."}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            {expandedTherapists.includes(terapeutaId) ? (
-                              <CaretUp size={20} />
+                            {isPacienteExpanded ? (
+                              <CaretUp size={16} />
                             ) : (
-                              <CaretDown size={20} />
+                              <CaretDown size={16} />
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </div>
 
-                      {/* Pacientes do Terapeuta */}
-                      {expandedTherapists.includes(terapeutaId) &&
-                        Object.entries(pacientesSessoes).map(
-                          ([pacienteId, sessoesDoPaciente]) => {
-                            const groupPagamentoState =
-                              getGroupPagamentoState(sessoesDoPaciente);
-                            const pacienteNome =
-                              sessoesDoPaciente[0].pacienteInfo?.nome ||
-                              "Paciente Não Atribuído";
-
-                            // Calcular total das sessões do paciente
-                            const totalSessoesPaciente =
-                              sessoesDoPaciente.reduce(
-                                (total, sessao) => total + sessao.valorSessao,
-                                0,
-                              );
-
-                            const pacienteKey = `${terapeutaId}-${pacienteId}`;
-
-                            return (
-                              <React.Fragment key={pacienteKey}>
-                                {/* Linha do Paciente */}
-                                <tr
-                                  className="bg-gray-100 hover:bg-gray-200 cursor-pointer"
-                                  onClick={(e) => {
-                                    if (
-                                      (e.target as HTMLElement).closest(
-                                        'input[type="checkbox"]',
-                                      )
-                                    ) {
-                                      return;
-                                    }
-                                    toggleAccordion("paciente", pacienteKey);
-                                  }}
-                                >
-                                  <td colSpan={6} className="p-3 pl-8">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center space-x-3">
-                                        <span className="font-semibold text-gray-800">
-                                          {pacienteNome} (
-                                          {sessoesDoPaciente.length}{" "}
-                                          {sessoesDoPaciente.length === 1
-                                            ? "sessão"
-                                            : "sessões"}
-                                          )
-                                        </span>
-                                        <span className="text-sm font-semibold text-gray-600">
-                                          Total: R${" "}
-                                          {totalSessoesPaciente
-                                            .toFixed(2)
-                                            .replace(".", ",")}
-                                        </span>
-                                        {canEdit && (
-                                          <div
-                                            className="flex items-center space-x-2"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <input
-                                              type="checkbox"
-                                              checked={
-                                                groupPagamentoState === "all"
-                                              }
-                                              ref={(input) => {
-                                                if (input) {
-                                                  input.indeterminate =
-                                                    groupPagamentoState ===
-                                                    "partial";
-                                                }
-                                              }}
-                                              onChange={async (e) => {
-                                                const newState =
-                                                  e.target.checked;
-                                                await handleBulkUpdatePagamento(
-                                                  sessoesDoPaciente,
-                                                  newState,
-                                                  pacienteKey,
-                                                  pacienteNome,
-                                                );
-                                              }}
-                                              disabled={
-                                                loadingBulkPagamento ===
-                                                pacienteKey
-                                              }
-                                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                              title={
-                                                groupPagamentoState === "all"
-                                                  ? "Desmarcar pagamento de todas as sessões"
-                                                  : groupPagamentoState ===
-                                                      "partial"
-                                                    ? "Marcar pagamento de todas as sessões (algumas já marcadas)"
-                                                    : "Marcar pagamento de todas as sessões"
-                                              }
-                                            />
-                                            <span className="text-sm font-semibold text-gray-600">
-                                              Pagamento recebido{" "}
-                                              {loadingBulkPagamento ===
-                                                pacienteKey &&
-                                                "(Atualizando...)"}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      {expandedPatients.includes(
-                                        pacienteKey,
-                                      ) ? (
-                                        <CaretUp size={16} />
-                                      ) : (
-                                        <CaretDown size={16} />
-                                      )}
-                                    </div>
-                                  </td>
-                                </tr>
-
-                                {/* Sessões do Paciente */}
-                                {expandedPatients.includes(pacienteKey) &&
-                                  sessoesDoPaciente.map((sessao, index) => {
-                                    const dataExibicao =
-                                      formatSessaoDate(sessao);
-
-                                    return (
-                                      <tr
-                                        key={sessao.id}
-                                        className={`hover:bg-blue-50 transition-colors cursor-pointer ${
-                                          index % 2 === 0
-                                            ? "bg-white"
-                                            : "bg-gray-50/50"
-                                        }`}
-                                        onClick={() =>
-                                          canEdit && handleEditSessao(sessao)
-                                        }
-                                      >
-                                        <td className="p-3 pl-16 text-sm text-gray-600">
-                                          <div className="font-medium text-gray-500 text-xs">
-                                            Sessão individual
-                                          </div>
-                                        </td>
-                                        <td className="p-3 text-sm text-gray-600">
-                                          {dataExibicao}
-                                        </td>
-                                        <td className="p-3 text-sm text-gray-600">
-                                          {sessao.tipoSessao}
-                                        </td>
-                                        <td className="p-3">
-                                          <div className="text-sm font-semibold text-gray-900">
-                                            R${" "}
-                                            {sessao.valorSessao
-                                              ?.toFixed(2)
-                                              .replace(".", ",")}
-                                          </div>
-                                        </td>
-                                        <td className="p-3 text-center">
-                                          <span
-                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getNotaFiscalStatusColor(
-                                              sessao.notaFiscal ||
-                                                "Não Emitida",
-                                            )}`}
-                                          >
-                                            {sessao.notaFiscal}
-                                          </span>
-                                        </td>
-                                        <td className="p-3 text-center">
-                                          <div className="flex justify-center">
-                                            <span
-                                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPagamentoStatusColor(sessao.pagamentoRealizado)}`}
-                                            >
-                                              {sessao.pagamentoRealizado
-                                                ? "✓ Realizado"
-                                                : "Pendente"}
-                                            </span>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                              </React.Fragment>
-                            );
-                          },
+                        {/* Lista de Sessões do Paciente */}
+                        {isPacienteExpanded && (
+                          <ul className="divide-y divide-gray-200">
+                            {sessoesDoPaciente.map((sessao) => (
+                              <li
+                                key={sessao.id}
+                                className="px-4 py-3 hover:bg-gray-50/50 transition-colors cursor-pointer grid grid-cols-5 gap-4 items-center"
+                                onClick={() =>
+                                  canEdit && handleEditSessao(sessao)
+                                }
+                              >
+                                <div className="text-sm text-gray-800">
+                                  <p className="font-medium">
+                                    {formatSessaoDate(sessao)}
+                                  </p>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {sessao.tipoSessao}
+                                </div>
+                                <div className="text-sm font-semibold text-gray-900">
+                                  {currencyFormatter.format(sessao.valorSessao)}
+                                </div>
+                                <div>
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getNotaFiscalStatusColor(
+                                      sessao.notaFiscal || "Não Emitida",
+                                    )}`}
+                                  >
+                                    {sessao.notaFiscal}
+                                  </span>
+                                </div>
+                                <div>
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPagamentoStatusColor(
+                                      sessao.pagamentoRealizado,
+                                    )}`}
+                                  >
+                                    {sessao.pagamentoRealizado
+                                      ? "✓ Realizado"
+                                      : "Pendente"}
+                                  </span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
                         )}
-                    </React.Fragment>
-                  );
-                },
-              )
-            ) : (
-              <tr>
-                <td colSpan={6} className="text-center py-12 px-4">
-                  <div className="max-w-md mx-auto">
-                    <CalendarCheck
-                      size={64}
-                      className="mx-auto mb-4 text-gray-300"
-                    />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Nenhuma sessão encontrada
-                    </h3>
-                    <p className="text-gray-600">
-                      Tente ajustar os filtros de busca para encontrar o que
-                      está procurando.
-                    </p>
-                  </div>
-                </td>
-              </tr>
+                      </div>
+                    );
+                  },
+                )}
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
