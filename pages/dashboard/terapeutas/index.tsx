@@ -320,14 +320,8 @@ export default function Terapeutas() {
                       )}
                     </td>
                     <td className="p-3 hidden 2xl:table-cell text-sm text-gray-600">
-                      {terapeuta.chave_pix ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                          PIX configurado
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
-                          Sem PIX
-                        </span>
+                      {terapeuta.chave_pix || (
+                        <span className="text-gray-400">-</span>
                       )}
                     </td>
                     <td className="p-3 sticky right-0 bg-white">

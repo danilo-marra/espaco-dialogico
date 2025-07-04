@@ -10,6 +10,8 @@ import {
   Info,
   FileText,
   PaperPlaneTilt,
+  ArrowsOut,
+  ArrowsIn,
 } from "@phosphor-icons/react";
 import Head from "next/head";
 import React, { useMemo, useState } from "react";
@@ -258,6 +260,26 @@ export default function Sessoes() {
     }
   };
 
+  const expandAll = () => {
+    const allTerapeutaIds = Object.keys(groupedSessoesByTerapeuta);
+    setExpandedTherapists(allTerapeutaIds);
+
+    const allPacienteKeys = Object.values(groupedSessoesByTerapeuta)
+      .flat()
+      .map(
+        (sessao) =>
+          `${sessao.terapeutaInfo?.id}-${sessao.paciente_id?.toString()}`,
+      )
+      .filter((value, index, self) => self.indexOf(value) === index); // Unique keys
+
+    setExpandedPatients(allPacienteKeys);
+  };
+
+  const collapseAll = () => {
+    setExpandedTherapists([]);
+    setExpandedPatients([]);
+  };
+
   // Filtrar sessões - com segurança para quando sessoes for null ou undefined
   const filteredSessoes = useMemo(
     () =>
@@ -498,10 +520,46 @@ export default function Sessoes() {
       <Head>
         <title>Sessões</title>
       </Head>
-      <main className="flex-1 bg-gray-100 p-4 min-w-0 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="flex flex-col space-y-4 mb-6 sm:flex-row sm:space-y-0 sm:items-center sm:justify-between">
-          <h1 className="text-xl font-semibold sm:text-2xl">Sessões</h1>
+
+      {/* Modal de Edição */}
+      {sessaoEditando && (
+        <EditarSessaoModal
+          sessao={sessaoEditando}
+          open={!!sessaoEditando}
+          onClose={() => setSessaoEditando(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      <main className="flex-1 p-6 bg-gray-50">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-800">Sessões</h1>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={expandAll}
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul"
+              title="Expandir todos os grupos"
+            >
+              <ArrowsOut size={16} className="mr-2" />
+              Expandir Tudo
+            </button>
+            <button
+              onClick={collapseAll}
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul"
+              title="Recolher todos os grupos"
+            >
+              <ArrowsIn size={16} className="mr-2" />
+              Recolher Tudo
+            </button>
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className="flex items-center px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-azul"
+              title="Mostrar legenda"
+            >
+              <Info size={16} className="mr-2" />
+              Legenda
+            </button>
+          </div>
         </div>
 
         {/* Cards de resumo */}
@@ -848,16 +906,6 @@ export default function Sessoes() {
           handleBulkUpdatePagamento={handleBulkUpdatePagamento}
           loadingBulkPagamento={loadingBulkPagamento}
         />
-
-        {/* Edit Session Modal */}
-        {sessaoEditando && (
-          <EditarSessaoModal
-            sessao={sessaoEditando}
-            open={!!sessaoEditando}
-            onClose={() => setSessaoEditando(null)}
-            onSuccess={handleEditSuccess}
-          />
-        )}
       </main>
     </div>
   );
