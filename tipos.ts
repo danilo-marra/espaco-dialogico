@@ -4,7 +4,9 @@ export interface Terapeuta {
   foto?: string | null;
   telefone: string;
   email: string;
-  endereco: string;
+  crp?: string; // Número do Conselho Regional de Psicologia (opcional)
+  dt_nascimento?: Date | string | null; // Data de nascimento (opcional)
+  curriculo_arquivo?: string | null; // URL do arquivo PDF do currículo (opcional)
   dt_entrada: Date | string;
   chave_pix: string;
   user_id?: string | null; // ID do usuário associado (para vincular com o sistema de login)

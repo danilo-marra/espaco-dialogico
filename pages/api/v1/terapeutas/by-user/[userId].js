@@ -122,7 +122,8 @@ async function putHandler(request, response) {
       nome: getFormValue(fields.nome),
       telefone: getFormValue(fields.telefone),
       email: getFormValue(fields.email),
-      endereco: getFormValue(fields.endereco),
+      crp: getFormValue(fields.crp),
+      dt_nascimento: getFormValue(fields.dt_nascimento),
       dt_entrada: getFormValue(fields.dt_entrada),
       chave_pix: getFormValue(fields.chave_pix),
     };
@@ -171,7 +172,7 @@ async function putHandler(request, response) {
     terapeutaData.nome = terapeutaData.nome.trim();
     terapeutaData.telefone = terapeutaData.telefone.trim();
     terapeutaData.email = terapeutaData.email.trim().toLowerCase();
-    terapeutaData.endereco = terapeutaData.endereco?.trim() || "";
+    terapeutaData.crp = terapeutaData.crp?.trim() || "";
     terapeutaData.chave_pix = terapeutaData.chave_pix?.trim() || "";
 
     // Upload da foto para o Cloudinary, se existir
@@ -181,8 +182,36 @@ async function putHandler(request, response) {
         terapeutaData.foto = fotoUrl;
         console.log("Upload da foto realizado com sucesso:", fotoUrl);
       } catch (error) {
-        console.error("Erro ao fazer upload para o Cloudinary:", error);
+        console.error("Erro ao fazer upload da foto para o Cloudinary:", error);
         // Continua sem a foto se falhar o upload
+      }
+    }
+
+    // Upload do currículo PDF para o Cloudinary, se existir
+    if (
+      files.curriculo_arquivo &&
+      Array.isArray(files.curriculo_arquivo) &&
+      files.curriculo_arquivo.length > 0
+    ) {
+      try {
+        const curriculoUrl = await uploadToCloudinary(
+          files.curriculo_arquivo[0],
+        );
+        terapeutaData.curriculo_arquivo = curriculoUrl;
+        console.log(
+          "Upload do arquivo de currículo realizado com sucesso:",
+          curriculoUrl,
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao fazer upload do currículo para o Cloudinary:",
+          error,
+        );
+        return response.status(500).json({
+          error: "Erro ao fazer upload do currículo",
+          message:
+            "Não foi possível fazer upload do arquivo de currículo. Tente novamente.",
+        });
       }
     }
 

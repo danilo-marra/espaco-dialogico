@@ -5,6 +5,7 @@ import Head from "next/head";
 import Image from "next/image";
 import useAuth from "../../hooks/useAuth";
 import { Terapeuta } from "../../tipos";
+import { PDFUploader } from "../../components/common/PDFUploader";
 
 export default function PerfilPage() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -298,13 +299,17 @@ function TerapeutaProfileSection({
     nome: terapeutaData?.nome || "",
     telefone: terapeutaData?.telefone || "",
     email: terapeutaData?.email || "",
-    endereco: terapeutaData?.endereco || "",
+    crp: terapeutaData?.crp || "",
+    dt_nascimento: terapeutaData?.dt_nascimento
+      ? new Date(terapeutaData.dt_nascimento).toISOString().split("T")[0]
+      : "",
     dt_entrada: terapeutaData?.dt_entrada
       ? new Date(terapeutaData.dt_entrada).toISOString().split("T")[0]
       : "",
     chave_pix: terapeutaData?.chave_pix || "",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPDF, setSelectedPDF] = useState<File | null>(null);
 
   useEffect(() => {
     if (terapeutaData) {
@@ -312,7 +317,10 @@ function TerapeutaProfileSection({
         nome: terapeutaData.nome || "",
         telefone: terapeutaData.telefone || "",
         email: terapeutaData.email || "",
-        endereco: terapeutaData.endereco || "",
+        crp: terapeutaData.crp || "",
+        dt_nascimento: terapeutaData.dt_nascimento
+          ? new Date(terapeutaData.dt_nascimento).toISOString().split("T")[0]
+          : "",
         dt_entrada: terapeutaData.dt_entrada
           ? new Date(terapeutaData.dt_entrada).toISOString().split("T")[0]
           : "",
@@ -331,6 +339,10 @@ function TerapeutaProfileSection({
 
     if (selectedFile) {
       submitFormData.append("foto", selectedFile);
+    }
+
+    if (selectedPDF) {
+      submitFormData.append("curriculo_arquivo", selectedPDF);
     }
 
     await onSubmit(submitFormData);
@@ -447,6 +459,35 @@ function TerapeutaProfileSection({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                CRP
+              </label>
+              <input
+                type="text"
+                value={formData.crp}
+                onChange={(e) =>
+                  setFormData({ ...formData, crp: e.target.value })
+                }
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                placeholder="Ex: 01/123456"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Data de Nascimento
+              </label>
+              <input
+                type="date"
+                value={formData.dt_nascimento}
+                onChange={(e) =>
+                  setFormData({ ...formData, dt_nascimento: e.target.value })
+                }
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Data de Entrada na Clínica *
               </label>
               <input
@@ -466,21 +507,6 @@ function TerapeutaProfileSection({
                 </p>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Endereço
-            </label>
-            <input
-              type="text"
-              value={formData.endereco}
-              onChange={(e) =>
-                setFormData({ ...formData, endereco: e.target.value })
-              }
-              className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              placeholder="Rua, número, bairro, cidade"
-            />
           </div>
 
           <div>
@@ -523,6 +549,32 @@ function TerapeutaProfileSection({
             />
             <p className="text-sm text-gray-500 mt-1">
               Formatos aceitos: JPG, PNG, GIF. Tamanho máximo: 10MB
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Currículo em PDF
+            </label>
+            {terapeutaData?.curriculo_arquivo && (
+              <div className="mb-2">
+                <a
+                  href={`/api/download/curriculo/${terapeutaData.id}`}
+                  download
+                  className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                >
+                  <span>📄</span>
+                  <span>Baixar currículo atual</span>
+                </a>
+              </div>
+            )}
+            <PDFUploader
+              onFileSelect={(file) => setSelectedPDF(file)}
+              maxSize={10 * 1024 * 1024} // 10MB em bytes
+              label="Arraste seu currículo em PDF aqui ou clique para selecionar"
+            />
+            <p className="text-sm text-gray-500 mt-1">
+              Formato aceito: PDF. Tamanho máximo: 10MB
             </p>
           </div>
 
@@ -569,6 +621,20 @@ function TerapeutaProfileSection({
             <p className="font-medium">{terapeutaData?.email}</p>
           </div>
           <div>
+            <p className="text-gray-600">CRP</p>
+            <p className="font-medium">{terapeutaData?.crp || "-"}</p>
+          </div>
+          <div>
+            <p className="text-gray-600">Data de Nascimento</p>
+            <p className="font-medium">
+              {terapeutaData?.dt_nascimento
+                ? new Date(terapeutaData.dt_nascimento).toLocaleDateString(
+                    "pt-BR",
+                  )
+                : "-"}
+            </p>
+          </div>
+          <div>
             <p className="text-gray-600">Data de Entrada</p>
             <p className="font-medium">
               {terapeutaData?.dt_entrada
@@ -577,13 +643,22 @@ function TerapeutaProfileSection({
             </p>
           </div>
           <div>
-            <p className="text-gray-600">Endereço</p>
-            <p className="font-medium">{terapeutaData?.endereco || "-"}</p>
-          </div>
-          <div>
             <p className="text-gray-600">Chave PIX</p>
             <p className="font-medium">{terapeutaData?.chave_pix}</p>
           </div>
+          {terapeutaData?.curriculo_arquivo && (
+            <div className="md:col-span-2">
+              <p className="text-gray-600">Currículo PDF</p>
+              <a
+                href={`/api/download/curriculo/${terapeutaData.id}`}
+                download
+                className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              >
+                <span>📄</span>
+                <span>Baixar currículo em PDF</span>
+              </a>
+            </div>
+          )}
         </div>
       )}
     </div>

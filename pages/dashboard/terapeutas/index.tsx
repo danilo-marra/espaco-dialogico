@@ -1,4 +1,5 @@
 import {
+  Eye,
   PencilSimple,
   Plus,
   TrashSimple,
@@ -235,10 +236,16 @@ export default function Terapeutas() {
                     Email
                   </th>
                   <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
-                    Endereço
+                    CRP
+                  </th>
+                  <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
+                    Data de Nascimento
                   </th>
                   <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
                     Data de Entrada
+                  </th>
+                  <th className="p-3 text-left text-sm font-medium hidden 2xl:table-cell">
+                    Currículo PDF
                   </th>
                   <th className="p-3 text-left text-sm font-medium hidden 2xl:table-cell">
                     Chave PIX
@@ -270,9 +277,17 @@ export default function Terapeutas() {
                             {terapeuta.email}
                           </div>
                         )}
-                        {terapeuta.endereco && (
+                        {terapeuta.crp && (
                           <div className="xl:hidden text-xs text-gray-500">
-                            {terapeuta.endereco}
+                            CRP: {terapeuta.crp}
+                          </div>
+                        )}
+                        {terapeuta.dt_nascimento && (
+                          <div className="xl:hidden text-xs text-gray-500">
+                            Nascimento:{" "}
+                            {new Date(
+                              terapeuta.dt_nascimento,
+                            ).toLocaleDateString()}
                           </div>
                         )}
                       </div>
@@ -307,14 +322,40 @@ export default function Terapeutas() {
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600 max-w-[200px] truncate">
-                      {terapeuta.endereco || (
+                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                      {terapeuta.crp || (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
+                      {terapeuta.dt_nascimento ? (
+                        dateFormatter.format(new Date(terapeuta.dt_nascimento))
+                      ) : (
                         <span className="text-gray-400">-</span>
                       )}
                     </td>
                     <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
                       {terapeuta.dt_entrada ? (
                         dateFormatter.format(new Date(terapeuta.dt_entrada))
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="p-3 hidden 2xl:table-cell text-sm text-gray-600">
+                      {terapeuta.curriculo_arquivo ? (
+                        <a
+                          href={`/api/download/curriculo/${terapeuta.id}`}
+                          download
+                          className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                          title="Baixar currículo em PDF"
+                        >
+                          <Eye
+                            size={16}
+                            weight="bold"
+                            className="flex-shrink-0"
+                          />
+                          <span>Baixar PDF</span>
+                        </a>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}

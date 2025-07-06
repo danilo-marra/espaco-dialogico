@@ -68,7 +68,8 @@ async function putHandler(request, response) {
     nome: getFormValue(fields.nome),
     telefone: getFormValue(fields.telefone),
     email: getFormValue(fields.email),
-    endereco: getFormValue(fields.endereco),
+    crp: getFormValue(fields.crp),
+    dt_nascimento: getFormValue(fields.dt_nascimento),
     dt_entrada: getFormValue(fields.dt_entrada),
     chave_pix: getFormValue(fields.chave_pix),
   };
@@ -86,6 +87,30 @@ async function putHandler(request, response) {
     } catch (error) {
       console.error("Erro ao fazer upload para o Cloudinary:", error);
       // Continua sem a foto se falhar o upload
+    }
+  }
+
+  // Upload do arquivo PDF do currículo para o Cloudinary, se existir
+  if (
+    files.curriculo_arquivo &&
+    Array.isArray(files.curriculo_arquivo) &&
+    files.curriculo_arquivo.length > 0
+  ) {
+    try {
+      const curriculoArquivoUrl = await uploadToCloudinary(
+        files.curriculo_arquivo[0],
+      );
+      terapeutaData.curriculo_arquivo = curriculoArquivoUrl;
+      console.log(
+        "Upload do arquivo de currículo realizado com sucesso:",
+        curriculoArquivoUrl,
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao fazer upload do currículo para o Cloudinary:",
+        error,
+      );
+      // Continua sem o arquivo se falhar o upload
     }
   }
 

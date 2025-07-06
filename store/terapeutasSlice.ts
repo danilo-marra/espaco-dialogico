@@ -17,11 +17,11 @@ const API_ENDPOINT = "/terapeutas";
 // Thunk para adicionar terapeuta com upload de arquivo
 export const addTerapeuta = createAsyncThunk<
   Terapeuta,
-  { terapeuta: Omit<Terapeuta, "id">; foto?: File },
+  { terapeuta: Omit<Terapeuta, "id">; foto?: File; curriculoPdf?: File },
   { rejectValue: string }
 >(
   "terapeutas/addTerapeuta",
-  async ({ terapeuta, foto }, { rejectWithValue }) => {
+  async ({ terapeuta, foto, curriculoPdf }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
 
@@ -29,7 +29,15 @@ export const addTerapeuta = createAsyncThunk<
       formData.append("nome", terapeuta.nome);
       formData.append("telefone", terapeuta.telefone);
       formData.append("email", terapeuta.email);
-      formData.append("endereco", terapeuta.endereco);
+      if (terapeuta.crp) formData.append("crp", terapeuta.crp);
+      if (terapeuta.dt_nascimento) {
+        formData.append(
+          "dt_nascimento",
+          typeof terapeuta.dt_nascimento === "string"
+            ? terapeuta.dt_nascimento
+            : terapeuta.dt_nascimento.toISOString(),
+        );
+      }
       formData.append(
         "dt_entrada",
         typeof terapeuta.dt_entrada === "string"
@@ -41,6 +49,11 @@ export const addTerapeuta = createAsyncThunk<
       // Adicionar foto se existir
       if (foto) {
         formData.append("foto", foto);
+      }
+
+      // Adicionar arquivo PDF do currículo se existir
+      if (curriculoPdf) {
+        formData.append("curriculo_arquivo", curriculoPdf);
       }
 
       console.log("Enviando formData:", Object.fromEntries(formData));
@@ -82,17 +95,25 @@ export const fetchTerapeutas = createAsyncThunk<
 // Thunk para editar terapeuta
 export const updateTerapeuta = createAsyncThunk<
   Terapeuta,
-  { terapeuta: Terapeuta; foto?: File },
+  { terapeuta: Terapeuta; foto?: File; curriculoPdf?: File },
   { rejectValue: string }
 >(
   "terapeutas/updateTerapeuta",
-  async ({ terapeuta, foto }, { rejectWithValue }) => {
+  async ({ terapeuta, foto, curriculoPdf }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
       formData.append("nome", terapeuta.nome);
       formData.append("telefone", terapeuta.telefone);
       formData.append("email", terapeuta.email);
-      formData.append("endereco", terapeuta.endereco);
+      if (terapeuta.crp) formData.append("crp", terapeuta.crp);
+      if (terapeuta.dt_nascimento) {
+        formData.append(
+          "dt_nascimento",
+          typeof terapeuta.dt_nascimento === "string"
+            ? terapeuta.dt_nascimento
+            : new Date(terapeuta.dt_nascimento).toISOString(),
+        );
+      }
       formData.append(
         "dt_entrada",
         typeof terapeuta.dt_entrada === "string"
@@ -103,6 +124,11 @@ export const updateTerapeuta = createAsyncThunk<
 
       if (foto) {
         formData.append("foto", foto);
+      }
+
+      // Adicionar arquivo PDF do currículo se existir
+      if (curriculoPdf) {
+        formData.append("curriculo_arquivo", curriculoPdf);
       }
 
       const response = await axiosInstance.put<Terapeuta>(
