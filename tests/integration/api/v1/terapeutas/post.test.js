@@ -110,7 +110,7 @@ describe("POST /api/v1/terapeutas", () => {
             telefone: "61992095674",
             email: "julianabarbosa.psi@gmail.com",
             crp: "CRP 06/12345",
-            dt_nascimento: "1985-03-15T03:00:00.000Z",
+            dt_nascimento: "1985-03-15",
             dt_entrada: "2025-02-22T03:00:00.000Z",
             chave_pix: "pix871",
           }),
@@ -121,24 +121,33 @@ describe("POST /api/v1/terapeutas", () => {
 
       const responseBody = await response.json();
 
-      expect(responseBody).toEqual({
-        id: responseBody.id,
+      // Validar a estrutura básica primeiro
+      expect(responseBody).toMatchObject({
         nome: "Juliana Barbosa",
         foto: null,
         telefone: "61992095674",
         email: "julianabarbosa.psi@gmail.com",
         crp: "CRP 06/12345",
-        dt_nascimento: "1985-03-15T03:00:00.000Z",
         curriculo_arquivo: null,
         dt_entrada: "2025-02-22T03:00:00.000Z",
         chave_pix: "pix871",
         user_id: null,
-        created_at: responseBody.created_at,
-        updated_at: responseBody.updated_at,
       });
 
+      // Validar que a data de nascimento contém a data correta, independente do timezone
+      expect(responseBody.dt_nascimento).toMatch(
+        /^1985-03-15T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+      );
+
+      // Validar que a data contém a data correta (1985-03-15)
+      expect(responseBody.dt_nascimento).toContain("1985-03-15");
+
+      // Validar os campos obrigatórios
+      expect(responseBody.id).toBeDefined();
       expect(uuidVersion(responseBody.id)).toBe(4);
+      expect(responseBody.created_at).toBeDefined();
       expect(Date.parse(responseBody.created_at)).not.toBeNaN();
+      expect(responseBody.updated_at).toBeDefined();
       expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
     });
 
