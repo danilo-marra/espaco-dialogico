@@ -26,6 +26,7 @@ import {
   type TerapeutaFormInputsWithoutFoto,
 } from "./terapeutaSchema";
 import { toast } from "sonner";
+import { PDFUploader } from "../common/PDFUploader";
 
 interface NovoTerapeutaModalProps {
   onSuccess?: () => void;
@@ -38,7 +39,9 @@ export function NovoTerapeutaModal({
 }: NovoTerapeutaModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [curriculoPDF, setCurriculoPDF] = useState<File | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
+  const [nascimentoInputValue, setNascimentoInputValue] = useState<string>("");
   const {
     register,
     control,
@@ -80,23 +83,33 @@ export function NovoTerapeutaModal({
         nome: data.nome, // era nomeTerapeuta
         telefone: data.telefone, // era telefoneTerapeuta
         email: data.email, // era emailTerapeuta
-        endereco: data.endereco, // era enderecoTerapeuta
+        crp: data.crp, // novo campo CRP
+        dt_nascimento: data.dt_nascimento, // novo campo data de nascimento
+        curriculo_arquivo: curriculoPDF ? "pending-upload" : null, // URL será definida após upload
         dt_entrada: data.dt_entrada, // era dt_entradaTerapeuta
         chave_pix: data.chave_pix, // era chave_pixTerapeuta
         foto: selectedFile ? URL.createObjectURL(selectedFile) : "",
       };
 
       console.log("Arquivo Selecionado:", selectedFile);
+      console.log("Arquivo PDF do Currículo:", curriculoPDF);
 
       try {
         await dispatch(
-          addTerapeuta({ terapeuta: novoTerapeuta, foto: selectedFile }),
+          addTerapeuta({
+            terapeuta: novoTerapeuta,
+            foto: selectedFile,
+            curriculoPdf: curriculoPDF,
+          }),
         ).unwrap();
         toast.success(
           `Terapeuta ${novoTerapeuta.nome} cadastrado com sucesso!`,
         );
         reset();
         setSelectedFile(null);
+        setCurriculoPDF(null);
+        setInputValue("");
+        setNascimentoInputValue("");
         onSuccess?.();
         onClose();
       } catch (error) {
@@ -175,10 +188,107 @@ export function NovoTerapeutaModal({
             <input
               type="text"
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-              id="endereco"
-              placeholder="Endereço do terapeuta"
-              {...register("endereco")}
+              id="crp"
+              placeholder="CRP (opcional)"
+              {...register("crp")}
             />
+            {errors.crp && <p className="text-red-500">{errors.crp.message}</p>}
+
+            <Controller
+              control={control}
+              name="dt_nascimento"
+              render={({ field }) => (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                        id="dt_nascimento"
+                        placeholder="Data de nascimento (opcional)"
+                        value={nascimentoInputValue}
+                        onChange={(e) => {
+                          // Aplica a máscara de data
+                          const masked = maskDate(e.target.value);
+                          setNascimentoInputValue(masked);
+
+                          // Tenta parsear a data
+                          const parsedDate = parse(
+                            masked,
+                            "dd/MM/yyyy",
+                            new Date(),
+                            {
+                              locale: ptBR,
+                            },
+                          );
+                          if (isValid(parsedDate)) {
+                            field.onChange(parsedDate);
+                          } else {
+                            field.onChange(null);
+                          }
+                        }}
+                        onBlur={() => {
+                          // Validação final ao perder o foco
+                          const parsedDate = parse(
+                            nascimentoInputValue,
+                            "dd/MM/yyyy",
+                            new Date(),
+                            { locale: ptBR },
+                          );
+                          if (
+                            !isValid(parsedDate) &&
+                            nascimentoInputValue !== ""
+                          ) {
+                            setNascimentoInputValue("");
+                            field.onChange(null);
+                          }
+                        }}
+                        autoComplete="off"
+                      />
+                      <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none h-5 w-5 text-gray-400" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-4 bg-white rounded-md shadow-lg">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => {
+                        if (date && isValid(date)) {
+                          const formattedDate = format(date, "dd/MM/yyyy", {
+                            locale: ptBR,
+                          });
+                          setNascimentoInputValue(formattedDate);
+                          field.onChange(date);
+                        } else {
+                          setNascimentoInputValue("");
+                          field.onChange(null);
+                        }
+                      }}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                      initialFocus
+                      locale={ptBR}
+                      className="rounded-md border"
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            />
+            {errors.dt_nascimento && (
+              <p className="text-red-500">{errors.dt_nascimento.message}</p>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Arquivo do Currículo (PDF - opcional)
+              </label>
+              <PDFUploader
+                onFileSelect={(file) => setCurriculoPDF(file)}
+                currentFileUrl={null}
+                label="Arraste um arquivo PDF aqui ou clique para selecionar"
+              />
+            </div>
 
             <Controller
               control={control}

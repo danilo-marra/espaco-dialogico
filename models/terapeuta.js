@@ -32,9 +32,9 @@ async function create(terapeutaInputValues) {
     const results = await database.query({
       text: `
     INSERT INTO
-      terapeutas (nome, foto, telefone, email, endereco, dt_entrada, chave_pix, user_id)
+      terapeutas (nome, foto, telefone, email, crp, dt_nascimento, curriculo_arquivo, dt_entrada, chave_pix, user_id)
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING
       *
     ;`,
@@ -43,7 +43,9 @@ async function create(terapeutaInputValues) {
         terapeutaInputValues.foto || null,
         terapeutaInputValues.telefone,
         terapeutaInputValues.email,
-        terapeutaInputValues.endereco,
+        terapeutaInputValues.crp || null,
+        terapeutaInputValues.dt_nascimento || null,
+        terapeutaInputValues.curriculo_arquivo || null,
         terapeutaInputValues.dt_entrada,
         terapeutaInputValues.chave_pix,
         terapeutaInputValues.user_id || null,
@@ -166,6 +168,12 @@ async function update(id, terapeutaInputValues) {
       ? terapeutaInputValues.user_id
       : currentTerapeuta.user_id;
 
+  // Manter curriculo_arquivo existente se não for fornecido um novo
+  const curriculoArquivoToUse =
+    terapeutaInputValues.curriculo_arquivo !== undefined
+      ? terapeutaInputValues.curriculo_arquivo
+      : currentTerapeuta.curriculo_arquivo;
+
   const queryObject = {
     text: `
       UPDATE terapeutas
@@ -174,11 +182,13 @@ async function update(id, terapeutaInputValues) {
         foto = $2,
         telefone = $3,
         email = $4,
-        endereco = $5,
-        dt_entrada = $6,
-        chave_pix = $7,
-        user_id = $8
-      WHERE id = $9
+        crp = $5,
+        dt_nascimento = $6,
+        curriculo_arquivo = $7,
+        dt_entrada = $8,
+        chave_pix = $9,
+        user_id = $10
+      WHERE id = $11
       RETURNING *
     `,
     values: [
@@ -186,7 +196,9 @@ async function update(id, terapeutaInputValues) {
       fotoToUse,
       terapeutaInputValues.telefone,
       terapeutaInputValues.email,
-      terapeutaInputValues.endereco,
+      terapeutaInputValues.crp || null,
+      terapeutaInputValues.dt_nascimento || null,
+      curriculoArquivoToUse,
       terapeutaInputValues.dt_entrada,
       terapeutaInputValues.chave_pix,
       userIdToUse,
@@ -305,8 +317,8 @@ async function createFromUser(userData) {
 
   const queryObject = {
     text: `
-      INSERT INTO terapeutas (user_id, nome, email, dt_entrada, telefone, endereco, foto, chave_pix)
-      VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7)
+      INSERT INTO terapeutas (user_id, nome, email, dt_entrada, telefone, crp, dt_nascimento, foto, chave_pix)
+      VALUES ($1, $2, $3, NOW(), $4, $5, $6, $7, $8)
       RETURNING *
     `,
     values: [
@@ -314,7 +326,8 @@ async function createFromUser(userData) {
       userData.nome,
       userData.email,
       userData.telefone || "(não informado)", // Campo obrigatório - valor padrão
-      userData.endereco || "(não informado)", // Campo obrigatório - valor padrão
+      userData.crp || null,
+      userData.dt_nascimento || null,
       userData.foto || null,
       userData.chave_pix || "(não informado)", // Campo obrigatório - valor padrão
     ],

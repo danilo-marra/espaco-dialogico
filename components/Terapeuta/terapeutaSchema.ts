@@ -16,10 +16,22 @@ export const TerapeutaFormSchema = z.object({
     .min(1, "Email é obrigatório")
     .email("Email deve ter um formato válido")
     .max(100, "Email não pode ter mais de 100 caracteres"),
-  endereco: z
+  crp: z.string().max(20, "CRP não pode ter mais de 20 caracteres").optional(),
+  dt_nascimento: z
+    .date({
+      invalid_type_error: "Data de nascimento deve ser uma data válida",
+    })
+    .refine(
+      (date) => !date || date <= new Date(),
+      "Data de nascimento não pode ser futura",
+    )
+    .optional()
+    .nullable(),
+  curriculo_arquivo: z
     .string()
-    .max(200, "Endereço não pode ter mais de 200 caracteres")
-    .optional(),
+    .url("URL do currículo deve ser válida")
+    .optional()
+    .nullable(),
   dt_entrada: z
     .date({
       required_error: "Data de entrada é obrigatória",

@@ -79,8 +79,16 @@ async function seedTerapeutas() {
         lastName: nome.split(" ").slice(-1)[0].toLowerCase(),
         provider: "espacodialogico.com.br",
       });
-      const endereco =
-        faker.location.streetAddress() + ", " + faker.location.city();
+
+      // Novos campos
+      const crp =
+        Math.random() > 0.3
+          ? `CRP 06/${faker.number.int({ min: 10000, max: 99999 })}`
+          : null; // 70% chance de ter CRP
+      const dt_nascimento =
+        Math.random() > 0.2
+          ? randomDate(new Date(1970, 0, 1), new Date(1995, 11, 31))
+          : null; // 80% chance de ter data nascimento
       const dt_entrada = randomDate(new Date(2020, 0, 1), new Date());
       const chave_pix = faker.finance.accountNumber();
 
@@ -88,8 +96,8 @@ async function seedTerapeutas() {
       insertPromises.push(
         database.query({
           text: `
-          INSERT INTO terapeutas (nome, foto, telefone, email, endereco, dt_entrada, chave_pix)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          INSERT INTO terapeutas (nome, foto, telefone, email, crp, dt_nascimento, dt_entrada, chave_pix)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING id, nome, email
         `,
           values: [
@@ -97,7 +105,8 @@ async function seedTerapeutas() {
             null,
             telefone,
             email,
-            endereco,
+            crp,
+            dt_nascimento,
             dt_entrada,
             chave_pix,
           ],

@@ -20,9 +20,12 @@ jest.mock("hooks/useFetchTerapeutas", () => ({
         foto: null,
         telefone: "(11) 98765-4321",
         email: "joao.silva@teste.com",
-        endereco: "Rua Exemplo, 123",
+        crp: "CRP 06/12345",
+        dt_nascimento: "1985-03-15",
+        curriculo_arquivo: null,
         dt_entrada: "2025-01-15T03:00:00.000Z",
         chave_pix: "123456789",
+        user_id: null,
         created_at: "2025-04-01T15:30:00.000Z",
         updated_at: "2025-04-01T15:30:00.000Z",
       },
@@ -73,9 +76,13 @@ const server = setupServer(
         nome: "Maria Silva",
         telefone: "(21) 98765-4321",
         email: "maria.silva@teste.com",
-        endereco: "Rua das Flores, 123",
+        crp: null,
+        dt_nascimento: null,
+        curriculo_arquivo: null,
         dt_entrada: "2025-04-10T03:00:00.000Z",
         chave_pix: "maria123",
+        foto: null,
+        user_id: null,
         created_at: "2025-04-10T15:30:00.000Z",
         updated_at: "2025-04-10T15:30:00.000Z",
       }),
@@ -120,10 +127,6 @@ describe("Criar Novo Terapeuta", () => {
     await user.type(
       screen.getByPlaceholderText("Email do terapeuta"),
       "maria.silva@teste.com",
-    );
-    await user.type(
-      screen.getByPlaceholderText("Endereço do terapeuta"),
-      "Rua das Flores, 123",
     );
     await user.type(screen.getByPlaceholderText("Chave PIX"), "maria123");
 

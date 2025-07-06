@@ -114,7 +114,9 @@ async function associateTerapeutasAndUsers() {
               nome: terapeuta.nome,
               email: terapeuta.email,
               telefone: terapeuta.telefone,
-              endereco: terapeuta.endereco,
+              crp: terapeuta.crp,
+              dt_nascimento: terapeuta.dt_nascimento,
+              curriculo: terapeuta.curriculo,
               dt_entrada: terapeuta.dt_entrada,
               chave_pix: terapeuta.chave_pix,
             }),
@@ -135,7 +137,11 @@ async function associateTerapeutasAndUsers() {
           form.append("nome", terapeuta.nome);
           form.append("email", terapeuta.email);
           form.append("telefone", terapeuta.telefone);
-          form.append("endereco", terapeuta.endereco);
+          if (terapeuta.crp) form.append("crp", terapeuta.crp);
+          if (terapeuta.dt_nascimento)
+            form.append("dt_nascimento", terapeuta.dt_nascimento);
+          if (terapeuta.curriculo)
+            form.append("curriculo", terapeuta.curriculo);
           form.append("dt_entrada", terapeuta.dt_entrada);
           form.append("chave_pix", terapeuta.chave_pix);
           form.append("user_id", usuario.id);
