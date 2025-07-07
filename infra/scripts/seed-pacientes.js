@@ -5,6 +5,8 @@
  *
  * Este script insere dados fictícios na tabela de pacientes para facilitar o desenvolvimento
  * e testes da aplicação. Não deve ser usado em ambiente de produção.
+ *
+ * Nota: Os campos dt_nascimento e origem são opcionais e podem ser null em alguns registros.
  */
 
 const database = require("../database.js");
@@ -92,10 +94,12 @@ async function seedPacientes() {
     for (let i = existingCount; i < NUM_PACIENTES; i++) {
       // Gerar dados fictícios usando faker
       const nome = faker.person.fullName();
-      const dt_nascimento = randomDate(
-        new Date(1990, 0, 1),
-        new Date(2020, 0, 1),
-      );
+
+      // dt_nascimento é opcional - 30% de chance de ser null
+      const dt_nascimento =
+        Math.random() > 0.3
+          ? randomDate(new Date(1990, 0, 1), new Date(2020, 0, 1))
+          : null;
 
       // Selecionar um terapeuta aleatoriamente
       const terapeuta_id =
@@ -107,7 +111,13 @@ async function seedPacientes() {
       const cpf_responsavel = faker.string.numeric(11);
       const endereco_responsavel =
         faker.location.streetAddress() + ", " + faker.location.city();
-      const origem = origens[Math.floor(Math.random() * origens.length)];
+
+      // origem é opcional - 20% de chance de ser null
+      const origem =
+        Math.random() > 0.2
+          ? origens[Math.floor(Math.random() * origens.length)]
+          : null;
+
       const dt_entrada = randomDate(new Date(2022, 0, 1), new Date());
 
       // Inserir no banco

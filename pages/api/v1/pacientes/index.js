@@ -69,28 +69,26 @@ async function postHandler(request, response) {
     // Preparar objeto paciente para inserção com os campos corretos
     const pacienteData = {
       nome: getFormValue(fields.nome),
-      dt_nascimento: getFormValue(fields.dt_nascimento),
+      dt_nascimento: getFormValue(fields.dt_nascimento) || null,
       terapeuta_id: getFormValue(fields.terapeuta_id),
       nome_responsavel: getFormValue(fields.nome_responsavel),
       telefone_responsavel: getFormValue(fields.telefone_responsavel),
       email_responsavel: getFormValue(fields.email_responsavel),
       cpf_responsavel: getFormValue(fields.cpf_responsavel),
       endereco_responsavel: getFormValue(fields.endereco_responsavel),
-      origem: getFormValue(fields.origem),
+      origem: getFormValue(fields.origem) || null,
       dt_entrada: getFormValue(fields.dt_entrada),
     };
 
-    // Validação dos campos obrigatórios
+    // Validação dos campos obrigatórios (removendo dt_nascimento e origem)
     const requiredFields = [
       "nome",
-      "dt_nascimento",
       "terapeuta_id",
       "nome_responsavel",
       "telefone_responsavel",
       "email_responsavel",
       "cpf_responsavel",
       "endereco_responsavel",
-      "origem",
     ];
 
     for (const field of requiredFields) {
