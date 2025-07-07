@@ -89,19 +89,40 @@ function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
 }
 
 /**
- * Mapeia o status de agendamento para status de sessão
- * Alinhado com a interface em tipos.ts (valores permitidos: "Pagamento Pendente" | "Pagamento Realizado" | "Nota Fiscal Emitida" | "Nota Fiscal Enviada")
+ * Mapeia o status de agendamento para pagamento realizado
  */
-function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
+function mapearStatusAgendamentoParaPagamentoRealizado(statusAgendamento) {
   switch (statusAgendamento) {
     case "Confirmado":
-      return "Pagamento Pendente";
+      return Math.random() < 0.6; // 60% chance de ter pagamento realizado
     case "Remarcado":
-      return "Pagamento Pendente";
+      return Math.random() < 0.4; // 40% chance de ter pagamento realizado
     case "Cancelado":
-      return "Pagamento Pendente"; // Alterado de "Não Realizada" para um status válido
+      return false; // Nunca tem pagamento realizado
     default:
-      return "Pagamento Pendente";
+      return false;
+  }
+}
+
+/**
+ * Mapeia o status de agendamento para nota fiscal
+ */
+function mapearStatusAgendamentoParaNotaFiscal(
+  statusAgendamento,
+  pagamentoRealizado,
+) {
+  if (!pagamentoRealizado) {
+    return "Não Emitida";
+  }
+
+  // Se pagamento foi realizado, pode ter nota fiscal
+  const random = Math.random();
+  if (random < 0.5) {
+    return "Não Emitida";
+  } else if (random < 0.8) {
+    return "Emitida";
+  } else {
+    return "Enviada";
   }
 }
 
@@ -210,6 +231,15 @@ async function seedAgendamentos() {
             agendamento.status_agendamento !== "Cancelado" &&
             sessaoRealizada
           ) {
+            const pagamentoRealizado =
+              mapearStatusAgendamentoParaPagamentoRealizado(
+                agendamento.status_agendamento,
+              );
+            const notaFiscal = mapearStatusAgendamentoParaNotaFiscal(
+              agendamento.status_agendamento,
+              pagamentoRealizado,
+            );
+
             await database.query({
               text: `
                 INSERT INTO sessoes (
@@ -217,10 +247,11 @@ async function seedAgendamentos() {
                   paciente_id,
                   tipo_sessao,
                   valor_sessao,
-                  status_sessao,
+                  pagamento_realizado,
+                  nota_fiscal,
                   agendamento_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
               `,
               values: [
                 agendamento.terapeuta_id,
@@ -229,9 +260,8 @@ async function seedAgendamentos() {
                   agendamento.tipo_agendamento,
                 ),
                 agendamento.valor_agendamento,
-                mapearStatusAgendamentoParaStatusSessao(
-                  agendamento.status_agendamento,
-                ),
+                pagamentoRealizado,
+                notaFiscal,
                 agendamento.id,
               ],
             });
@@ -373,6 +403,15 @@ async function seedAgendamentos() {
 
             // Criar a sessão vinculada ao agendamento APENAS se não estiver cancelado E se a sessão foi realizada
             if (status_agendamento !== "Cancelado" && sessaoRealizada) {
+              const pagamentoRealizado =
+                mapearStatusAgendamentoParaPagamentoRealizado(
+                  status_agendamento,
+                );
+              const notaFiscal = mapearStatusAgendamentoParaNotaFiscal(
+                status_agendamento,
+                pagamentoRealizado,
+              );
+
               await database.query({
                 text: `
                   INSERT INTO sessoes (
@@ -380,17 +419,19 @@ async function seedAgendamentos() {
                     paciente_id,
                     tipo_sessao,
                     valor_sessao,
-                    status_sessao,
+                    pagamento_realizado,
+                    nota_fiscal,
                     agendamento_id
                   )
-                  VALUES ($1, $2, $3, $4, $5, $6)
+                  VALUES ($1, $2, $3, $4, $5, $6, $7)
                 `,
                 values: [
                   terapeuta_id,
                   paciente_id,
                   mapearTipoAgendamentoParaTipoSessao(tipo_agendamento),
                   valor_agendamento,
-                  mapearStatusAgendamentoParaStatusSessao(status_agendamento),
+                  pagamentoRealizado,
+                  notaFiscal,
                   agendamento_id,
                 ],
               });
