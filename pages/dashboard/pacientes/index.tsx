@@ -17,6 +17,7 @@ import React, { useMemo, useState } from "react";
 import type { Paciente } from "tipos";
 import { dateFormatter } from "utils/formatter";
 import { EditarPacienteModal } from "components/Paciente/EditarPacienteModal";
+import { calculateAge } from "utils/dateUtils";
 
 const PACIENTES_PER_PAGE = 10;
 
@@ -256,6 +257,9 @@ export default function Pacientes() {
                   <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
                     Data Nascimento
                   </th>
+                  <th className="p-3 text-left text-sm font-medium hidden lg:table-cell">
+                    Idade
+                  </th>
                   <th className="p-3 text-left text-sm font-medium hidden xl:table-cell">
                     Responsável
                   </th>
@@ -314,6 +318,9 @@ export default function Pacientes() {
                     </td>
                     <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
                       {formatSafeDate(paciente.dt_nascimento)}
+                    </td>
+                    <td className="p-3 hidden lg:table-cell text-sm text-gray-600">
+                      {calculateAge(paciente.dt_nascimento)}
                     </td>
                     <td className="p-3 hidden xl:table-cell text-sm text-gray-600">
                       {paciente.nome_responsavel || (
