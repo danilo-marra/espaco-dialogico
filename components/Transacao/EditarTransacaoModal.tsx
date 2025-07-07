@@ -9,6 +9,7 @@ import { transacaoSchema, TransacaoFormData } from "./transacaoSchema";
 import axiosInstance from "../../utils/api";
 import { Transacao } from "../../store/transacoesSlice";
 import { maskPrice } from "../../utils/formatter";
+import { emitFinanceiroUpdate } from "../../hooks/useFinanceiroSync";
 
 // Categorias sugeridas por tipo
 const categoriasSugeridas = {
@@ -108,6 +109,9 @@ export default function EditarTransacaoModal({
       };
 
       await axiosInstance.put(`/transacoes/${transacao.id}`, transacaoData);
+
+      // Emitir evento para atualização automática dos gráficos
+      emitFinanceiroUpdate("updated");
 
       reset();
       onSuccess?.();

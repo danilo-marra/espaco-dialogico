@@ -6,6 +6,7 @@ import axiosInstance from "../../utils/api";
 import { Transacao } from "../../store/transacoesSlice";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { emitFinanceiroUpdate } from "../../hooks/useFinanceiroSync";
 
 interface DeletarTransacaoModalProps {
   transacao: Transacao;
@@ -27,6 +28,9 @@ export default function DeletarTransacaoModal({
       setError(null);
 
       await axiosInstance.delete(`/transacoes/${transacao.id}`);
+
+      // Emitir evento para atualização automática dos gráficos
+      emitFinanceiroUpdate("deleted");
 
       onSuccess?.();
       onClose();
