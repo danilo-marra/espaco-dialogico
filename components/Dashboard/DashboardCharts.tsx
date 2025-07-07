@@ -25,6 +25,11 @@ import {
   ChartTooltipContent,
 } from "../../src/components/ui/chart";
 import { useDashboardStats } from "../../hooks/useDashboardStats";
+import {
+  useDashboardFinanceiro,
+  useDashboardFinanceiroHistorico,
+} from "../../hooks/useDashboardFinanceiro";
+import { useFinanceiroSync } from "../../hooks/useFinanceiroSync";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import {
   TrendingUp,
@@ -38,6 +43,7 @@ import {
   Target,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { getNotaFiscalStatusColor } from "../../utils/statusColors";
 import { format, addMonths, subMonths } from "date-fns";
@@ -93,18 +99,75 @@ function StatCard({
 export function DashboardCharts() {
   const { stats, isLoading, error } = useDashboardStats();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  if (isLoading) {
+  // Hook para sincronização automática
+  const { invalidateFinanceiro } = useFinanceiroSync();
+
+  // Formatar período para o endpoint (YYYY-MM)
+  const periodoSelecionado = format(selectedMonth, "yyyy-MM");
+
+  // Buscar dados financeiros do período selecionado
+  const {
+    resumoFinanceiro,
+    isLoading: loadingFinanceiro,
+    isValidating: validatingFinanceiro,
+    error: errorFinanceiro,
+    mutate: mutateFinanceiro,
+  } = useDashboardFinanceiro(periodoSelecionado);
+
+  // Buscar histórico financeiro dos últimos 6 meses
+  const {
+    historicoFinanceiro,
+    isLoading: loadingHistorico,
+    isValidating: validatingHistorico,
+    error: errorHistorico,
+    mutate: mutateHistorico,
+  } = useDashboardFinanceiroHistorico();
+
+  // Loading inicial - apenas na primeira carga
+  const isInitialLoading = isLoading && !stats;
+  const isFinanceiroInitialLoading = loadingFinanceiro && !resumoFinanceiro;
+  const isHistoricoInitialLoading = loadingHistorico && !historicoFinanceiro;
+
+  if (
+    isInitialLoading ||
+    isFinanceiroInitialLoading ||
+    isHistoricoInitialLoading
+  ) {
     return <DashboardSkeleton />;
   }
 
-  if (error || !stats) {
+  if (error || !stats || errorFinanceiro || errorHistorico) {
     return (
       <div className="text-center text-red-600 p-8">
         <p>Erro ao carregar as estatísticas do dashboard.</p>
+        {errorFinanceiro && (
+          <p>Erro nos dados financeiros: {errorFinanceiro.message}</p>
+        )}
+        {errorHistorico && <p>Erro no histórico: {errorHistorico.message}</p>}
       </div>
     );
   }
+
+  // Função para calcular valor médio por sessão de forma segura
+  const getValorMedioPorSessao = () => {
+    // Priorizar dados do resumo financeiro se disponível
+    if (resumoFinanceiro && resumoFinanceiro.quantidadeSessoes > 0) {
+      const valorMedio =
+        resumoFinanceiro.totalEntradas / resumoFinanceiro.quantidadeSessoes;
+      return isNaN(valorMedio) || !isFinite(valorMedio) ? 0 : valorMedio;
+    }
+
+    // Fallback para dados do stats
+    const receita = stats.receita || 0;
+    const sessoes = stats.totalSessoes || 0;
+
+    if (sessoes === 0) return 0;
+
+    const valorMedio = receita / sessoes;
+    return isNaN(valorMedio) || !isFinite(valorMedio) ? 0 : valorMedio;
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -113,36 +176,64 @@ export function DashboardCharts() {
     }).format(value);
   };
 
-  // Função para navegar entre meses
-  const handleMonthChange = (direction: "prev" | "next") => {
-    if (direction === "prev") {
-      setSelectedMonth(subMonths(selectedMonth, 1));
-    } else {
-      setSelectedMonth(addMonths(selectedMonth, 1));
+  // Função para navegar entre meses com transição suave
+  const handleMonthChange = async (direction: "prev" | "next") => {
+    // Não permitir mudanças durante transições ou validação
+    if (isTransitioning || validatingFinanceiro) return;
+
+    setIsTransitioning(true);
+
+    try {
+      if (direction === "prev") {
+        setSelectedMonth(subMonths(selectedMonth, 1));
+      } else {
+        setSelectedMonth(addMonths(selectedMonth, 1));
+      }
+
+      // Aguardar um ciclo de render para garantir transição suave
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } finally {
+      // Aguardar dados carregarem antes de finalizar transição
+      setTimeout(() => setIsTransitioning(false), 300);
     }
   };
 
-  // Dados mockados para o mês selecionado - em produção viriam do hook useDashboardStats
-  const getMonthlyFinancialData = () => {
-    const monthStr = format(selectedMonth, "MMM yyyy", { locale: ptBR });
+  // Função para atualizar dados manualmente
+  const refreshData = async () => {
+    if (isTransitioning || validatingFinanceiro || validatingHistorico) return;
 
-    // Simulando dados diferentes para cada mês
-    const baseData = {
-      faturamento: 15000 + Math.floor(Math.random() * 10000),
-      despesas: 8000 + Math.floor(Math.random() * 5000),
-    };
+    setIsTransitioning(true);
+    try {
+      await Promise.all([
+        mutateFinanceiro(),
+        mutateHistorico(),
+        invalidateFinanceiro(),
+      ]);
 
-    const lucro = baseData.faturamento - baseData.despesas;
-
-    return {
-      mes: monthStr,
-      faturamento: baseData.faturamento,
-      despesas: baseData.despesas,
-      lucro: lucro,
-    };
+      // Pequeno delay para feedback visual
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } finally {
+      setIsTransitioning(false);
+    }
   };
 
-  const monthlyFinancial = getMonthlyFinancialData();
+  // Dados financeiros do mês selecionado
+  const monthlyFinancial = resumoFinanceiro
+    ? {
+        mes: format(selectedMonth, "MMM yyyy", { locale: ptBR }),
+        faturamento: resumoFinanceiro.totalEntradas,
+        despesas: resumoFinanceiro.totalSaidas,
+        lucro: resumoFinanceiro.saldoFinal,
+      }
+    : {
+        mes: format(selectedMonth, "MMM yyyy", { locale: ptBR }),
+        faturamento: 0,
+        despesas: 0,
+        lucro: 0,
+      };
+
+  // Dados históricos dos últimos 6 meses
+  const financialData = historicoFinanceiro || [];
 
   // Dados mockados para Notas Fiscais - em produção viriam do hook useDashboardStats
   const notasFiscaisData = [
@@ -156,21 +247,6 @@ export function DashboardCharts() {
       status: "Enviada",
       count: 22,
       color: getNotaFiscalStatusColor("Enviada"),
-    },
-  ];
-
-  // Dados de faturamento vs despesas vs lucro histórico - mockados
-  const financialData = [
-    { mes: "Jul", faturamento: 15000, despesas: 8000, lucro: 7000 },
-    { mes: "Ago", faturamento: 18000, despesas: 9500, lucro: 8500 },
-    { mes: "Set", faturamento: 22000, despesas: 11000, lucro: 11000 },
-    { mes: "Out", faturamento: 19000, despesas: 10500, lucro: 8500 },
-    { mes: "Nov", faturamento: 25000, despesas: 13000, lucro: 12000 },
-    {
-      mes: "Dez",
-      faturamento: monthlyFinancial.faturamento,
-      despesas: monthlyFinancial.despesas,
-      lucro: monthlyFinancial.lucro,
     },
   ];
 
@@ -201,7 +277,7 @@ export function DashboardCharts() {
         />
         <StatCard
           title="Valor Médio/Sessão"
-          value={formatCurrency(stats.receita / (stats.totalSessoes || 1))}
+          value={formatCurrency(getValorMedioPorSessao())}
           description="Valor médio por sessão"
           icon={DollarSign}
         />
@@ -227,18 +303,47 @@ export function DashboardCharts() {
             </div>
             <div className="flex items-center space-x-2">
               <button
+                onClick={refreshData}
+                disabled={
+                  isTransitioning ||
+                  loadingFinanceiro ||
+                  validatingFinanceiro ||
+                  validatingHistorico
+                }
+                className="p-2 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Atualizar dados"
+                title="Atualizar dados"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${
+                    isTransitioning ||
+                    validatingFinanceiro ||
+                    validatingHistorico
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                />
+              </button>
+              <button
                 onClick={() => handleMonthChange("prev")}
-                className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+                disabled={isTransitioning || validatingFinanceiro}
+                className="p-2 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Mês anterior"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <span className="text-lg font-semibold min-w-[120px] text-center">
                 {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
+                {(isTransitioning || validatingFinanceiro) && (
+                  <span className="ml-2 text-sm text-gray-500 animate-pulse">
+                    ...
+                  </span>
+                )}
               </span>
               <button
                 onClick={() => handleMonthChange("next")}
-                className="p-2 rounded-md hover:bg-gray-100 transition-colors"
+                disabled={isTransitioning || validatingFinanceiro}
+                className="p-2 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Próximo mês"
               >
                 <ChevronRight className="h-5 w-5" />
@@ -247,105 +352,115 @@ export function DashboardCharts() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Valores do mês selecionado */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-700">
-                Resumo do Mês
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                  <span className="text-blue-700 font-medium">Faturamento</span>
-                  <span className="text-blue-800 font-bold text-lg">
-                    {formatCurrency(monthlyFinancial.faturamento)}
-                  </span>
+          <div
+            className={`transition-all duration-500 ease-in-out ${
+              isTransitioning || validatingFinanceiro
+                ? "opacity-50 transform scale-[0.98]"
+                : "opacity-100 transform scale-100"
+            }`}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Valores do mês selecionado */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-700">
+                  Resumo do Mês
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                    <span className="text-blue-700 font-medium">
+                      Faturamento
+                    </span>
+                    <span className="text-blue-800 font-bold text-lg">
+                      {formatCurrency(monthlyFinancial.faturamento)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                    <span className="text-red-700 font-medium">Despesas</span>
+                    <span className="text-red-800 font-bold text-lg">
+                      {formatCurrency(monthlyFinancial.despesas)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                    <span className="text-green-700 font-medium">Lucro</span>
+                    <span className="text-green-800 font-bold text-lg">
+                      {formatCurrency(monthlyFinancial.lucro)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                  <span className="text-red-700 font-medium">Despesas</span>
-                  <span className="text-red-800 font-bold text-lg">
-                    {formatCurrency(monthlyFinancial.despesas)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                  <span className="text-green-700 font-medium">Lucro</span>
-                  <span className="text-green-800 font-bold text-lg">
-                    {formatCurrency(monthlyFinancial.lucro)}
-                  </span>
-                </div>
+              </div>
+
+              {/* Gráfico de barras comparativo */}
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[monthlyFinancial]}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                    <ChartTooltip
+                      formatter={(value) => [formatCurrency(Number(value)), ""]}
+                      labelFormatter={() =>
+                        format(selectedMonth, "MMMM yyyy", { locale: ptBR })
+                      }
+                    />
+                    <Bar
+                      dataKey="faturamento"
+                      fill="#3b82f6"
+                      name="Faturamento"
+                    />
+                    <Bar dataKey="despesas" fill="#ef4444" name="Despesas" />
+                    <Bar dataKey="lucro" fill="#10b981" name="Lucro" />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Gráfico de barras comparativo */}
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={[monthlyFinancial]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                  <ChartTooltip
-                    formatter={(value) => [formatCurrency(Number(value)), ""]}
-                    labelFormatter={() =>
-                      format(selectedMonth, "MMMM yyyy", { locale: ptBR })
-                    }
-                  />
-                  <Bar
-                    dataKey="faturamento"
-                    fill="#3b82f6"
-                    name="Faturamento"
-                  />
-                  <Bar dataKey="despesas" fill="#ef4444" name="Despesas" />
-                  <Bar dataKey="lucro" fill="#10b981" name="Lucro" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Gráfico de linha histórico */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold text-gray-700 mb-4">
-              Histórico dos Últimos 6 Meses
-            </h3>
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={financialData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(value) => formatCurrency(value)} />
-                  <ChartTooltip
-                    formatter={(value) => [formatCurrency(Number(value)), ""]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="faturamento"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    name="Faturamento"
-                    dot={{ r: 6, fill: "#3b82f6" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="despesas"
-                    stroke="#ef4444"
-                    strokeWidth={3}
-                    name="Despesas"
-                    dot={{ r: 6, fill: "#ef4444" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="lucro"
-                    stroke="#10b981"
-                    strokeWidth={3}
-                    name="Lucro"
-                    dot={{ r: 6, fill: "#10b981" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            {/* Gráfico de linha histórico */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">
+                Histórico dos Últimos 6 Meses
+              </h3>
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={financialData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="mes" />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
+                    <ChartTooltip
+                      formatter={(value) => [formatCurrency(Number(value)), ""]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="faturamento"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      name="Faturamento"
+                      dot={{ r: 6, fill: "#3b82f6" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="despesas"
+                      stroke="#ef4444"
+                      strokeWidth={3}
+                      name="Despesas"
+                      dot={{ r: 6, fill: "#ef4444" }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="lucro"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      name="Lucro"
+                      dot={{ r: 6, fill: "#10b981" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         </CardContent>

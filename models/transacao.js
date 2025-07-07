@@ -1,6 +1,21 @@
 import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
 
+// Função auxiliar para formatar data para SQL
+function formatDateForSQL(date) {
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    throw new Error("Data inválida fornecida para formatDateForSQL");
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Função para criar uma nova transação
+
 async function create(transacaoData) {
   try {
     // Validar campos obrigatórios
@@ -65,8 +80,8 @@ async function create(transacaoData) {
         transacaoData.tipo,
         transacaoData.categoria,
         transacaoData.descricao,
-        transacaoData.valor,
-        transacaoData.data,
+        parseFloat(transacaoData.valor),
+        formatDateForSQL(transacaoData.data),
         transacaoData.usuario_id,
         transacaoData.observacoes || null,
       ],

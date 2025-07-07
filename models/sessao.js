@@ -738,12 +738,67 @@ async function updateBatch(sessoesData) {
   }
 }
 
+// Função para buscar sessões por período
+async function getByPeriod(dataInicio, dataFim) {
+  try {
+    const result = await database.query({
+      text: `
+        SELECT 
+          s.*,
+          t.nome as terapeuta_nome,
+          t.foto as terapeuta_foto,
+          t.telefone as terapeuta_telefone,
+          t.email as terapeuta_email,
+          t.crp as terapeuta_crp,
+          t.dt_nascimento as terapeuta_dt_nascimento,
+          t.dt_entrada as terapeuta_dt_entrada,
+          t.chave_pix as terapeuta_chave_pix,
+          p.nome as paciente_nome,
+          p.dt_nascimento as paciente_dt_nascimento,
+          p.nome_responsavel as paciente_nome_responsavel,
+          p.telefone_responsavel as paciente_telefone_responsavel,
+          p.email_responsavel as paciente_email_responsavel,
+          p.cpf_responsavel as paciente_cpf_responsavel,
+          p.endereco_responsavel as paciente_endereco_responsavel,
+          p.origem as paciente_origem,
+          p.dt_entrada as paciente_dt_entrada,
+          a.data_agendamento as agendamento_data,
+          a.horario_agendamento as agendamento_horario,
+          a.local_agendamento as agendamento_local,
+          a.modalidade_agendamento as agendamento_modalidade,
+          a.status_agendamento as agendamento_status,
+          a.observacoes_agendamento as agendamento_observacoes,
+          a.falta as agendamento_falta
+        FROM sessoes s
+        LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
+        LEFT JOIN pacientes p ON s.paciente_id = p.id
+        LEFT JOIN agendamentos a ON s.agendamento_id = a.id
+        WHERE (
+          (a.data_agendamento >= $1 AND a.data_agendamento <= $2)
+          OR 
+          (a.data_agendamento IS NULL AND s.created_at >= $1 AND s.created_at <= $2)
+        )
+        ORDER BY 
+          COALESCE(a.data_agendamento, s.created_at) DESC,
+          s.created_at DESC
+      `,
+      values: [dataInicio, dataFim],
+    });
+
+    return result.rows.map(formatSessaoResult);
+  } catch (error) {
+    console.error("Erro ao buscar sessões por período:", error);
+    throw new Error(`Erro ao buscar sessões por período: ${error.message}`);
+  }
+}
+
 const sessao = {
   create,
   createBatch,
   getAll,
   getById,
   getFiltered,
+  getByPeriod,
   update,
   updateBatch,
   remove,

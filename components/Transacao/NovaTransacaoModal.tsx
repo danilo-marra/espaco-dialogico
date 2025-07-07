@@ -8,6 +8,7 @@ import { X, Check, Warning } from "@phosphor-icons/react";
 import { transacaoSchema, TransacaoFormData } from "./transacaoSchema";
 import axiosInstance from "../../utils/api";
 import { maskPrice } from "../../utils/formatter";
+import { emitFinanceiroUpdate } from "../../hooks/useFinanceiroSync";
 
 // Categorias sugeridas por tipo
 const categoriasSugeridas = {
@@ -68,7 +69,9 @@ export default function NovaTransacaoModal({
   };
   const handleCreateNewTransacao = async (data: TransacaoFormData) => {
     try {
-      setSubmitError(null); // Converter o data do form para o formato esperado pela API
+      setSubmitError(null);
+
+      // Converter o data do form para o formato esperado pela API
       const transacaoData = {
         tipo: data.tipo!,
         categoria: data.categoria!,
@@ -79,6 +82,9 @@ export default function NovaTransacaoModal({
       };
 
       await axiosInstance.post("/transacoes", transacaoData);
+
+      // Emitir evento para atualização automática dos gráficos
+      emitFinanceiroUpdate("created");
 
       reset();
       onSuccess?.();
@@ -208,7 +214,13 @@ export default function NovaTransacaoModal({
                 // Extrai o valor numérico e define no formulário
                 const numericValue =
                   Number(maskedValue.replace(/[^\d]/g, "")) / 100;
-                setValue("valor", numericValue);
+
+                // Validar se o valor é válido
+                if (!isNaN(numericValue) && numericValue > 0) {
+                  setValue("valor", numericValue);
+                } else {
+                  setValue("valor", 0);
+                }
               }}
             />
             {errors.valor && (

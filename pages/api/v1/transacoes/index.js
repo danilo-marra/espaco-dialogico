@@ -58,9 +58,9 @@ async function postHandler(request, response) {
       });
     }
 
-    if (parseFloat(valor) <= 0) {
+    if (parseFloat(valor) <= 0 || isNaN(parseFloat(valor))) {
       return response.status(400).json({
-        error: "Valor deve ser maior que zero",
+        error: "Valor deve ser um número válido maior que zero",
       });
     }
 
