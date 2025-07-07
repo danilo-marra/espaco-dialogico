@@ -3,10 +3,11 @@ import { z } from "zod";
 // Define o schema do formulário
 export const PacienteFormSchema = z.object({
   nome: z.string().min(3, { message: "O nome é obrigatório" }),
-  dt_nascimento: z.date({
-    required_error: "A data de nascimento é obrigatória",
-    invalid_type_error: "Data de nascimento inválida",
-  }),
+  dt_nascimento: z
+    .date({
+      invalid_type_error: "Data de nascimento inválida",
+    })
+    .optional(),
   terapeuta_id: z.string().min(1, {
     message: "Terapeuta responsável é obrigatório",
   }),
@@ -25,7 +26,7 @@ export const PacienteFormSchema = z.object({
   endereco_responsavel: z.string().min(5, {
     message: "O endereço do responsável é obrigatório",
   }),
-  origem: z.string().min(1, { message: "Origem é obrigatória" }),
+  origem: z.string().optional(),
   dt_entrada: z.date({
     required_error: "A data de entrada é obrigatória",
     invalid_type_error: "Data de entrada inválida",

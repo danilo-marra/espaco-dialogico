@@ -58,11 +58,16 @@ const preparePacienteData = (data: any) => {
     }
   };
 
-  // Garante que dt_nascimento NUNCA será null
-  formattedData.dt_nascimento = formatDateToYYYYMMDD(
-    formattedData.dt_nascimento,
-  );
-  console.log("dt_nascimento formatado final:", formattedData.dt_nascimento);
+  // Formatar dt_nascimento apenas se estiver presente
+  if (formattedData.dt_nascimento) {
+    formattedData.dt_nascimento = formatDateToYYYYMMDD(
+      formattedData.dt_nascimento,
+    );
+    console.log("dt_nascimento formatado final:", formattedData.dt_nascimento);
+  } else {
+    formattedData.dt_nascimento = null;
+    console.log("dt_nascimento não preenchido, definindo como null");
+  }
 
   // Garante que dt_entrada NUNCA será null
   formattedData.dt_entrada = formatDateToYYYYMMDD(formattedData.dt_entrada);
@@ -99,9 +104,10 @@ const preparePacienteData = (data: any) => {
     throw new Error("Endereço do responsável é obrigatório");
   }
 
+  // Origem é opcional, mantém valor original ou define como null
   if (!formattedData.origem) {
-    console.warn("Origem não definida, usando 'Outros'");
-    formattedData.origem = "Outros";
+    formattedData.origem = null;
+    console.log("Origem não definida, definindo como null");
   }
 
   console.log("Dados formatados para envio:", formattedData);

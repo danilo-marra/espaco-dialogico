@@ -78,7 +78,9 @@ async function putHandler(request, response) {
     const pacienteData = {
       nome: getFormValue(fields.nome) || pacienteExists.nome,
       dt_nascimento:
-        getFormValue(fields.dt_nascimento) || pacienteExists.dt_nascimento,
+        getFormValue(fields.dt_nascimento) !== undefined
+          ? getFormValue(fields.dt_nascimento) || null
+          : pacienteExists.dt_nascimento,
       // Use o valor do form apenas se não for falsy (empty string, null, etc)
       terapeuta_id: terapeuta_id || pacienteExists.terapeuta_id,
       nome_responsavel:
@@ -95,7 +97,10 @@ async function putHandler(request, response) {
       endereco_responsavel:
         getFormValue(fields.endereco_responsavel) ||
         pacienteExists.endereco_responsavel,
-      origem: getFormValue(fields.origem) || pacienteExists.origem,
+      origem:
+        getFormValue(fields.origem) !== undefined
+          ? getFormValue(fields.origem) || null
+          : pacienteExists.origem,
       dt_entrada: getFormValue(fields.dt_entrada) || pacienteExists.dt_entrada,
     };
 

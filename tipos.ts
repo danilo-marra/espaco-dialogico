@@ -18,7 +18,7 @@ export interface Terapeuta {
 export interface Paciente {
   id: string;
   nome: string;
-  dt_nascimento: Date | string;
+  dt_nascimento?: Date | string | null;
   terapeuta_id: string;
   terapeutaInfo?: Terapeuta;
   nome_responsavel: string;
@@ -26,7 +26,7 @@ export interface Paciente {
   email_responsavel: string;
   cpf_responsavel: string;
   endereco_responsavel: string;
-  origem: "Indicação" | "Instagram" | "Busca no Google" | "Outros";
+  origem?: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | null;
   dt_entrada: Date | string;
   created_at?: string;
   updated_at?: string;
