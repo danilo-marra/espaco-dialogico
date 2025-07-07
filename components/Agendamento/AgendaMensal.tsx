@@ -3,6 +3,8 @@ import { format, isSameDay, isSameMonth, isToday } from "date-fns";
 import { TrashSimple } from "@phosphor-icons/react";
 import { Agendamento } from "tipos";
 import { parseAnyDate } from "utils/dateUtils";
+import { BirthdayIndicator } from "components/common/BirthdayIndicator";
+import { isBirthday } from "utils/birthdayUtils";
 
 interface AgendaMensalProps {
   daysOfMonth: Date[];
@@ -95,7 +97,9 @@ export const AgendaMensal: React.FC<AgendaMensalProps> = ({
                       ${
                         agendamento.statusAgendamento === "Cancelado"
                           ? "bg-red-100 line-through"
-                          : ""
+                          : agendamento.sessaoRealizada || agendamento.falta
+                            ? "bg-green-100"
+                            : ""
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -121,8 +125,19 @@ export const AgendaMensal: React.FC<AgendaMensalProps> = ({
                           <TrashSimple size={12} weight="bold" />
                         </button>
                       </div>
-                      <div className="truncate">
+                      <div className="truncate flex items-center gap-1">
                         {agendamento.pacienteInfo?.nome}
+                        {agendamento.pacienteInfo?.dt_nascimento &&
+                          isBirthday(
+                            agendamento.pacienteInfo.dt_nascimento,
+                            day,
+                          ) && (
+                            <BirthdayIndicator
+                              birthDate={agendamento.pacienteInfo.dt_nascimento}
+                              targetDate={day}
+                              size={12}
+                            />
+                          )}
                       </div>
                       <hr
                         className={`my-1 border-2 ${

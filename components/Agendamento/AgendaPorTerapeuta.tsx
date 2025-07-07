@@ -2,6 +2,8 @@ import React from "react";
 import { CalendarX, PencilSimple, TrashSimple } from "@phosphor-icons/react";
 import { Agendamento, Terapeuta } from "../../tipos";
 import { parseAnyDate, formatDateForDisplay } from "../../utils/dateUtils";
+import { BirthdayIndicator } from "components/common/BirthdayIndicator";
+import { isBirthday } from "utils/birthdayUtils";
 
 interface AgendaPorTerapeutaProps {
   agendamentosPorTerapeuta: {
@@ -41,13 +43,15 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
               {agendamentos.map((agendamento) => (
                 <tr
                   key={agendamento.id}
-                  className={`border-t hover:bg-gray-50 
+                  className={`border-t hover:bg-gray-50 cursor-pointer
                     ${
                       agendamento.statusAgendamento === "Cancelado"
                         ? "bg-red-50 line-through"
                         : agendamento.statusAgendamento === "Remarcado"
                           ? "bg-yellow-50"
-                          : ""
+                          : agendamento.sessaoRealizada || agendamento.falta
+                            ? "bg-green-50"
+                            : ""
                     }`}
                   onClick={() => handleEditAgendamento(agendamento)}
                 >
@@ -57,7 +61,22 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
                     )}
                   </td>
                   <td className="p-2">{agendamento.horarioAgendamento}</td>
-                  <td className="p-2">{agendamento.pacienteInfo?.nome}</td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-1">
+                      {agendamento.pacienteInfo?.nome}
+                      {agendamento.pacienteInfo?.dt_nascimento &&
+                        isBirthday(
+                          agendamento.pacienteInfo.dt_nascimento,
+                          agendamento.dataAgendamento,
+                        ) && (
+                          <BirthdayIndicator
+                            birthDate={agendamento.pacienteInfo.dt_nascimento}
+                            targetDate={agendamento.dataAgendamento}
+                            size={14}
+                          />
+                        )}
+                    </div>
+                  </td>
                   <td className="p-2">{agendamento.tipoAgendamento}</td>
                   <td className="p-2">
                     <div className="flex items-center">

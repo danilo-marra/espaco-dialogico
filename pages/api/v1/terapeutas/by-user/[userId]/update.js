@@ -117,7 +117,6 @@ async function putHandler(request, response) {
       try {
         const fotoUrl = await uploadToCloudinary(files.foto[0]);
         terapeutaData.foto = fotoUrl;
-        console.log("Upload da foto realizado com sucesso:", fotoUrl);
       } catch (error) {
         console.error("Erro ao fazer upload para o Cloudinary:", error);
         // Continua sem a foto se falhar o upload

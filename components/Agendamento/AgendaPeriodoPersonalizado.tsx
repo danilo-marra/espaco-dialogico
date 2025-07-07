@@ -3,6 +3,8 @@ import { format, isSameDay, isToday } from "date-fns";
 import { TrashSimple } from "@phosphor-icons/react";
 import { Agendamento } from "../../tipos";
 import { parseAnyDate } from "../../utils/dateUtils";
+import { BirthdayIndicator } from "components/common/BirthdayIndicator";
+import { isBirthday } from "utils/birthdayUtils";
 
 interface AgendaPeriodoPersonalizadoProps {
   daysOfPeriod: Date[];
@@ -103,8 +105,19 @@ export const AgendaPeriodoPersonalizado: React.FC<
                         </button>
                       </div>
                     </div>
-                    <div className="group-hover:text-zinc-500">
+                    <div className="group-hover:text-zinc-500 flex items-center gap-1">
                       {agendamento.pacienteInfo?.nome}
+                      {agendamento.pacienteInfo?.dt_nascimento &&
+                        isBirthday(
+                          agendamento.pacienteInfo.dt_nascimento,
+                          day,
+                        ) && (
+                          <BirthdayIndicator
+                            birthDate={agendamento.pacienteInfo.dt_nascimento}
+                            targetDate={day}
+                            size={14}
+                          />
+                        )}
                     </div>
                     <div className="italic text-slate-500 group-hover:text-zinc-500">
                       {agendamento.tipoAgendamento} -{" "}

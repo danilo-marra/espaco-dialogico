@@ -141,6 +141,8 @@ export function EditarAgendamentoModal({
       valorAgendamento: 0,
       statusAgendamento: "Confirmado",
       observacoesAgendamento: "",
+      sessaoRealizada: false,
+      falta: false,
     },
   });
 
@@ -285,6 +287,9 @@ export function EditarAgendamentoModal({
       // Carregar o estado de sessaoRealizada
       setValue("sessaoRealizada", agendamentoToUse.sessaoRealizada);
 
+      // Carregar o estado de falta
+      setValue("falta", agendamentoToUse.falta || false);
+
       // Formatar o valor para exibição
       const valorFormatado = maskPrice(
         (agendamentoToUse.valorAgendamento * 100).toString(),
@@ -333,10 +338,11 @@ export function EditarAgendamentoModal({
     }
   }, [selectedModalidade, setValue]);
 
-  // Efeito para desmarcar sessaoRealizada automaticamente quando status for "Cancelado"
+  // Efeito para desmarcar sessaoRealizada e falta automaticamente quando status for "Cancelado"
   useEffect(() => {
     if (selectedStatus === "Cancelado") {
       setValue("sessaoRealizada", false);
+      setValue("falta", false);
     }
   }, [selectedStatus, setValue]);
 
@@ -373,6 +379,7 @@ export function EditarAgendamentoModal({
         dataAgendamento: formatDateForAPI(data.dataAgendamento),
         sessaoRealizada: data.sessaoRealizada,
         sessao_realizada: data.sessaoRealizada,
+        falta: data.falta || false,
       };
 
       if (isRecurrenceUpdate) {
@@ -833,6 +840,30 @@ export function EditarAgendamentoModal({
                       Agendamentos cancelados não podem ter sessão realizada
                     </span>
                   )}
+                </label>
+              </div>
+
+              {/* Falta / desmarcação com menos de 24h (sempre visível) */}
+              <div className="flex items-center mt-4">
+                <Controller
+                  name="falta"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      type="checkbox"
+                      id="falta"
+                      className="mr-2 h-4 w-4"
+                      checked={field.value}
+                      disabled={selectedStatus === "Cancelado"}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                    />
+                  )}
+                />
+                <label
+                  htmlFor="falta"
+                  className={`font-medium ${selectedStatus === "Cancelado" ? "text-gray-400" : "text-orange-600"}`}
+                >
+                  Falta / desmarcação com menos de 24h
                 </label>
               </div>
 

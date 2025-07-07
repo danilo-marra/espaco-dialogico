@@ -180,7 +180,6 @@ async function putHandler(request, response) {
       try {
         const fotoUrl = await uploadToCloudinary(files.foto[0]);
         terapeutaData.foto = fotoUrl;
-        console.log("Upload da foto realizado com sucesso:", fotoUrl);
       } catch (error) {
         console.error("Erro ao fazer upload da foto para o Cloudinary:", error);
         // Continua sem a foto se falhar o upload
@@ -198,10 +197,6 @@ async function putHandler(request, response) {
           files.curriculo_arquivo[0],
         );
         terapeutaData.curriculo_arquivo = curriculoUrl;
-        console.log(
-          "Upload do arquivo de currículo realizado com sucesso:",
-          curriculoUrl,
-        );
       } catch (error) {
         console.error(
           "Erro ao fazer upload do currículo para o Cloudinary:",

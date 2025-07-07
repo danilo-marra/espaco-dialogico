@@ -252,3 +252,28 @@ export function sessaoDeveAparecerNasTransacoes(_sessao: any): boolean {
   // Retorna sempre true - todas as sessões devem aparecer
   return true;
 }
+
+/**
+ * Calcula a idade com base na data de nascimento.
+ */
+export function calculateAge(dt_nascimento: string | Date): number | null {
+  if (!dt_nascimento) {
+    return null;
+  }
+
+  try {
+    const birthDate = parseAnyDate(dt_nascimento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  } catch (error) {
+    console.error("Erro ao calcular idade:", error);
+    return null;
+  }
+}

@@ -131,9 +131,9 @@ async function postHandler(req, res) {
     // Criar um novo agendamento
     const novoAgendamento = await agendamento.create(agendamentoData);
 
-    // Se o agendamento for marcado como "Sessão Realizada" E não estiver cancelado, criar a sessão correspondente
+    // Se o agendamento for marcado como "Sessão Realizada" OU "Falta" E não estiver cancelado, criar a sessão correspondente
     if (
-      agendamentoData.sessaoRealizada &&
+      (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
       novoAgendamento.statusAgendamento !== "Cancelado"
     ) {
       try {

@@ -23,6 +23,7 @@ import {
   PacienteFormSchema,
   type PacienteFormInputsWithoutFoto,
 } from "./pacienteSchema";
+import { calculateAge } from "utils/dateUtils";
 import { toast } from "sonner";
 
 interface NovoPacienteModalProps {
@@ -38,6 +39,7 @@ export function NovoPacienteModal({
   const { terapeutas } = useFetchTerapeutas();
   const [inputDataNascimento, setInputDataNascimento] = useState<string>("");
   const [inputDataEntrada, setInputDataEntrada] = useState<string>("");
+  const [age, setAge] = useState<number | null>(null);
 
   const {
     register,
@@ -165,8 +167,10 @@ export function NovoPacienteModal({
                             );
                             if (isValid(parsedDate)) {
                               field.onChange(parsedDate);
+                              setAge(calculateAge(parsedDate));
                             } else {
                               field.onChange(null);
+                              setAge(null);
                             }
                           }}
                           onBlur={() => {
@@ -245,6 +249,9 @@ export function NovoPacienteModal({
                 <p className="text-red-500 text-sm mt-1">
                   {errors.dt_nascimento.message}
                 </p>
+              )}
+              {age !== null && (
+                <p className="text-sm text-gray-500 mt-1">Idade: {age} anos</p>
               )}
             </div>
 

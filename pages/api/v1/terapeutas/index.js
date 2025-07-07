@@ -28,11 +28,6 @@ export default router.handler(controller.errorHandlers);
 
 async function postHandler(req, res) {
   try {
-    // Log para debug
-    if (process.env.NODE_ENV === "development") {
-      console.log("Headers recebidos:", req.headers);
-    }
-
     // Configurar formidable para análise de formulários multipart
     const form = formidable({
       keepExtensions: true,
@@ -49,12 +44,6 @@ async function postHandler(req, res) {
         resolve([fields, files]);
       });
     });
-
-    // Log para debug
-    if (process.env.NODE_ENV === "development") {
-      console.log("Fields recebidos:", fields);
-      console.log("Files recebidos:", Object.keys(files));
-    }
 
     // Preparar objeto terapeuta
     const terapeutaData = {
@@ -116,7 +105,6 @@ async function postHandler(req, res) {
       try {
         const fotoUrl = await uploadToCloudinary(files.foto[0]);
         terapeutaData.foto = fotoUrl;
-        console.log("Upload da foto realizado com sucesso:", fotoUrl);
       } catch (error) {
         console.error("Erro ao fazer upload para o Cloudinary:", error);
         // Continua sem a foto se falhar o upload
@@ -134,10 +122,6 @@ async function postHandler(req, res) {
           files.curriculo_arquivo[0],
         );
         terapeutaData.curriculo_arquivo = curriculoArquivoUrl;
-        console.log(
-          "Upload do arquivo de currículo realizado com sucesso:",
-          curriculoArquivoUrl,
-        );
       } catch (error) {
         console.error(
           "Erro ao fazer upload do currículo para o Cloudinary:",

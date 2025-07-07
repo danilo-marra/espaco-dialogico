@@ -24,6 +24,7 @@ import { updatePaciente } from "store/pacientesSlice";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
+import { calculateAge } from "utils/dateUtils";
 
 interface EditarPacienteModalProps {
   paciente: Paciente;
@@ -42,6 +43,7 @@ export function EditarPacienteModal({
   const { terapeutas } = useFetchTerapeutas();
   const [inputDataNascimento, setInputDataNascimento] = useState<string>("");
   const [inputDataEntrada, setInputDataEntrada] = useState<string>("");
+  const [age, setAge] = useState<number | null>(null);
 
   const {
     register,
@@ -62,7 +64,7 @@ export function EditarPacienteModal({
       email_responsavel: paciente.email_responsavel,
       cpf_responsavel: paciente.cpf_responsavel,
       endereco_responsavel: paciente.endereco_responsavel,
-      origem: paciente.origem,
+      origem: paciente.origem || "",
       dt_entrada: new Date(paciente.dt_entrada),
     },
   });
@@ -84,6 +86,7 @@ export function EditarPacienteModal({
         },
       );
       setInputDataNascimento(formattedDate);
+      setAge(calculateAge(paciente.dt_nascimento));
     }
 
     if (paciente?.dt_entrada) {
@@ -222,8 +225,10 @@ export function EditarPacienteModal({
                               );
                               if (isValid(parsedDate)) {
                                 field.onChange(parsedDate);
+                                setAge(calculateAge(parsedDate));
                               } else {
                                 field.onChange(null);
+                                setAge(null);
                               }
                             }}
                             onBlur={() => {
@@ -274,6 +279,11 @@ export function EditarPacienteModal({
                 {errors.dt_nascimento && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors.dt_nascimento.message}
+                  </p>
+                )}
+                {age !== null && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Idade: {age} anos
                   </p>
                 )}
               </div>

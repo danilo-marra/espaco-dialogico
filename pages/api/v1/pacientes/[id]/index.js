@@ -58,8 +58,6 @@ async function putHandler(request, response) {
       });
     });
 
-    console.log("Campos recebidos:", fields);
-
     // Verificar se o paciente existe
     const pacienteExists = await paciente.getById(id);
     if (!pacienteExists) {
@@ -103,9 +101,6 @@ async function putHandler(request, response) {
           : pacienteExists.origem,
       dt_entrada: getFormValue(fields.dt_entrada) || pacienteExists.dt_entrada,
     };
-
-    console.log("Dados do paciente para atualização:", pacienteData);
-    console.log("terapeuta_id após processamento:", pacienteData.terapeuta_id);
 
     // Upload da foto para o Cloudinary, se existir
     if (files.foto && Array.isArray(files.foto) && files.foto.length > 0) {

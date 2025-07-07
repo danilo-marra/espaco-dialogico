@@ -119,6 +119,9 @@ async function putHandler(req, res) {
         ? agendamentoAntes.sessao_realizada
         : agendamentoAntes.sessaoRealizada;
 
+    const faltaAntes =
+      agendamentoAntes.falta !== undefined ? agendamentoAntes.falta : false;
+
     // O model pode retornar camelCase ou snake_case dependendo do mapeamento
     // e o update pode não atualizar ambos, então garantimos aqui
     const sessaoRealizadaDepois =
@@ -126,10 +129,18 @@ async function putHandler(req, res) {
         ? agendamentoAtualizado.sessao_realizada
         : agendamentoAtualizado.sessaoRealizada;
 
-    // Se `sessaoRealizada` mudou de false para true E não está cancelado, criar a sessão
+    const faltaDepois =
+      agendamentoAtualizado.falta !== undefined
+        ? agendamentoAtualizado.falta
+        : false;
+
+    // Se `sessaoRealizada` OU `falta` mudou para true E não está cancelado, criar a sessão
+    const deveCriarSessaoAntes = sessaoRealizadaAntes || faltaAntes;
+    const deveCriarSessaoDepois = sessaoRealizadaDepois || faltaDepois;
+
     if (
-      !sessaoRealizadaAntes &&
-      sessaoRealizadaDepois &&
+      !deveCriarSessaoAntes &&
+      deveCriarSessaoDepois &&
       agendamentoAtualizado.statusAgendamento !== "Cancelado"
     ) {
       try {
@@ -151,9 +162,9 @@ async function putHandler(req, res) {
         );
       }
     }
-    // Se `sessaoRealizada` mudou de true para false OU se o status mudou para "Cancelado", remover a sessão associada
+    // Se `sessaoRealizada` E `falta` mudaram para false OU se o status mudou para "Cancelado", remover a sessão associada
     else if (
-      (sessaoRealizadaAntes && !sessaoRealizadaDepois) ||
+      (deveCriarSessaoAntes && !deveCriarSessaoDepois) ||
       agendamentoAtualizado.statusAgendamento === "Cancelado"
     ) {
       try {
@@ -166,9 +177,6 @@ async function putHandler(req, res) {
 
         // Se o agendamento foi cancelado, garantir que sessaoRealizada seja false no banco
         if (agendamentoAtualizado.statusAgendamento === "Cancelado") {
-          console.log(
-            "Agendamento cancelado - removendo sessões e desmarcando sessaoRealizada",
-          );
           await agendamento.update(id, { sessaoRealizada: false });
         }
       } catch (error) {
@@ -180,7 +188,6 @@ async function putHandler(req, res) {
     }
 
     // Retornar a resposta com status 200 (OK)
-    console.log("Agendamento atualizado (backend):", agendamentoAtualizado);
     res.status(200).json(agendamentoAtualizado);
   } catch (error) {
     console.error("Erro ao atualizar agendamento:", error);
@@ -222,15 +229,9 @@ async function deleteHandler(req, res) {
       });
 
       if (sessoesAssociadas && sessoesAssociadas.length > 0) {
-        console.log("🗑️ Excluindo sessões associadas ao agendamento...");
-
         for (const sessaoAssociada of sessoesAssociadas) {
           await sessao.remove(sessaoAssociada.id);
         }
-
-        console.log(
-          `✅ ${sessoesAssociadas.length} sessões excluídas com sucesso`,
-        );
       }
     } catch (error) {
       console.error("⚠️ Erro ao excluir sessões associadas:", error.message);
