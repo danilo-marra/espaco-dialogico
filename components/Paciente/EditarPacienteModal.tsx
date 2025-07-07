@@ -64,7 +64,7 @@ export function EditarPacienteModal({
       email_responsavel: paciente.email_responsavel,
       cpf_responsavel: paciente.cpf_responsavel,
       endereco_responsavel: paciente.endereco_responsavel,
-      origem: paciente.origem,
+      origem: paciente.origem || "",
       dt_entrada: new Date(paciente.dt_entrada),
     },
   });

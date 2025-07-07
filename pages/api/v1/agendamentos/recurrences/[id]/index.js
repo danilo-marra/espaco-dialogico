@@ -103,7 +103,6 @@ async function postHandler(req, res) {
 
     // Limitar a 35 agendamentos máximo
     const LIMITE_MAXIMO_AGENDAMENTOS = 35;
-    let numeroAgendamentosAjustado = numeroEstimado;
 
     if (numeroEstimado > LIMITE_MAXIMO_AGENDAMENTOS) {
       // Calcular nova data fim para não exceder 35 agendamentos
@@ -116,16 +115,7 @@ async function postHandler(req, res) {
 
       // Atualizar a data fim da recorrência
       dataFimRecorrencia = novaDataFim.toISOString().split("T")[0];
-      numeroAgendamentosAjustado = LIMITE_MAXIMO_AGENDAMENTOS;
-
-      console.log(
-        `⚠️ Limite de agendamentos ajustado: ${numeroEstimado} → ${numeroAgendamentosAjustado}`,
-      );
     }
-
-    console.log(
-      `Iniciando criação de agendamentos recorrentes. Período: ${diferencaDias} dias`,
-    );
 
     // Detectar ambiente e usar método otimizado para staging/produção
     const isProduction =
@@ -136,9 +126,6 @@ async function postHandler(req, res) {
     let agendamentosRecorrentes;
 
     if (isProduction || isStaging) {
-      console.log(
-        "🏭 Usando método otimizado para ambiente de staging/produção",
-      );
       // Criar os agendamentos recorrentes utilizando o método otimizado
       agendamentosRecorrentes =
         await agendamento.createRecurrencesOptimizedForStaging({
@@ -149,7 +136,6 @@ async function postHandler(req, res) {
           periodicidade,
         });
     } else {
-      console.log("🔧 Usando método padrão para ambiente de desenvolvimento");
       // Criar os agendamentos recorrentes utilizando o método padrão
       agendamentosRecorrentes = await agendamento.createRecurrences({
         recurrenceId,
@@ -162,8 +148,6 @@ async function postHandler(req, res) {
 
     const endTime = Date.now();
     const duration = endTime - startTime;
-
-    console.log(`Agendamentos criados em ${duration}ms`);
 
     // Função auxiliar para mapear tipos de agendamento para tipos de sessão
     const mapearTipoAgendamentoParaTipoSessao = (tipoAgendamento) => {
@@ -196,23 +180,18 @@ async function postHandler(req, res) {
     };
 
     // Criar sessões para todos os agendamentos recorrentes criados
-    console.log("🔄 Criando sessões para os agendamentos recorrentes...");
     const sessaoStartTime = Date.now();
     let sessoesCreated = 0;
 
     try {
       // Otimização: usar criação em lote para ambiente de staging/produção
       if (isProduction || isStaging) {
-        console.log(
-          "🏭 Usando criação otimizada de sessões para staging/produção",
-        );
-
         // Preparar dados para criação em lote
         const sessoesData = agendamentosRecorrentes
           .filter(
             (agendamentoCreated) =>
               agendamentoCreated.statusAgendamento !== "Cancelado" &&
-              agendamentoCreated.sessaoRealizada,
+              (agendamentoCreated.sessaoRealizada || agendamentoCreated.falta),
           )
           .map((agendamentoCreated) => {
             return {
@@ -233,11 +212,6 @@ async function postHandler(req, res) {
           // Tentar criação em lote primeiro
           sessoesCreated = await sessao.createBatch(sessoesData);
         } catch (batchError) {
-          console.warn(
-            "⚠️ Erro na criação em lote, tentando método individual:",
-            batchError.message,
-          );
-
           // Fallback: criar sessões individualmente
           for (const sessaoData of sessoesData) {
             try {
@@ -254,15 +228,11 @@ async function postHandler(req, res) {
         }
       } else {
         // Método original para desenvolvimento
-        console.log(
-          "🔧 Usando criação individual de sessões para desenvolvimento",
-        );
-
         for (const agendamentoCreated of agendamentosRecorrentes) {
-          // Só criar sessão se o agendamento não estiver cancelado e a flag sessaoRealizada for true
+          // Só criar sessão se o agendamento não estiver cancelado e a flag sessaoRealizada OU falta for true
           if (
             agendamentoCreated.statusAgendamento !== "Cancelado" &&
-            agendamentoCreated.sessaoRealizada
+            (agendamentoCreated.sessaoRealizada || agendamentoCreated.falta)
           ) {
             const sessaoData = {
               terapeuta_id: agendamentoCreated.terapeutaId,
@@ -282,13 +252,6 @@ async function postHandler(req, res) {
           }
         }
       }
-
-      const sessaoEndTime = Date.now();
-      const sessaoDuration = sessaoEndTime - sessaoStartTime;
-
-      console.log(
-        `✅ ${sessoesCreated} sessões criadas com sucesso para os agendamentos recorrentes em ${sessaoDuration}ms`,
-      );
     } catch (error) {
       const sessaoEndTime = Date.now();
       const sessaoDuration = sessaoEndTime - sessaoStartTime;
@@ -309,7 +272,7 @@ async function postHandler(req, res) {
         sessoesCreated: sessoesCreated,
         numeroOriginalEstimado: numeroEstimado,
         numeroFinalCriado: agendamentosRecorrentes.length,
-        limiteLabelizado: numeroEstimado > LIMITE_MAXIMO_AGENDAMENTOS,
+        limiteAjustado: numeroEstimado > LIMITE_MAXIMO_AGENDAMENTOS,
       },
     });
   } catch (error) {
@@ -357,18 +320,14 @@ async function putHandler(req, res) {
     const isStaging = process.env.VERCEL_ENV === "preview";
 
     // Verificar se é para atualizar todos os agendamentos da recorrência
-    const updateAllRecurrences = agendamentoData.updateAllRecurrences === true;
+    const updateAllRecurrences = agendamentoData.updateAllRecorrences === true;
 
     if (updateAllRecurrences) {
-      console.log(
-        `Iniciando atualização de agendamentos recorrentes. Recurrence ID: ${recurrenceId}`,
-      );
-
       // Verificar se é para alterar o dia da semana
       const novoDiaSemana = agendamentoData.novoDiaSemana;
 
       // Remover flags que não devem ser persistidas
-      delete agendamentoData.updateAllRecurrences;
+      delete agendamentoData.updateAllRecorrences;
       delete agendamentoData.novoDiaSemana;
 
       let atualizados;
@@ -376,21 +335,13 @@ async function putHandler(req, res) {
 
       // Se for para alterar o dia da semana, usar função específica
       if (novoDiaSemana !== undefined && novoDiaSemana !== null) {
-        console.log(
-          `Atualizando agendamentos recorrentes com novo dia da semana: ${novoDiaSemana}`,
-        );
-
         if (isProduction || isStaging) {
-          console.log(
-            "🏭 Usando método otimizado para atualização com novo dia da semana",
-          );
           atualizados = await updateAllByRecurrenceIdWithNewWeekdayOptimized(
             recurrenceId,
             agendamentoData,
             novoDiaSemana,
           );
         } else {
-          console.log("🔧 Usando método padrão para atualização");
           atualizados = await agendamento.updateAllByRecurrenceIdWithNewWeekday(
             recurrenceId,
             agendamentoData,
@@ -398,20 +349,12 @@ async function putHandler(req, res) {
           );
         }
       } else {
-        console.log(
-          "Atualizando agendamentos recorrentes sem alterar dia da semana",
-        );
-
         if (isProduction || isStaging) {
-          console.log(
-            "🏭 Usando método otimizado para atualização de agendamentos recorrentes",
-          );
           atualizados = await updateAllByRecurrenceIdOptimized(
             recurrenceId,
             agendamentoData,
           );
         } else {
-          console.log("🔧 Usando método padrão para atualização");
           atualizados = await agendamento.updateAllByRecurrenceId(
             recurrenceId,
             agendamentoData,
@@ -421,35 +364,23 @@ async function putHandler(req, res) {
 
       const updateEndTime = Date.now();
       const updateDuration = updateEndTime - updateStartTime;
-      console.log(`Agendamentos atualizados em ${updateDuration}ms`);
 
       // Atualizar sessões correspondentes aos agendamentos atualizados com otimização
-      console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
       const sessaoStartTime = Date.now();
 
       let sessoesAtualizadas;
       try {
         if (isProduction || isStaging) {
-          console.log(
-            "🏭 Usando atualização otimizada de sessões para staging/produção",
-          );
           sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
             atualizados,
             agendamentoData,
           );
         } else {
-          console.log("🔧 Usando atualização padrão de sessões");
           sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
             atualizados,
             agendamentoData,
           );
         }
-
-        const sessaoEndTime = Date.now();
-        const sessaoDuration = sessaoEndTime - sessaoStartTime;
-        console.log(
-          `✅ ${sessoesAtualizadas} sessões atualizadas em ${sessaoDuration}ms`,
-        );
       } catch (error) {
         console.error("Erro ao atualizar sessões:", error);
         // Não falhar a atualização se houver erro nas sessões
@@ -458,7 +389,6 @@ async function putHandler(req, res) {
 
       const endTime = Date.now();
       const totalDuration = endTime - startTime;
-      console.log(`Processo total concluído em ${totalDuration}ms`);
 
       const message =
         novoDiaSemana !== undefined && novoDiaSemana !== null
@@ -473,7 +403,9 @@ async function putHandler(req, res) {
           sessoesAtualizadas: sessoesAtualizadas,
           duration: `${totalDuration}ms`,
           agendamentosDuration: `${updateDuration}ms`,
-          sessoesDuration: sessaoStartTime ? Date.now() - sessaoStartTime : 0,
+          sessoesDuration: sessaoStartTime
+            ? `${Date.now() - sessaoStartTime}ms`
+            : "0ms",
         },
       });
     } else {
@@ -521,10 +453,6 @@ async function deleteHandler(req, res) {
         message: "Nenhum agendamento encontrado com este ID de recorrência",
       });
     }
-
-    console.log(
-      `🗑️ Excluindo sessões associadas aos ${agendamentosParaExcluir.length} agendamentos recorrentes...`,
-    );
 
     // Detectar ambiente para usar otimizações
     const isProduction =

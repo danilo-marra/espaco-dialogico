@@ -26,7 +26,7 @@ export const PacienteFormSchema = z.object({
   endereco_responsavel: z.string().min(5, {
     message: "O endereço do responsável é obrigatório",
   }),
-  origem: z.string().optional(),
+  origem: z.string().optional().nullable(),
   dt_entrada: z.date({
     required_error: "A data de entrada é obrigatória",
     invalid_type_error: "Data de entrada inválida",

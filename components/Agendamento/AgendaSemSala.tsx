@@ -4,6 +4,8 @@ import { TrashSimple } from "@phosphor-icons/react";
 import React from "react";
 import { Agendamento } from "tipos";
 import { parseAnyDate, formatDateForDisplay } from "utils/dateUtils";
+import { BirthdayIndicator } from "components/common/BirthdayIndicator";
+import { isBirthday } from "utils/birthdayUtils";
 
 interface AgendaSemSalaProps {
   agendamentos: Agendamento[];
@@ -32,11 +34,13 @@ export const AgendaSemSala: React.FC<AgendaSemSalaProps> = ({
         {agendamentos.sort(sortByTime).map((agendamento) => (
           <div
             key={agendamento.id}
-            className={`mt-4 p-4 rounded-lg bg-yellow-100 cursor-pointer transition-colors duration-200 group hover:bg-yellow-200 shadow-md
+            className={`mt-4 p-4 rounded-lg cursor-pointer transition-colors duration-200 group shadow-md
             ${
               agendamento.statusAgendamento === "Cancelado"
-                ? "bg-red-100 line-through"
-                : ""
+                ? "bg-red-100 line-through hover:bg-red-200"
+                : agendamento.sessaoRealizada || agendamento.falta
+                  ? "bg-green-100 hover:bg-green-200"
+                  : "bg-yellow-100 hover:bg-yellow-200"
             }`}
             onClick={() => handleEditAgendamento(agendamento)}
             draggable={true}
@@ -76,8 +80,19 @@ export const AgendaSemSala: React.FC<AgendaSemSalaProps> = ({
                 {agendamento.horarioAgendamento} -{" "}
                 {agendamento.terapeutaInfo?.nome}
               </div>
-              <div className="text-slate-500 group-hover:text-zinc-500">
+              <div className="text-slate-500 group-hover:text-zinc-500 flex items-center gap-1">
                 {agendamento.pacienteInfo?.nome}
+                {agendamento.pacienteInfo?.dt_nascimento &&
+                  isBirthday(
+                    agendamento.pacienteInfo.dt_nascimento,
+                    agendamento.dataAgendamento,
+                  ) && (
+                    <BirthdayIndicator
+                      birthDate={agendamento.pacienteInfo.dt_nascimento}
+                      targetDate={agendamento.dataAgendamento}
+                      size={14}
+                    />
+                  )}
               </div>
               <div className="text-sm italic text-slate-500 group-hover:text-zinc-500">
                 {agendamento.tipoAgendamento} -{" "}

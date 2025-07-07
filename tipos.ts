@@ -79,6 +79,7 @@ export interface Agendamento {
   statusAgendamento: "Confirmado" | "Remarcado" | "Cancelado";
   observacoesAgendamento: string;
   sessaoRealizada?: boolean;
+  falta?: boolean; // Indica se houve falta ou desmarcação com menos de 24h
 
   // Campos para recorrência
   periodicidade?: "Não repetir" | "Semanal" | "Quinzenal";

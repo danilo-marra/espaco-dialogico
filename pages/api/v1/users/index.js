@@ -95,40 +95,24 @@ async function postHandler(request, response) {
     // Se o usuário é um terapeuta, tentar vinculá-lo ao registro de terapeuta existente
     if (userRole.toLowerCase() === "terapeuta") {
       try {
-        console.log(
-          `[VINCULAÇÃO] Tentando vincular usuário ${newUser.id} com email ${email}`,
-        );
         const existingTerapeuta = await terapeuta.getByEmail(
           email.toLowerCase(),
         );
 
         if (existingTerapeuta && !existingTerapeuta.user_id) {
-          console.log(
-            `[VINCULAÇÃO] Vinculando terapeuta ${existingTerapeuta.id} ao usuário ${newUser.id}`,
-          );
           await terapeuta.linkUser(existingTerapeuta.id, newUser.id);
-          console.log(
-            `[VINCULAÇÃO] ✅ Usuário ${newUser.id} vinculado ao terapeuta ${existingTerapeuta.id}`,
-          );
         } else if (existingTerapeuta && existingTerapeuta.user_id) {
           console.warn(
-            `[VINCULAÇÃO] ⚠️ Terapeuta já tem usuário associado: ${existingTerapeuta.user_id}`,
+            `[VINCULAÇÃO] ⚠️ Terapeuta com email ${email} já tem usuário associado.`,
           );
         } else {
-          console.log(
-            `[VINCULAÇÃO] Terapeuta não encontrado, criando registro automaticamente para ${email}`,
-          );
-
           // NOVO: Criar registro de terapeuta automaticamente se não existir
           try {
-            const newTerapeuta = await terapeuta.createFromUser({
+            await terapeuta.createFromUser({
               user_id: newUser.id,
               nome: username,
               email: email.toLowerCase(),
             });
-            console.log(
-              `[VINCULAÇÃO] ✅ Registro de terapeuta criado automaticamente: ${newTerapeuta.id}`,
-            );
           } catch (terapeutaError) {
             console.error(
               `[VINCULAÇÃO] ❌ Erro ao criar terapeuta, fazendo rollback do usuário:`,
@@ -138,9 +122,6 @@ async function postHandler(request, response) {
             // Rollback: remover o usuário criado para evitar estado inconsistente
             try {
               await user.deleteById(newUser.id);
-              console.log(
-                `[VINCULAÇÃO] 🔄 Rollback: usuário ${newUser.id} removido`,
-              );
             } catch (rollbackError) {
               console.error(`[VINCULAÇÃO] ❌ Erro no rollback:`, rollbackError);
             }

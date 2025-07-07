@@ -101,10 +101,6 @@ async function putHandler(request, response) {
         files.curriculo_arquivo[0],
       );
       terapeutaData.curriculo_arquivo = curriculoArquivoUrl;
-      console.log(
-        "Upload do arquivo de currículo realizado com sucesso:",
-        curriculoArquivoUrl,
-      );
     } catch (error) {
       console.error(
         "Erro ao fazer upload do currículo para o Cloudinary:",

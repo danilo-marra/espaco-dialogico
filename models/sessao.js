@@ -94,7 +94,8 @@ async function getAll() {
         a.local_agendamento as agendamento_local,
         a.modalidade_agendamento as agendamento_modalidade,
         a.status_agendamento as agendamento_status,
-        a.observacoes_agendamento as agendamento_observacoes
+        a.observacoes_agendamento as agendamento_observacoes,
+        a.falta as agendamento_falta
       FROM sessoes s
       LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
       LEFT JOIN pacientes p ON s.paciente_id = p.id
@@ -194,7 +195,8 @@ async function getFiltered(filters) {
       a.local_agendamento as agendamento_local,
       a.modalidade_agendamento as agendamento_modalidade,
       a.status_agendamento as agendamento_status,
-      a.observacoes_agendamento as agendamento_observacoes
+      a.observacoes_agendamento as agendamento_observacoes,
+      a.falta as agendamento_falta
     FROM sessoes s
     LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
     LEFT JOIN pacientes p ON s.paciente_id = p.id
@@ -250,7 +252,8 @@ async function getById(id) {
         a.local_agendamento as agendamento_local,
         a.modalidade_agendamento as agendamento_modalidade,
         a.status_agendamento as agendamento_status,
-        a.observacoes_agendamento as agendamento_observacoes
+        a.observacoes_agendamento as agendamento_observacoes,
+        a.falta as agendamento_falta
       FROM sessoes s
       LEFT JOIN terapeutas t ON s.terapeuta_id = t.id
       LEFT JOIN pacientes p ON s.paciente_id = p.id
@@ -533,6 +536,7 @@ function formatSessaoResult(row) {
         ? parseFloat(row.valor_agendamento)
         : undefined,
       statusAgendamento: row.agendamento_status,
+      falta: row.agendamento_falta || false,
     },
   };
 }

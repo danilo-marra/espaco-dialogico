@@ -130,6 +130,9 @@ async function create(agendamentoData) {
     // Garantir booleano para o campo sessao_realizada
     const sessaoRealizada = !!agendamentoData.sessaoRealizada;
 
+    // Garantir booleano para o campo falta
+    const falta = !!agendamentoData.falta;
+
     // Inserir o agendamento no banco de dados
     const result = await database.query({
       text: `
@@ -145,9 +148,10 @@ async function create(agendamentoData) {
           valor_agendamento,
           status_agendamento,
           observacoes_agendamento,
-          sessao_realizada
+          sessao_realizada,
+          falta
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING *
       `,
       values: [
@@ -163,6 +167,7 @@ async function create(agendamentoData) {
         agendamentoData.statusAgendamento || "Confirmado",
         agendamentoData.observacoesAgendamento,
         sessaoRealizada,
+        falta,
       ],
     });
 
@@ -597,6 +602,7 @@ async function createRecurrences({
 
     // Preparar dados para inserção em lote - SEM logs individuais
     const sessaoRealizada = !!agendamentoBase.sessaoRealizada;
+    const falta = !!agendamentoBase.falta;
     const agendamentosParaInserir = dataAgendamentos.map((data) => {
       const dataFormatada = formatDateForSQL(data);
       return [
@@ -612,6 +618,7 @@ async function createRecurrences({
         agendamentoBase.statusAgendamento,
         agendamentoBase.observacoesAgendamento,
         sessaoRealizada,
+        falta,
       ];
     });
 
@@ -627,8 +634,8 @@ async function createRecurrences({
       // Construir query com múltiplos VALUES
       const placeholders = batch
         .map((_, index) => {
-          const base = index * 12;
-          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12})`;
+          const base = index * 13;
+          return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13})`;
         })
         .join(", ");
 
@@ -648,7 +655,8 @@ async function createRecurrences({
             valor_agendamento,
             status_agendamento,
             observacoes_agendamento,
-            sessao_realizada
+            sessao_realizada,
+            falta
           )
           VALUES ${placeholders}
           RETURNING *
@@ -672,6 +680,7 @@ async function createRecurrences({
           statusAgendamento: row.status_agendamento,
           observacoesAgendamento: row.observacoes_agendamento,
           sessaoRealizada: row.sessao_realizada,
+          falta: row.falta,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
         });
@@ -845,10 +854,12 @@ async function createRecurrencesOptimizedForStaging({
 
     dataAgendamentos.forEach((data, index) => {
       const dataFormatada = formatDateForSQL(data);
-      const base = index * 11;
+      const sessaoRealizada = !!agendamentoBase.sessaoRealizada;
+      const falta = !!agendamentoBase.falta;
+      const base = index * 13;
 
       placeholders.push(
-        `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11})`,
+        `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9}, $${base + 10}, $${base + 11}, $${base + 12}, $${base + 13})`,
       );
 
       allValues.push(
@@ -863,6 +874,8 @@ async function createRecurrencesOptimizedForStaging({
         agendamentoBase.valorAgendamento,
         agendamentoBase.statusAgendamento,
         agendamentoBase.observacoesAgendamento,
+        sessaoRealizada,
+        falta,
       );
     });
 
@@ -884,7 +897,9 @@ async function createRecurrencesOptimizedForStaging({
           tipo_agendamento,
           valor_agendamento,
           status_agendamento,
-          observacoes_agendamento
+          observacoes_agendamento,
+          sessao_realizada,
+          falta
         )
         VALUES ${placeholders.join(", ")}
         RETURNING *
@@ -1054,6 +1069,7 @@ async function update(id, agendamentoData) {
   addField("status_agendamento", agendamentoData.statusAgendamento);
   addField("observacoes_agendamento", agendamentoData.observacoesAgendamento);
   addField("sessao_realizada", agendamentoData.sessaoRealizada);
+  addField("falta", agendamentoData.falta);
   addField("recurrence_id", agendamentoData.recurrenceId);
 
   // Se não houver campos para atualizar, retornar os dados atuais
@@ -1139,6 +1155,7 @@ function formatAgendamentoResult(row) {
     statusAgendamento: row.status_agendamento,
     observacoesAgendamento: row.observacoes_agendamento,
     sessaoRealizada: row.sessao_realizada,
+    falta: row.falta,
     created_at: row.created_at,
     updated_at: row.updated_at,
 

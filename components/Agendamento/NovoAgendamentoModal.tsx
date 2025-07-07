@@ -135,6 +135,7 @@ export function NovoAgendamentoModal({
       diasDaSemana: [] as DiaSemana[],
       dataFimRecorrencia: null,
       sessaoRealizada: false,
+      falta: false,
     },
   });
 
@@ -152,6 +153,7 @@ export function NovoAgendamentoModal({
   const selectedDataAgendamento = watch("dataAgendamento");
   const selectedDataFimRecorrencia = watch("dataFimRecorrencia");
   const selectedDiasDaSemana = watch("diasDaSemana");
+  const selectedStatus = watch("statusAgendamento");
 
   // Função para calcular número estimado de agendamentos
   const calcularNumeroEstimadoAgendamentos = () => {
@@ -211,6 +213,14 @@ export function NovoAgendamentoModal({
       setValue("localAgendamento", "Não Precisa de Sala");
     }
   }, [selectedModalidade, setValue]);
+
+  // Efeito para desmarcar sessaoRealizada e falta automaticamente quando status for "Cancelado"
+  useEffect(() => {
+    if (selectedStatus === "Cancelado") {
+      setValue("sessaoRealizada", false);
+      setValue("falta", false);
+    }
+  }, [selectedStatus, setValue]);
 
   // Manipular alterações nos dias da semana selecionados
   const handleDiaSemanaChange = (dia: DiaSemana, checked: boolean) => {
@@ -721,6 +731,23 @@ export function NovoAgendamentoModal({
               </label>
             </div>
 
+            {/* Falta / desmarcação com menos de 24h (sempre visível) */}
+            <div className="flex items-center col-span-1 md:col-span-2">
+              <input
+                type="checkbox"
+                id="falta"
+                className="mr-2 h-4 w-4"
+                disabled={selectedStatus === "Cancelado"}
+                {...register("falta")}
+              />
+              <label
+                htmlFor="falta"
+                className={`font-medium ${selectedStatus === "Cancelado" ? "text-gray-400" : "text-orange-600"}`}
+              >
+                Falta / desmarcação com menos de 24h
+              </label>
+            </div>
+
             {/* Periodicidade do Agendamento */}
             <div className="flex flex-col">
               <label htmlFor="periodicidade" className="font-medium mb-1">
@@ -788,7 +815,6 @@ export function NovoAgendamentoModal({
                     }}
                     dateFormat="dd/MM/yyyy"
                     locale="pt-BR"
-                    minDate={new Date()}
                     className="border rounded p-2 w-full border-gray-300"
                     placeholderText="Selecione a data final"
                   />

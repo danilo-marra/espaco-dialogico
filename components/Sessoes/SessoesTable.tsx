@@ -184,7 +184,7 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                     {allSessoesDoTerapeuta.length === 1 ? "sessão" : "sessões"})
                   </span>
                   <span className="text-sm font-bold text-green-700">
-                    Repasse Total:{" "}
+                    Repasse a realizar:{" "}
                     {currencyFormatter.format(totalRepasseTerapeuta)}
                   </span>
                   {canEdit && (
@@ -275,7 +275,7 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                 )
                               </span>
                               <span className="text-sm font-semibold text-blue-600">
-                                Valor Total:{" "}
+                                Valor a cobrar:{" "}
                                 {currencyFormatter.format(totalSessoesPaciente)}
                               </span>
                               {canEdit && (
@@ -341,6 +341,12 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                   <p className="font-medium">
                                     {formatSessaoDate(sessao)}
                                   </p>
+                                  {/* Indicador de falta */}
+                                  {sessao.agendamentoInfo?.falta && (
+                                    <p className="text-xs text-red-600 font-medium mt-1">
+                                      Falta / Remarcação em menos de 24h
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                   {sessao.tipoSessao}
@@ -364,8 +370,8 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                     )}`}
                                   >
                                     {sessao.pagamentoRealizado
-                                      ? "✓ Realizado"
-                                      : "Pendente"}
+                                      ? "Pagamento realizado"
+                                      : "Pagamento pendente"}
                                   </span>
                                 </div>
                               </li>

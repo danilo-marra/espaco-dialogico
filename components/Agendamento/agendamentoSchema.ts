@@ -9,6 +9,8 @@ export const agendamentoSchema = z
 
     sessaoRealizada: z.boolean().optional(),
 
+    falta: z.boolean().optional(), // Novo campo para indicar falta ou desmarcação com menos de 24h
+
     terapeuta_id: z.string({
       required_error: "Terapeuta é obrigatório",
     }),
