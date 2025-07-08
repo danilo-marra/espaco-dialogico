@@ -344,7 +344,7 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                   {/* Indicador de falta */}
                                   {sessao.agendamentoInfo?.falta && (
                                     <p className="text-xs text-red-600 font-medium mt-1">
-                                      Falta / Remarcação em menos de 24h
+                                      Falta / desmarcação em menos de 24h
                                     </p>
                                   )}
                                 </div>

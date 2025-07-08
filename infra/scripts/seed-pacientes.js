@@ -96,10 +96,10 @@ async function seedPacientes() {
       const nome = faker.person.fullName();
 
       // dt_nascimento é opcional - 30% de chance de ser null
-      const dt_nascimento =
-        Math.random() > 0.3
-          ? randomDate(new Date(1990, 0, 1), new Date(2020, 0, 1))
-          : null;
+      const dt_nascimento = randomDate(
+        new Date(1990, 0, 1),
+        new Date(2020, 0, 1),
+      );
 
       // Selecionar um terapeuta aleatoriamente
       const terapeuta_id =
@@ -113,10 +113,7 @@ async function seedPacientes() {
         faker.location.streetAddress() + ", " + faker.location.city();
 
       // origem é opcional - 20% de chance de ser null
-      const origem =
-        Math.random() > 0.2
-          ? origens[Math.floor(Math.random() * origens.length)]
-          : null;
+      const origem = origens[Math.floor(Math.random() * origens.length)];
 
       const dt_entrada = randomDate(new Date(2022, 0, 1), new Date());
 

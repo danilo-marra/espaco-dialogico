@@ -1,31 +1,45 @@
-import React from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import React, { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { useFetchPacientes } from "../../hooks/useFetchPacientes";
-import { useFetchTerapeutas } from "../../hooks/useFetchTerapeutas";
-import { useTerapeutaData } from "../../hooks/useTerapeutaData";
-import useAuth from "../../hooks/useAuth";
-import { X } from "@phosphor-icons/react";
-import { toast } from "sonner";
+import { z } from "zod";
+import * as Dialog from "@radix-ui/react-dialog";
 import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { ptBR } from "date-fns/locale";
-import { agendamentoSchema } from "./agendamentoSchema";
-import { useEffect, useState } from "react";
+import ptBR from "date-fns/locale/pt-BR";
+import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "store/store";
 import {
   addAgendamento,
   addAgendamentoRecorrente,
 } from "store/agendamentosSlice";
-import { z } from "zod";
-import { maskPrice } from "utils/formatter";
+import { agendamentoSchema } from "./agendamentoSchema";
+import useAuth from "hooks/useAuth";
+import { useFetchPacientes } from "hooks/useFetchPacientes";
+import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
+import { useTerapeutaData } from "hooks/useTerapeutaData";
 import { mutate } from "swr";
+import { X } from "@phosphor-icons/react";
+import "react-datepicker/dist/react-datepicker.css";
+import { maskPrice } from "utils/formatter";
 import { formatDateForAPI } from "utils/dateUtils";
 
+// Função utilitária para gerar UUID compatível
+function generateUUID(): string {
+  // Se crypto.randomUUID estiver disponível (Node.js 16+ ou navegadores modernos)
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  // Fallback: gerar UUID v4 manualmente
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // Registrar locale pt-BR
-registerLocale("pt-BR", ptBR);
+registerLocale("pt-BR", ptBR as any);
 
 // Tipos de agendamento disponíveis
 const tiposAgendamento = [
@@ -155,8 +169,11 @@ export function NovoAgendamentoModal({
   const selectedDiasDaSemana = watch("diasDaSemana");
   const selectedStatus = watch("statusAgendamento");
 
-  // Função para calcular número estimado de agendamentos
-  const calcularNumeroEstimadoAgendamentos = () => {
+  // CORREÇÃO: Função para calcular número de agendamentos recorrentes
+  // PROBLEMA: Lógica diferente da API - não considerava a periodicidade corretamente
+  // SOLUÇÃO: Replicar exatamente a lógica da API que considera intervalos de periodicidade
+  // RESULTADO: Agora retorna a quantidade exata que será criada pela API
+  const calcularNumeroRecorrencias = () => {
     if (
       selectedPeriodicidade === "Não repetir" ||
       !selectedDataAgendamento ||
@@ -164,34 +181,80 @@ export function NovoAgendamentoModal({
       !selectedDiasDaSemana ||
       selectedDiasDaSemana.length === 0
     ) {
-      return { estimado: 0, limitado: false };
+      return { recorrencias: 0, limitado: false };
     }
 
     const dataInicio = new Date(selectedDataAgendamento);
     const dataFim = new Date(selectedDataFimRecorrencia);
-    const diferencaDias = Math.ceil(
-      (dataFim.getTime() - dataInicio.getTime()) / (1000 * 60 * 60 * 24),
+
+    if (dataInicio >= dataFim) return { recorrencias: 0, limitado: false };
+
+    // Mapear dias da semana para números
+    const diasDaSemanaMap = {
+      Domingo: 0,
+      "Segunda-feira": 1,
+      "Terça-feira": 2,
+      "Quarta-feira": 3,
+      "Quinta-feira": 4,
+      "Sexta-feira": 5,
+      Sábado: 6,
+    };
+
+    const diasDaSemanaNumeros = selectedDiasDaSemana.map(
+      (dia) => diasDaSemanaMap[dia],
     );
 
-    if (diferencaDias <= 0) return { estimado: 0, limitado: false };
-
+    // Determinar o intervalo da periodicidade (igual à API)
     const intervaloDias = selectedPeriodicidade === "Semanal" ? 7 : 14;
-    const numeroDeSemanas = Math.ceil(diferencaDias / intervaloDias);
-    const numeroEstimado = numeroDeSemanas * selectedDiasDaSemana.length;
+
+    // Contar agendamentos usando a mesma lógica da API
+    const dataAgendamentos = [];
+    let currentDate = new Date(dataInicio);
+
+    while (currentDate <= dataFim) {
+      const diaDaSemana = currentDate.getDay();
+
+      if (diasDaSemanaNumeros.includes(diaDaSemana)) {
+        dataAgendamentos.push(new Date(currentDate));
+      }
+
+      // CORREÇÃO CRÍTICA: Usar a mesma lógica da API para avançar datas
+      // Se adicionamos um agendamento, avançar pelo intervalo da periodicidade
+      // Se não adicionamos, avançar apenas 1 dia
+      if (
+        dataAgendamentos.length > 0 &&
+        dataAgendamentos[dataAgendamentos.length - 1].getTime() ===
+          currentDate.getTime()
+      ) {
+        // Adicionar o intervalo completo quando encontramos um dia válido
+        currentDate = new Date(currentDate);
+        currentDate.setDate(currentDate.getDate() + intervaloDias);
+      } else {
+        // Caso contrário, avançar apenas um dia para verificar o próximo
+        currentDate = new Date(currentDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    const numeroRecorrencias = dataAgendamentos.length;
 
     // Limite máximo de 35 agendamentos
     const LIMITE_MAXIMO = 35;
-    const limitado = numeroEstimado > LIMITE_MAXIMO;
-    const numeroFinal = limitado ? LIMITE_MAXIMO : numeroEstimado;
+    const limitado = numeroRecorrencias > LIMITE_MAXIMO;
+    const numeroFinal = limitado ? LIMITE_MAXIMO : numeroRecorrencias;
 
-    return { estimado: numeroFinal, original: numeroEstimado, limitado };
+    return {
+      recorrencias: numeroFinal,
+      original: numeroRecorrencias,
+      limitado,
+    };
   };
 
   const {
-    estimado: numeroEstimado,
+    recorrencias: numeroRecorrencias,
     original: _numeroOriginal,
     limitado: foiLimitado,
-  } = calcularNumeroEstimadoAgendamentos();
+  } = calcularNumeroRecorrencias();
 
   // Limpar o paciente selecionado quando mudar de terapeuta
   useEffect(() => {
@@ -280,11 +343,11 @@ export function NovoAgendamentoModal({
         setProgressPercentage(10);
 
         setLoadingMessage(
-          `Criando ${numeroEstimado} agendamentos recorrentes...`,
+          `Criando ${numeroRecorrencias} agendamentos recorrentes...`,
         );
 
         // Criar um ID único para a recorrência
-        const recurrenceId = crypto.randomUUID();
+        const recurrenceId = generateUUID();
 
         setProgressPercentage(25);
 
@@ -368,7 +431,7 @@ export function NovoAgendamentoModal({
         if (result.metadata?.limiteLabelizado) {
           toast.success(
             `${result.metadata.numeroFinalCriado} agendamentos criados (limitado a máximo de 35)`,
-            { duration: 5000 },
+            { autoClose: 5000 },
           );
           // Chamar onSuccess para garantir o refresh, mesmo com limitação
           onSuccess();
@@ -826,13 +889,13 @@ export function NovoAgendamentoModal({
                 </span>
               )}
 
-              {/* Exibir número estimado de agendamentos */}
-              {numeroEstimado > 0 && (
+              {/* Exibir número de agendamentos */}
+              {numeroRecorrencias > 0 && (
                 <div
                   className={`mt-2 p-2 rounded text-sm ${
                     foiLimitado
                       ? "bg-orange-100 text-orange-700 border border-orange-300"
-                      : numeroEstimado > 20
+                      : numeroRecorrencias > 20
                         ? "bg-yellow-100 text-yellow-700 border border-yellow-300"
                         : "bg-blue-100 text-blue-700 border border-blue-300"
                   }`}
@@ -845,18 +908,18 @@ export function NovoAgendamentoModal({
                     >
                       <path
                         fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-4 4a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                         clipRule="evenodd"
                       />
                     </svg>
                     <span className="font-medium">
                       {foiLimitado ? (
                         <>
-                          Serão criados {numeroEstimado} agendamentos (limite
-                          máximo)
+                          Serão criados {numeroRecorrencias} agendamentos
+                          (limite máximo)
                         </>
                       ) : (
-                        <>Serão criados {numeroEstimado} agendamentos</>
+                        <>Serão criados {numeroRecorrencias} agendamentos</>
                       )}
                     </span>
                   </div>

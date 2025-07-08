@@ -25,6 +25,11 @@ export interface DashboardStats {
   gastos: number;
   saldoTotal: number;
 
+  // Campos específicos para o valor médio por sessão
+  receitaTotalSessoes: number; // Receita apenas de sessões pagas
+  sessoesComValor: number; // Quantidade de sessões pagas com valor válido
+  valorMedioPorSessao: number; // Valor médio baseado apenas em sessões pagas
+
   // Estatísticas por período (últimos 6 meses)
   sessoesPorMes: Array<{ mes: string; count: number; receita: number }>;
   pacientesPorOrigem: Array<{ origem: string; count: number; color: string }>;
@@ -166,10 +171,38 @@ export function useDashboardStats(): {
     }));
 
     // Cálculos financeiros
-    const receitaSessoes = sessoes.reduce(
-      (acc, sessao) => acc + (sessao.valorSessao || 0),
-      0,
-    );
+    // Filtrar sessões pagas com valores válidos para cálculo de receita
+    const sessoesPagasComValor = sessoes.filter((sessao) => {
+      // Verificar se o pagamento foi realizado
+      if (!sessao.pagamentoRealizado) {
+        return false;
+      }
+
+      // Verificar se tem valor válido
+      const valorSessao = sessao.valorSessao;
+      if (typeof valorSessao === "number") {
+        return valorSessao > 0;
+      } else if (typeof valorSessao === "string") {
+        const valor = parseFloat(valorSessao);
+        return !isNaN(valor) && valor > 0;
+      }
+      return false;
+    });
+
+    const receitaSessoes = sessoesPagasComValor.reduce((acc, sessao) => {
+      // Garantir que o valor seja válido e convertido corretamente
+      const valorSessao = sessao.valorSessao;
+      let valor = 0;
+
+      if (typeof valorSessao === "number") {
+        valor = valorSessao;
+      } else if (typeof valorSessao === "string") {
+        valor = parseFloat(valorSessao) || 0;
+      }
+
+      return acc + valor;
+    }, 0);
+
     const entradasTransacoes = transacoes
       .filter((t) => t.tipo === "entrada")
       .reduce((acc, t) => acc + t.valor, 0);
@@ -299,6 +332,12 @@ export function useDashboardStats(): {
           : ((receitaEsteMs - receitaMesAnterior) / receitaMesAnterior) * 100,
     };
 
+    // Cálculos específicos para o valor médio por sessão
+    const valorMedioPorSessao =
+      sessoesPagasComValor.length > 0
+        ? receitaSessoes / sessoesPagasComValor.length
+        : 0;
+
     return {
       totalTerapeutas,
       totalPacientes,
@@ -310,6 +349,9 @@ export function useDashboardStats(): {
       receita,
       gastos,
       saldoTotal,
+      receitaTotalSessoes: receitaSessoes,
+      sessoesComValor: sessoesPagasComValor.length,
+      valorMedioPorSessao,
       sessoesPorMes,
       pacientesPorOrigem,
       sessoesPorTerapeuta,

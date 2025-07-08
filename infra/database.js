@@ -50,5 +50,9 @@ function getSSLValues() {
     };
   }
 
-  return process.env.NODE_ENV === "production" ? true : false;
+  // Usar SSL para production e staging
+  return process.env.NODE_ENV === "production" ||
+    process.env.NODE_ENV === "staging"
+    ? true
+    : false;
 }
