@@ -23,18 +23,31 @@ export function DashboardSummary() {
   }
 
   const formatCurrency = (value: number) => {
+    // Garantir que o valor seja um número válido
+    const numValue = Number(value);
+    if (isNaN(numValue) || !isFinite(numValue) || numValue === 0) {
+      return "R$ 0,00";
+    }
+
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-    }).format(value);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(numValue);
   };
 
   const calculateAverage = () => {
-    const avgSessoesPerTerapeuta =
-      stats.totalSessoes / (stats.totalTerapeutas || 1);
-    const avgSessoesPerPaciente =
-      stats.totalSessoes / (stats.totalPacientes || 1);
-    const avgReceitaPerSessao = stats.receita / (stats.totalSessoes || 1);
+    // Garantir que os valores sejam números válidos
+    const totalSessoes = Number(stats.totalSessoes) || 0;
+    const totalTerapeutas = Math.max(Number(stats.totalTerapeutas) || 1, 1);
+    const totalPacientes = Math.max(Number(stats.totalPacientes) || 1, 1);
+
+    const avgSessoesPerTerapeuta = totalSessoes / totalTerapeutas;
+    const avgSessoesPerPaciente = totalSessoes / totalPacientes;
+
+    // Usar o valor médio por sessão já calculado no hook
+    const avgReceitaPerSessao = Number(stats.valorMedioPorSessao) || 0;
 
     return {
       avgSessoesPerTerapeuta: avgSessoesPerTerapeuta.toFixed(1),

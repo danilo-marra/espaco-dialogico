@@ -1,31 +1,45 @@
-import React from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import React, { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { useFetchPacientes } from "../../hooks/useFetchPacientes";
-import { useFetchTerapeutas } from "../../hooks/useFetchTerapeutas";
-import { useTerapeutaData } from "../../hooks/useTerapeutaData";
-import useAuth from "../../hooks/useAuth";
-import { X } from "@phosphor-icons/react";
-import { toast } from "sonner";
+import { z } from "zod";
+import * as Dialog from "@radix-ui/react-dialog";
 import DatePicker, { registerLocale } from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
-import { ptBR } from "date-fns/locale";
-import { agendamentoSchema } from "./agendamentoSchema";
-import { useEffect, useState } from "react";
+import ptBR from "date-fns/locale/pt-BR";
+import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "store/store";
 import {
   addAgendamento,
   addAgendamentoRecorrente,
 } from "store/agendamentosSlice";
-import { z } from "zod";
-import { maskPrice } from "utils/formatter";
+import { agendamentoSchema } from "./agendamentoSchema";
+import useAuth from "hooks/useAuth";
+import { useFetchPacientes } from "hooks/useFetchPacientes";
+import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
+import { useTerapeutaData } from "hooks/useTerapeutaData";
 import { mutate } from "swr";
+import { X } from "@phosphor-icons/react";
+import "react-datepicker/dist/react-datepicker.css";
+import { maskPrice } from "utils/formatter";
 import { formatDateForAPI } from "utils/dateUtils";
 
+// Função utilitária para gerar UUID compatível
+function generateUUID(): string {
+  // Se crypto.randomUUID estiver disponível (Node.js 16+ ou navegadores modernos)
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  // Fallback: gerar UUID v4 manualmente
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // Registrar locale pt-BR
-registerLocale("pt-BR", ptBR);
+registerLocale("pt-BR", ptBR as any);
 
 // Tipos de agendamento disponíveis
 const tiposAgendamento = [
@@ -333,7 +347,7 @@ export function NovoAgendamentoModal({
         );
 
         // Criar um ID único para a recorrência
-        const recurrenceId = crypto.randomUUID();
+        const recurrenceId = generateUUID();
 
         setProgressPercentage(25);
 
@@ -417,7 +431,7 @@ export function NovoAgendamentoModal({
         if (result.metadata?.limiteLabelizado) {
           toast.success(
             `${result.metadata.numeroFinalCriado} agendamentos criados (limitado a máximo de 35)`,
-            { duration: 5000 },
+            { autoClose: 5000 },
           );
           // Chamar onSuccess para garantir o refresh, mesmo com limitação
           onSuccess();
@@ -894,7 +908,7 @@ export function NovoAgendamentoModal({
                     >
                       <path
                         fillRule="evenodd"
-                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-4 4a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                         clipRule="evenodd"
                       />
                     </svg>

@@ -2,9 +2,38 @@ import database from "infra/database.js";
 import { ValidationError, NotFoundError } from "infra/errors.js";
 
 // Função auxiliar para formatar data para SQL
-function formatDateForSQL(date) {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+function formatDateForSQL(dateInput) {
+  if (!dateInput) {
     throw new Error("Data inválida fornecida para formatDateForSQL");
+  }
+
+  let date;
+
+  // Se já é um objeto Date
+  if (dateInput instanceof Date) {
+    if (isNaN(dateInput.getTime())) {
+      throw new Error("Data inválida fornecida para formatDateForSQL");
+    }
+    date = dateInput;
+  }
+  // Se é uma string no formato YYYY-MM-DD
+  else if (typeof dateInput === "string") {
+    // Validar formato YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+      throw new Error("Formato de data inválido. Use YYYY-MM-DD");
+    }
+
+    // Parsing seguro para evitar problemas de timezone
+    const [year, month, day] = dateInput.split("-").map(Number);
+    date = new Date(year, month - 1, day);
+
+    if (isNaN(date.getTime())) {
+      throw new Error("Data inválida fornecida para formatDateForSQL");
+    }
+  } else {
+    throw new Error(
+      "Data deve ser um objeto Date ou string no formato YYYY-MM-DD",
+    );
   }
 
   const year = date.getFullYear();

@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/router";
 import useAuth from "../../hooks/useAuth";
 import { usePermissions } from "../../hooks/usePermissions";
-import { DashboardCharts } from "../../components/Dashboard/DashboardCharts";
+import { OptimizedDashboardCharts } from "../../components/Dashboard/OptimizedDashboardCharts";
 import { DashboardSummary } from "../../components/Dashboard/DashboardSummary";
 import { DashboardAlerts } from "../../components/Dashboard/DashboardAlerts";
 import PermissionGuard from "../../components/PermissionGuard";
@@ -47,7 +47,7 @@ export default function Dashboard() {
         {/* Seção de gráficos e estatísticas - apenas para admins - PRIMEIRO ITEM */}
         <PermissionGuard resource="usuarios">
           <div className="mb-8">
-            <DashboardCharts />
+            <OptimizedDashboardCharts />
           </div>
         </PermissionGuard>
 
