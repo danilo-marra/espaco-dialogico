@@ -40,6 +40,12 @@
     "migrations:reset:staging": "cross-env FORCE_RESET=CONFIRMAR node infra/scripts/reset-remote-migrations.js .env.staging",
     "migrations:reset:production-safe": "node infra/scripts/reset-remote-migrations.js .env.production",
     "migrations:reset:staging-safe": "node infra/scripts/reset-remote-migrations.js .env.staging",
+    "migrations:fix-timestamps:dev": "node infra/scripts/fix-migration-timestamps.js .env.development.local",
+    "migrations:fix-timestamps:staging": "node infra/scripts/fix-migration-timestamps.js .env.staging",
+    "migrations:fix-timestamps:production": "node infra/scripts/fix-migration-timestamps.js .env.production",
+    "migrations:sync:dev": "node infra/scripts/sync-migration-timestamps.js .env.development.local",
+    "migrations:sync:staging": "node infra/scripts/sync-migration-timestamps.js .env.staging",
+    "migrations:sync:production": "node infra/scripts/sync-migration-timestamps.js .env.production",
     "commit": "cz",
     "prepare": "husky"
   },

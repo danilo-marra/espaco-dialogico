@@ -874,7 +874,7 @@ export function EditarAgendamentoModal({
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-amber-800">
                       {numeroRecorrencias > 0
-                        ? `Este é um agendamento com ${numeroRecorrencias} recorrências`
+                        ? `Este é um agendamento com ${numeroRecorrencias} ${numeroRecorrencias === 1 ? "recorrência" : "recorrências"}`
                         : "Este é um agendamento recorrente"}
                     </span>
                     <div className="flex items-center space-x-2">
