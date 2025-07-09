@@ -51,7 +51,7 @@ const tiposAgendamento = [
 ];
 
 // Status de agendamento
-const statusAgendamento = ["Confirmado", "Remarcado", "Cancelado"];
+const statusAgendamento = ["Confirmado", "Cancelado"];
 
 // Modalidades de atendimento
 const modalidadesAgendamento = ["Presencial", "Online"];
@@ -134,6 +134,7 @@ export function NovoAgendamentoModal({
     formState: { errors },
   } = useForm<AgendamentoFormInputs>({
     resolver: zodResolver(agendamentoSchema),
+    mode: "onChange", // Validação em tempo real
     defaultValues: {
       paciente_id: "",
       terapeuta_id: isTerapeuta ? currentTerapeuta?.id || "" : "",
@@ -259,7 +260,7 @@ export function NovoAgendamentoModal({
   // Limpar o paciente selecionado quando mudar de terapeuta
   useEffect(() => {
     if (selectedTerapeutaId) {
-      setValue("paciente_id", "");
+      setValue("paciente_id", "", { shouldValidate: true });
     }
   }, [selectedTerapeutaId, setValue]);
 
@@ -783,14 +784,30 @@ export function NovoAgendamentoModal({
 
             {/* Sessão Realizada */}
             <div className="flex items-center col-span-1 md:col-span-2">
-              <input
-                type="checkbox"
-                id="sessaoRealizada"
-                className="mr-2 h-4 w-4"
-                {...register("sessaoRealizada")}
+              <Controller
+                name="sessaoRealizada"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    type="checkbox"
+                    id="sessaoRealizada"
+                    className="mr-2 h-4 w-4"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    disabled={selectedStatus === "Cancelado"}
+                  />
+                )}
               />
-              <label htmlFor="sessaoRealizada" className="font-medium">
+              <label
+                htmlFor="sessaoRealizada"
+                className={`font-medium ${selectedStatus === "Cancelado" ? "text-gray-400" : ""}`}
+              >
                 Sessão Realizada (gera registro de sessão)
+                {selectedStatus === "Cancelado" && (
+                  <span className="text-sm text-gray-500 block">
+                    Agendamentos cancelados não podem ter sessão realizada
+                  </span>
+                )}
               </label>
             </div>
 

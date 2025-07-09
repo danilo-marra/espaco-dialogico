@@ -103,7 +103,6 @@ export function useDashboardStats(): {
     // Cores para os gráficos
     const statusColors = {
       Confirmado: "#10b981", // green-500
-      Remarcado: "#f59e0b", // yellow-500
       Cancelado: "#ef4444", // red-500
       "Pagamento Pendente": "#f59e0b", // yellow-500
       "Pagamento Realizado": "#10b981", // green-500

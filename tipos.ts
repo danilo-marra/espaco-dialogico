@@ -76,7 +76,7 @@ export interface Agendamento {
     | "Supervisão"
     | "Outros";
   valorAgendamento: number;
-  statusAgendamento: "Confirmado" | "Remarcado" | "Cancelado";
+  statusAgendamento: "Confirmado" | "Cancelado";
   observacoesAgendamento: string;
   sessaoRealizada?: boolean;
   falta?: boolean; // Indica se houve falta ou desmarcação com menos de 24h

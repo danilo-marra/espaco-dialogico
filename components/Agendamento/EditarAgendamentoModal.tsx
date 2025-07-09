@@ -36,7 +36,7 @@ const tiposAgendamento = [
 ];
 
 // Status de agendamento
-const statusAgendamento = ["Confirmado", "Remarcado", "Cancelado"];
+const statusAgendamento = ["Confirmado", "Cancelado"];
 
 // Modalidades de atendimento
 const modalidadesAgendamento = ["Presencial", "Online"];
@@ -130,6 +130,7 @@ export function EditarAgendamentoModal({
     formState: { errors },
   } = useForm<AgendamentoFormInputs>({
     resolver: zodResolver(agendamentoSchema),
+    mode: "onChange", // Validação em tempo real
     defaultValues: {
       paciente_id: "",
       terapeuta_id: "",

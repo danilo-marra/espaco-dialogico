@@ -66,8 +66,6 @@ export function AgendamentosRecorrentes({
     switch (status) {
       case "Confirmado":
         return "bg-green-100 text-green-800";
-      case "Remarcado":
-        return "bg-yellow-100 text-yellow-800";
       case "Cancelado":
         return "bg-red-100 text-red-800";
       default:
