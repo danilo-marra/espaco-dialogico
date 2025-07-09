@@ -42,8 +42,6 @@ export default function Dashboard() {
         <title>Dashboard - Espaço Dialógico</title>
       </Head>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6 text-azul">Dashboard</h1>
-
         {/* Seção de gráficos e estatísticas - apenas para admins - PRIMEIRO ITEM */}
         <PermissionGuard resource="usuarios">
           <div className="mb-8">

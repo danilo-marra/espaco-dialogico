@@ -1,32 +1,30 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
-import database from "infra/database.js";
+import { createInvite } from "tests/helpers/auth.js";
+import {
+  ensureServerRunning,
+  cleanupServer,
+  waitForServerReady,
+} from "tests/helpers/serverManager.js";
 
 // Use environment variables for port configuration
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
-// Função auxiliar para criar um convite diretamente no banco de dados
-async function createInvite(email = null, role = "terapeuta") {
-  const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
-
-  const result = await database.query({
-    text: `
-      INSERT INTO invites (code, email, role, expires_at)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `,
-    values: [code, email, role, expiresAt],
-  });
-
-  return result.rows[0];
-}
+const TEST_NAME = "POST /api/v1/users";
 
 beforeAll(async () => {
+  // Garantir que o servidor está rodando (inicia apenas se necessário)
+  await ensureServerRunning(TEST_NAME, port);
+
   await orchestrator.waitForAllServices();
+  await waitForServerReady(port);
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
+});
+
+afterAll(() => {
+  // Limpar apenas se fomos nós que iniciamos o servidor
+  cleanupServer(TEST_NAME);
 });
 
 describe("POST /api/v1/users", () => {

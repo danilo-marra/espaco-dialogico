@@ -69,7 +69,6 @@ async function postHandler(request, response) {
     // Status de agendamento para status de sessão
     const statusSessaoMap = {
       Confirmado: "Pagamento Pendente",
-      Remarcado: "Pagamento Pendente",
       Cancelado: "Pagamento Pendente", // Obs: talvez precise de um status "Cancelado" para sessões
     };
 

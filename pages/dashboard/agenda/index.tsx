@@ -70,7 +70,6 @@ export default function Agenda() {
   });
   const [selectedStatus, setSelectedStatus] = useState({
     confirmado: true,
-    remarcado: true,
     cancelado: true,
   });
 
@@ -188,8 +187,6 @@ export default function Agenda() {
       const isStatusMatch =
         (selectedStatus.confirmado &&
           agendamento.statusAgendamento === "Confirmado") ||
-        (selectedStatus.remarcado &&
-          agendamento.statusAgendamento === "Remarcado") ||
         (selectedStatus.cancelado &&
           agendamento.statusAgendamento === "Cancelado");
 
@@ -256,8 +253,6 @@ export default function Agenda() {
       const isStatusMatch =
         (selectedStatus.confirmado &&
           agendamento.statusAgendamento === "Confirmado") ||
-        (selectedStatus.remarcado &&
-          agendamento.statusAgendamento === "Remarcado") ||
         (selectedStatus.cancelado &&
           agendamento.statusAgendamento === "Cancelado");
 
@@ -317,8 +312,6 @@ export default function Agenda() {
       const isStatusMatch =
         (selectedStatus.confirmado &&
           agendamento.statusAgendamento === "Confirmado") ||
-        (selectedStatus.remarcado &&
-          agendamento.statusAgendamento === "Remarcado") ||
         (selectedStatus.cancelado &&
           agendamento.statusAgendamento === "Cancelado");
 
@@ -399,7 +392,6 @@ export default function Agenda() {
       return {
         totalAgendamentos: 0,
         confirmados: 0,
-        remarcados: 0,
         cancelados: 0,
         ocupacaoSalaVerde: 0,
         ocupacaoSalaAzul: 0,
@@ -429,9 +421,6 @@ export default function Agenda() {
     const confirmados = agendamentosPeriodo.filter(
       (a) => a.statusAgendamento === "Confirmado",
     ).length;
-    const remarcados = agendamentosPeriodo.filter(
-      (a) => a.statusAgendamento === "Remarcado",
-    ).length;
     const cancelados = agendamentosPeriodo.filter(
       (a) => a.statusAgendamento === "Cancelado",
     ).length;
@@ -447,7 +436,6 @@ export default function Agenda() {
     return {
       totalAgendamentos: agendamentosPeriodo.length,
       confirmados,
-      remarcados,
       cancelados,
       ocupacaoSalaVerde: salaVerde,
       ocupacaoSalaAzul: salaAzul,
@@ -485,9 +473,7 @@ export default function Agenda() {
   };
 
   // Handlers para filtros de status
-  const handleStatusChange = (
-    status: "confirmado" | "remarcado" | "cancelado",
-  ) => {
+  const handleStatusChange = (status: "confirmado" | "cancelado") => {
     setSelectedStatus((prev) => ({
       ...prev,
       [status]: !prev[status],
@@ -634,20 +620,23 @@ export default function Agenda() {
       // Formatar a data para o formato esperado pela API (YYYY-MM-DD)
       const formattedDate = formatDateForAPI(date);
 
-      // Criar cópia do agendamento com nova data e status "Remarcado"
+      // Criar cópia do agendamento com nova data e manter status original
       const updatedAgendamento = {
         ...draggedAgendamento,
         dataAgendamento: formattedDate,
-        statusAgendamento: "Remarcado" as
-          | "Confirmado"
-          | "Remarcado"
-          | "Cancelado",
+        // Manter o status original (Confirmado ou Cancelado)
+        statusAgendamento: draggedAgendamento.statusAgendamento,
       };
 
       // Chamar a função do hook para atualizar o agendamento
       await updateAgendamento(draggedAgendamento.id, updatedAgendamento);
 
-      toast.success("Agendamento remarcado com sucesso!");
+      toast.success("Agendamento reagendado com sucesso!");
+
+      // Chamar a função do hook para atualizar o agendamento
+      await updateAgendamento(draggedAgendamento.id, updatedAgendamento);
+
+      toast.success("Agendamento reagendado com sucesso!");
 
       // Recarregar dados após remarcação
       mutate();
@@ -746,7 +735,7 @@ export default function Agenda() {
         )}
 
         {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 overflow-x-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 overflow-x-auto">
           <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
             <CalendarCheck size={24} className="text-green-500" />
             <div>
@@ -763,16 +752,6 @@ export default function Agenda() {
               <h3 className="text-xs uppercase text-gray-500">Confirmados</h3>
               <span className="text-xl font-semibold">
                 {estatisticasAgendamentos.confirmados}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4 p-4 bg-white rounded shadow min-w-[200px]">
-            <Calendar size={24} className="text-amber-500" />
-            <div>
-              <h3 className="text-xs uppercase text-gray-500">Remarcados</h3>
-              <span className="text-xl font-semibold">
-                {estatisticasAgendamentos.remarcados}
               </span>
             </div>
           </div>
@@ -1028,15 +1007,6 @@ export default function Agenda() {
                     onChange={() => handleStatusChange("confirmado")}
                   />
                   <span>Confirmado</span>
-                </label>
-                <label className="flex items-center whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    className="form-checkbox h-4 w-4 text-yellow-500 mr-2"
-                    checked={selectedStatus.remarcado}
-                    onChange={() => handleStatusChange("remarcado")}
-                  />
-                  <span>Remarcado</span>
                 </label>
                 <label className="flex items-center whitespace-nowrap">
                   <input

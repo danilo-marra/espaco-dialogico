@@ -1,100 +1,58 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
-import database from "infra/database.js";
+import {
+  ensureDevAdminExists,
+  prepareAuthentication,
+} from "tests/helpers/auth.js";
+import {
+  ensureServerRunning,
+  cleanupServer,
+  waitForServerReady,
+} from "tests/helpers/serverManager.js";
 
 // Use environment variables for port configuration
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
-// Variável para armazenar o token de autenticação
-let authToken = null;
-
-// Função auxiliar para criar um convite
-async function createInvite(email = null, role = "admin") {
-  const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
-
-  const result = await database.query({
-    text: `
-      INSERT INTO invites (code, email, role, expires_at)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `,
-    values: [code, email, role, expiresAt],
-  });
-
-  return result.rows[0];
-}
-
-// Função auxiliar para preparar autenticação
-async function prepareAuthentication() {
-  try {
-    // 1. Criar um convite de administrador
-    const invite = await createInvite(null, "admin");
-
-    // 2. Criar um usuário admin para o teste
-    const timestamp = Date.now();
-    const createUserResponse = await fetch(
-      `http://localhost:${port}/api/v1/users`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: `admin_${timestamp}`,
-          email: `admin_${timestamp}@example.com`,
-          password: "Senha@123",
-          inviteCode: invite.code,
-        }),
-      },
-    );
-
-    if (!createUserResponse.ok) {
-      console.error("Falha ao criar usuário:", await createUserResponse.json());
-      return null;
-    }
-
-    // 3. Fazer login para obter o token
-    const loginResponse = await fetch(
-      `http://localhost:${port}/api/v1/auth/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: `admin_${timestamp}@example.com`,
-          password: "Senha@123",
-        }),
-      },
-    );
-
-    if (!loginResponse.ok) {
-      console.error("Falha ao fazer login:", await loginResponse.json());
-      return null;
-    }
-
-    const loginData = await loginResponse.json();
-    return loginData.token;
-  } catch (error) {
-    console.error("Erro ao preparar autenticação:", error);
-    return null;
-  }
-}
-
-beforeAll(async () => {
-  await orchestrator.waitForAllServices();
-  await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
-
-  // Obter token de autenticação para os testes
-  authToken = await prepareAuthentication();
-});
+const TEST_NAME = "POST /api/v1/terapeutas";
 
 describe("POST /api/v1/terapeutas", () => {
+  let authToken;
+
+  beforeAll(async () => {
+    // Garantir que o servidor está rodando (inicia apenas se necessário)
+    await ensureServerRunning(TEST_NAME, port);
+
+    await orchestrator.waitForAllServices();
+    await waitForServerReady(port);
+
+    // Verificar se o admin das variáveis de ambiente já existe
+    await ensureDevAdminExists();
+
+    // Obter token de autenticação para os testes usando função utilitária
+    authToken = await prepareAuthentication(port);
+
+    if (!authToken) {
+      console.error("Falha ao obter token de autenticação");
+    }
+  });
+
+  afterAll(() => {
+    // Limpar apenas se fomos nós que iniciamos o servidor
+    cleanupServer(TEST_NAME);
+  });
+
   describe("Usuário autenticado", () => {
+    // O primeiro teste deve verificar se temos um token válido antes de continuar
+    test("Authentication setup is successful", async () => {
+      // Verificar se temos um token válido
+      expect(authToken).toBeTruthy();
+    });
+
     test("Com token válido e dados completos", async () => {
       // Verificar se temos um token de autenticação
       expect(authToken).toBeTruthy();
+
+      const timestamp = Date.now();
 
       const response = await fetch(
         `http://localhost:${port}/api/v1/terapeutas`,
@@ -108,7 +66,7 @@ describe("POST /api/v1/terapeutas", () => {
             nome: "Juliana Barbosa",
             foto: null,
             telefone: "61992095674",
-            email: "julianabarbosa.psi@gmail.com",
+            email: `julianabarbosa.psi.${timestamp}@gmail.com`,
             crp: "CRP 06/12345",
             dt_nascimento: "1985-03-15",
             dt_entrada: "2025-02-22T03:00:00.000Z",
@@ -126,7 +84,7 @@ describe("POST /api/v1/terapeutas", () => {
         nome: "Juliana Barbosa",
         foto: null,
         telefone: "61992095674",
-        email: "julianabarbosa.psi@gmail.com",
+        email: `julianabarbosa.psi.${timestamp}@gmail.com`,
         crp: "CRP 06/12345",
         curriculo_arquivo: null,
         dt_entrada: "2025-02-22T03:00:00.000Z",
@@ -152,6 +110,9 @@ describe("POST /api/v1/terapeutas", () => {
     });
 
     test("Com email duplicado", async () => {
+      const timestamp = Date.now();
+      const duplicateEmail = `duplicado.${timestamp}@gmail.com`;
+
       const response1 = await fetch(
         `http://localhost:${port}/api/v1/terapeutas`,
         {
@@ -164,7 +125,7 @@ describe("POST /api/v1/terapeutas", () => {
             nome: "Juliana Barbosa1",
             foto: null,
             telefone: "61992095674",
-            email: "duplicado@gmail.com",
+            email: duplicateEmail,
             crp: null,
             dt_nascimento: null,
             dt_entrada: "2025-02-22T03:00:00.000Z",
@@ -187,7 +148,7 @@ describe("POST /api/v1/terapeutas", () => {
             nome: "Juliana Barbosa2",
             foto: null,
             telefone: "61992095674",
-            email: "duplicado@gmail.com",
+            email: duplicateEmail,
             crp: null,
             dt_nascimento: null,
             dt_entrada: "2025-02-22T03:00:00.000Z",
@@ -210,6 +171,8 @@ describe("POST /api/v1/terapeutas", () => {
 
   describe("Usuário não autenticado", () => {
     test("Tentativa sem autenticação", async () => {
+      const timestamp = Date.now();
+
       const response = await fetch(
         `http://localhost:${port}/api/v1/terapeutas`,
         {
@@ -221,7 +184,7 @@ describe("POST /api/v1/terapeutas", () => {
             nome: "Terapeuta Sem Auth",
             foto: null,
             telefone: "61992095674",
-            email: "semauth@gmail.com",
+            email: `semauth.${timestamp}@gmail.com`,
             crp: null,
             dt_nascimento: null,
             dt_entrada: "2025-02-22T03:00:00.000Z",

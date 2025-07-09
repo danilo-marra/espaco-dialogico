@@ -172,7 +172,7 @@ async function postHandler(req, res) {
       switch (statusAgendamento) {
         case "Confirmado":
           return "Pagamento Pendente";
-        case "Remarcado":
+        case "Cancelado":
           return "Pagamento Pendente";
         default:
           return "Pagamento Pendente";
@@ -1126,7 +1126,7 @@ function mapearStatusAgendamentoParaStatusSessao(statusAgendamento) {
   switch (statusAgendamento) {
     case "Confirmado":
       return "Pagamento Pendente";
-    case "Remarcado":
+    case "Cancelado":
       return "Pagamento Pendente";
     default:
       return "Pagamento Pendente";

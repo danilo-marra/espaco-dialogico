@@ -47,11 +47,9 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
                     ${
                       agendamento.statusAgendamento === "Cancelado"
                         ? "bg-red-50 line-through"
-                        : agendamento.statusAgendamento === "Remarcado"
-                          ? "bg-yellow-50"
-                          : agendamento.sessaoRealizada || agendamento.falta
-                            ? "bg-green-50"
-                            : ""
+                        : agendamento.sessaoRealizada || agendamento.falta
+                          ? "bg-green-50"
+                          : ""
                     }`}
                   onClick={() => handleEditAgendamento(agendamento)}
                 >
@@ -100,9 +98,7 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
                         ${
                           agendamento.statusAgendamento === "Confirmado"
                             ? "bg-green-100 text-green-700"
-                            : agendamento.statusAgendamento === "Remarcado"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-red-100 text-red-700"
+                            : "bg-red-100 text-red-700"
                         }`}
                     >
                       {agendamento.statusAgendamento}

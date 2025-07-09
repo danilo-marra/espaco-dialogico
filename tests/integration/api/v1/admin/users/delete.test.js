@@ -1,6 +1,7 @@
 import orchestrator from "tests/orchestrator.js";
 import database from "infra/database.js";
 import bcrypt from "bcryptjs";
+import { ensureDevAdminExists } from "tests/helpers/auth.js";
 
 // Use environment variables for port configuration
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
@@ -45,6 +46,9 @@ beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
+
+  // Verificar se o admin das variáveis de ambiente já existe
+  await ensureDevAdminExists();
 });
 
 describe("DELETE /api/v1/admin/users/[userId]", () => {

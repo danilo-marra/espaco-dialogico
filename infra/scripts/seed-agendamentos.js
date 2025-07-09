@@ -65,7 +65,7 @@ const tiposAgendamento = [
 /**
  * Status possíveis para os agendamentos
  */
-const statusAgendamento = ["Confirmado", "Remarcado", "Cancelado"];
+const statusAgendamento = ["Confirmado", "Cancelado"];
 
 /**
  * Mapeia o tipo de agendamento para tipo de sessão
@@ -95,8 +95,6 @@ function mapearStatusAgendamentoParaPagamentoRealizado(statusAgendamento) {
   switch (statusAgendamento) {
     case "Confirmado":
       return Math.random() < 0.6; // 60% chance de ter pagamento realizado
-    case "Remarcado":
-      return Math.random() < 0.4; // 40% chance de ter pagamento realizado
     case "Cancelado":
       return false; // Nunca tem pagamento realizado
     default:
@@ -219,10 +217,7 @@ async function seedAgendamentos() {
         if (parseInt(sessaoCheck.rows[0].count) === 0) {
           // Simular se a sessão foi realizada para agendamentos existentes
           let sessaoRealizada = false;
-          if (
-            agendamento.status_agendamento === "Confirmado" ||
-            agendamento.status_agendamento === "Remarcado"
-          ) {
+          if (agendamento.status_agendamento === "Confirmado") {
             sessaoRealizada = Math.random() < 0.7; // 70% de chance
           }
 
@@ -323,12 +318,10 @@ async function seedAgendamentos() {
       // Status com probabilidades diferentes (maioria confirmado)
       const statusRandom = Math.random();
       let status_agendamento;
-      if (statusRandom < 0.7) {
+      if (statusRandom < 0.85) {
         status_agendamento = statusAgendamento[0]; // "Confirmado"
-      } else if (statusRandom < 0.9) {
-        status_agendamento = statusAgendamento[1]; // "Remarcado"
       } else {
-        status_agendamento = statusAgendamento[2]; // "Cancelado"
+        status_agendamento = statusAgendamento[1]; // "Cancelado"
       }
 
       // Gerar observações para alguns agendamentos (50% de chance)
@@ -345,12 +338,9 @@ async function seedAgendamentos() {
             ])
           : null;
 
-      // Simular se a sessão foi realizada (70% de chance para agendamentos confirmados/remarcados)
+      // Simular se a sessão foi realizada (70% de chance para agendamentos confirmados)
       let sessaoRealizada = false;
-      if (
-        status_agendamento === "Confirmado" ||
-        status_agendamento === "Remarcado"
-      ) {
+      if (status_agendamento === "Confirmado") {
         sessaoRealizada = Math.random() < 0.7; // 70% de chance
       }
       // Agendamentos cancelados nunca têm sessão realizada

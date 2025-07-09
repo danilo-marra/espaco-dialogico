@@ -3,19 +3,10 @@ import controller from "infra/controller.js";
 import user from "models/user.js";
 import invite from "models/invite.js";
 import terapeuta from "models/terapeuta.js";
+import inviteMock from "tests/mocks/inviteMock.js";
 
-// Em ambiente de teste, importar o mock de convites
-let inviteModel = invite;
-if (process.env.NODE_ENV === "test") {
-  // Importação dinâmica para evitar problemas com ESM/CommonJS
-  import("tests/mocks/inviteMock.js")
-    .then((module) => {
-      inviteModel = module.default;
-    })
-    .catch((err) => {
-      console.error("Erro ao importar mock de convites:", err);
-    });
-}
+// Use mock em ambiente de teste ou o modelo real em produção
+const inviteModel = process.env.NODE_ENV === "test" ? inviteMock : invite;
 
 const router = createRouter();
 

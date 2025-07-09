@@ -1,14 +1,17 @@
 // Mock do modelo invite para testes
 const validInviteCode = "test-invite-code";
 
+// Set para armazenar códigos de convite válidos criados durante os testes
+const validInviteCodes = new Set([validInviteCode, "test-invite-code-2"]);
+
 // Mock do modelo de convite que aceita qualquer código de convite em teste
 const inviteMock = {
   getByCode: async (code) => {
-    // Se é o código especial para testes, retorna um convite válido
-    if (code === validInviteCode) {
+    // Se é um código válido (fixo ou criado dinamicamente), retorna um convite válido
+    if (validInviteCodes.has(code) || code.startsWith("TEST-")) {
       return {
         id: "test-invite-id",
-        code: validInviteCode,
+        code: code,
         email: null, // Não restringe email
         role: "terapeuta",
         used: false,
@@ -26,6 +29,11 @@ const inviteMock = {
   validateAndUse: async (code, userId) => {
     // Em teste, apenas retorna true sem fazer nada
     return true;
+  },
+
+  // Função para adicionar códigos válidos (usada pelos testes)
+  addValidCode: (code) => {
+    validInviteCodes.add(code);
   },
 };
 

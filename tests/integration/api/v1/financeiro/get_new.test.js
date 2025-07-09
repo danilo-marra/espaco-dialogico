@@ -22,14 +22,14 @@ beforeAll(async () => {
   authToken = await prepareAuthentication(port);
 });
 
-describe("GET /api/v1/terapeutas", () => {
+describe("GET /api/v1/dashboard/financeiro-otimizado", () => {
   describe("Usuário autenticado", () => {
-    test("Recuperando terapeutas com autenticação", async () => {
+    test("Recuperando dados financeiros com autenticação", async () => {
       // Verificar se temos um token de autenticação
       expect(authToken).toBeTruthy();
 
       const response = await fetch(
-        `http://localhost:${port}/api/v1/terapeutas`,
+        `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -40,39 +40,31 @@ describe("GET /api/v1/terapeutas", () => {
       expect(response.status).toBe(200);
 
       const responseBody = await response.json();
-      expect(Array.isArray(responseBody)).toBe(true);
 
-      // Verificar a estrutura dos dados para cada terapeuta retornado
-      responseBody.forEach((terapeuta) => {
-        expect(terapeuta).toEqual({
-          id: terapeuta.id,
-          nome: terapeuta.nome,
-          foto: terapeuta.foto,
-          telefone: terapeuta.telefone,
-          email: terapeuta.email,
-          crp: terapeuta.crp,
-          dt_nascimento: terapeuta.dt_nascimento,
-          curriculo: terapeuta.curriculo,
-          dt_entrada: terapeuta.dt_entrada,
-          chave_pix: terapeuta.chave_pix,
-          user_id: terapeuta.user_id,
-          created_at: terapeuta.created_at,
-          updated_at: terapeuta.updated_at,
-        });
+      // Verificar se a resposta tem a estrutura esperada de dados financeiros
+      expect(typeof responseBody).toBe("object");
+      expect(responseBody).not.toBeNull();
 
-        expect(Date.parse(terapeuta.created_at)).not.toBeNaN();
-        expect(Date.parse(terapeuta.updated_at)).not.toBeNaN();
-      });
+      // Adicione verificações específicas baseadas na estrutura de resposta do seu endpoint
+      // Por exemplo, se o endpoint retorna estatísticas financeiras:
+      // expect(responseBody).toHaveProperty('totalReceita');
+      // expect(responseBody).toHaveProperty('totalDespesas');
+      // expect(responseBody).toHaveProperty('lucroLiquido');
+
+      // Se retorna um array de transações:
+      // expect(Array.isArray(responseBody)).toBe(true);
+
+      console.log("Resposta do endpoint financeiro:", responseBody);
     });
   });
 
   describe("Usuário não autenticado", () => {
-    test("Tentativa sem autenticação", async () => {
+    test("Usuário não autenticado deve receber 401", async () => {
       const response = await fetch(
-        `http://localhost:${port}/api/v1/terapeutas`,
+        `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
       );
 
-      expect(response.status).toBe(401); // Unauthorized
+      expect(response.status).toBe(401);
 
       const responseBody = await response.json();
       expect(responseBody.error).toBe("Não autorizado");

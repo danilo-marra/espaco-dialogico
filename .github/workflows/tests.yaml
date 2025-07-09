@@ -6,6 +6,22 @@ jobs:
   jest:
     name: Jest Ubuntu
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16.0-alpine3.18
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -13,6 +29,51 @@ jobs:
         with:
           node-version: "20.17.0"
 
+      - name: Create .env.test file
+        run: |
+          cat > .env.test << EOF
+          POSTGRES_HOST=localhost
+          POSTGRES_PORT=5432
+          POSTGRES_USER=test_user
+          POSTGRES_DB=test_db
+          POSTGRES_PASSWORD=test_password
+          DATABASE_URL=postgres://test_user:test_password@localhost:5432/test_db
+
+          JWT_SECRET=test_jwt_secret_for_ci
+
+          ADMIN_USERNAME=TestAdmin
+          ADMIN_EMAIL=admin@test.com
+          ADMIN_PASSWORD=TestPassword123
+          EOF
+
       - run: npm ci
 
-      - run: npm test
+      - name: Run migrations for test database
+        run: npx cross-env NODE_ENV=test node infra/scripts/run-migrations.js
+        env:
+          NODE_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+          POSTGRES_PASSWORD: test_password
+          DATABASE_URL: postgres://test_user:test_password@localhost:5432/test_db
+          JWT_SECRET: test_jwt_secret_for_ci
+          ADMIN_USERNAME: TestAdmin
+          ADMIN_EMAIL: admin@test.com
+          ADMIN_PASSWORD: TestPassword123
+
+      - name: Run tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_db
+          POSTGRES_PASSWORD: test_password
+          DATABASE_URL: postgres://test_user:test_password@localhost:5432/test_db
+          JWT_SECRET: test_jwt_secret_for_ci
+          ADMIN_USERNAME: TestAdmin
+          ADMIN_EMAIL: admin@test.com
+          ADMIN_PASSWORD: TestPassword123

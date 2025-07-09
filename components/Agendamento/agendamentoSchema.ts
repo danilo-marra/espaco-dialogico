@@ -3,17 +3,26 @@ import { z } from "zod";
 // Schema de validação para agendamentos
 export const agendamentoSchema = z
   .object({
-    paciente_id: z.string({
-      required_error: "Paciente é obrigatório",
-    }),
+    paciente_id: z
+      .string({
+        required_error: "Paciente é obrigatório",
+      })
+      .min(1, "Paciente é obrigatório")
+      .refine((value) => value.trim() !== "", "Selecione um paciente da lista"),
 
     sessaoRealizada: z.boolean().optional(),
 
     falta: z.boolean().optional(), // Novo campo para indicar falta ou desmarcação com menos de 24h
 
-    terapeuta_id: z.string({
-      required_error: "Terapeuta é obrigatório",
-    }),
+    terapeuta_id: z
+      .string({
+        required_error: "Terapeuta é obrigatório",
+      })
+      .min(1, "Terapeuta é obrigatório")
+      .refine(
+        (value) => value.trim() !== "",
+        "Selecione um terapeuta da lista",
+      ),
 
     dataAgendamento: z
       .date({
@@ -66,7 +75,7 @@ export const agendamentoSchema = z
         message: "Valor deve ser maior ou igual a zero",
       }),
 
-    statusAgendamento: z.enum(["Confirmado", "Remarcado", "Cancelado"], {
+    statusAgendamento: z.enum(["Confirmado", "Cancelado"], {
       required_error: "Status é obrigatório",
       invalid_type_error: "Status inválido",
     }),
