@@ -1,7 +1,9 @@
 const dotenv = require("dotenv");
-dotenv.config({
-  path: ".env.development",
-});
+
+// Carregar configurações para desenvolvimento por padrão (se não for teste)
+if (process.env.NODE_ENV !== "test") {
+  dotenv.config({ path: ".env.development" });
+}
 
 // Definir variável de ambiente para controlar a verbosidade dos logs
 process.env.TEST_VERBOSE = process.env.TEST_VERBOSE || "false";
@@ -20,7 +22,7 @@ const createJestConfig = nextJest({
 const jestConfig = createJestConfig({
   moduleDirectories: ["node_modules", "<rootDir>"],
   testTimeout: 120000, // Increased from 60000 to 120000
-  setupFiles: ["<rootDir>/tests/setup.js"],
+  setupFiles: ["<rootDir>/tests/setup.js", "<rootDir>/jest.env.js"],
   testEnvironment: "jsdom",
   setupFilesAfterEnv: [
     "@testing-library/jest-dom",
