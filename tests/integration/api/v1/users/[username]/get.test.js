@@ -1,85 +1,45 @@
 import { version as uuidVersion } from "uuid";
 import orchestrator from "tests/orchestrator.js";
-import database from "infra/database.js";
+import {
+  ensureDevAdminExists,
+  prepareAuthentication,
+  createInvite,
+} from "tests/helpers/auth.js";
+import {
+  ensureServerRunning,
+  cleanupServer,
+  waitForServerReady,
+} from "tests/helpers/serverManager.js";
 
 // Use environment variables for port configuration
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
-// Função auxiliar para criar um convite diretamente no banco de dados
-async function createInvite(email = null, role = "terapeuta") {
-  const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
-
-  const result = await database.query({
-    text: `
-      INSERT INTO invites (code, email, role, expires_at)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `,
-    values: [code, email, role, expiresAt],
-  });
-
-  return result.rows[0];
-}
-
-beforeAll(async () => {
-  await orchestrator.waitForAllServices();
-  await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
-});
+const TEST_NAME = "GET /api/v1/users/[username]";
 
 describe("GET /api/v1/users/[username]", () => {
   let authToken;
-  let invite;
 
   beforeAll(async () => {
-    // Criar um convite para usar nos testes
-    invite = await createInvite();
+    // Garantir que o servidor está rodando (inicia apenas se necessário)
+    await ensureServerRunning(TEST_NAME, port);
 
-    // Criar um usuário para autenticar - sem verificações aqui
-    const createUserResponse = await fetch(
-      `http://localhost:${port}/api/v1/users`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: "testadmin",
-          email: "admin@example.com",
-          password: "Senha@123",
-          inviteCode: invite.code,
-        }),
-      },
-    );
+    await orchestrator.waitForAllServices();
+    await waitForServerReady(port);
 
-    if (!createUserResponse.ok) {
-      console.error("Falha ao criar usuário:", await createUserResponse.json());
-    }
+    // Verificar se o admin das variáveis de ambiente já existe
+    await ensureDevAdminExists();
 
-    // Fazer login para obter token de autenticação - agora usando email em vez de username
-    const loginResponse = await fetch(
-      `http://localhost:${port}/api/v1/auth/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "admin@example.com", // Alterado de username para email
-          password: "Senha@123",
-        }),
-      },
-    );
+    // Obter token de autenticação para os testes usando função utilitária
+    authToken = await prepareAuthentication(port);
 
-    const loginData = await loginResponse.json();
-    authToken = loginData.token;
-
-    // Se o token não foi obtido, registre o erro mas não use expect
     if (!authToken) {
-      console.error("Falha ao obter token:", loginData);
-      console.error("Resposta do servidor:", loginResponse.status);
-      // Não vamos interromper os testes aqui, eles falharão naturalmente depois
+      console.error("Falha ao obter token de autenticação");
     }
+  });
+
+  afterAll(() => {
+    // Limpar apenas se fomos nós que iniciamos o servidor
+    cleanupServer(TEST_NAME);
   });
 
   describe("Logged User", () => {
@@ -90,29 +50,45 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With exact case match", async () => {
-      // Criar um novo convite para este teste
-      const newInvite = await createInvite();
+      // Criar um convite válido para o teste
+      const invite = await createInvite();
+      const timestamp = Date.now();
 
-      // Criar um usuário para testar a busca
+      // Criar um usuário para testar a busca (SEM autenticação - usuários se auto-registram com convite)
       const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          username: "MesmoCase",
-          email: "mesmo.case@example.com",
+          username: `MesmoCase${timestamp}`,
+          email: `user${timestamp}@example.com`,
           password: "Senha@123",
-          inviteCode: newInvite.code,
+          inviteCode: invite.code,
         }),
       });
+
+      // Se o teste falhar, vamos ver qual foi o erro
+      if (response1.status !== 201) {
+        const errorBody = await response1.json();
+        console.error("Erro ao criar usuário:", errorBody);
+        console.error("Status:", response1.status);
+        console.error("Dados enviados:", {
+          username: `MesmoCase${timestamp}`,
+          email: `user${timestamp}@example.com`,
+          password: "Senha@123",
+          inviteCode: invite.code,
+        });
+
+        // Falhar o teste com informação de debug
+        throw new Error(`Falha ao criar usuário: ${JSON.stringify(errorBody)}`);
+      }
 
       expect(response1.status).toBe(201); // created
 
       // Buscar o usuário criado com autenticação
       const response2 = await fetch(
-        `http://localhost:${port}/api/v1/users/MesmoCase`,
+        `http://localhost:${port}/api/v1/users/MesmoCase${timestamp}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -127,8 +103,8 @@ describe("GET /api/v1/users/[username]", () => {
       // Verificar que o usuário é retornado sem a senha
       expect(response2Body).toEqual({
         id: response2Body.id,
-        username: "MesmoCase",
-        email: "mesmo.case@example.com",
+        username: `MesmoCase${timestamp}`,
+        email: `user${timestamp}@example.com`,
         role: "terapeuta", // Verificando o role padrão
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
@@ -143,29 +119,36 @@ describe("GET /api/v1/users/[username]", () => {
     });
 
     test("With case mismatch", async () => {
-      // Criar um novo convite para este teste
-      const newInvite = await createInvite();
+      // Criar um convite válido para o teste
+      const invite = await createInvite();
+      const timestamp = Date.now();
 
-      // Criar um usuário para testar a busca com case diferente
+      // Criar um usuário para testar a busca com case diferente (SEM autenticação)
       const response1 = await fetch(`http://localhost:${port}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify({
-          username: "CaseDiferente",
-          email: "case.diferente@example.com",
+          username: `CaseDiferente${timestamp}`,
+          email: `casediff${timestamp}@example.com`,
           password: "Senha@123",
-          inviteCode: newInvite.code,
+          inviteCode: invite.code,
         }),
       });
+
+      // Se o teste falhar, vamos ver qual foi o erro
+      if (response1.status !== 201) {
+        const errorBody = await response1.json();
+        console.error("Erro ao criar usuário case diferente:", errorBody);
+        throw new Error(`Falha ao criar usuário: ${JSON.stringify(errorBody)}`);
+      }
 
       expect(response1.status).toBe(201); // created
 
       // Buscar o usuário com case diferente
       const response2 = await fetch(
-        `http://localhost:${port}/api/v1/users/casediferente`,
+        `http://localhost:${port}/api/v1/users/casediferente${timestamp}`,
         {
           headers: {
             Authorization: `Bearer ${authToken}`,
@@ -180,8 +163,8 @@ describe("GET /api/v1/users/[username]", () => {
       // Verificar que o usuário é retornado sem a senha
       expect(response2Body).toEqual({
         id: response2Body.id,
-        username: "CaseDiferente",
-        email: "case.diferente@example.com",
+        username: `CaseDiferente${timestamp}`,
+        email: `casediff${timestamp}@example.com`,
         role: "terapeuta", // Verificando o role padrão
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,

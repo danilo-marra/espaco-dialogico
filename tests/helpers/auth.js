@@ -34,7 +34,7 @@ export async function ensureDevAdminExists() {
 }
 
 // Função auxiliar para criar convites
-export async function createInvite(email = null, role = "admin") {
+export async function createInvite(email = null, role = "terapeuta") {
   const code = `TEST-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // Expira em 7 dias
@@ -48,13 +48,12 @@ export async function createInvite(email = null, role = "admin") {
     values: [code, email, role, expiresAt],
   });
 
-  return result.rows[0];
+  return result.rows[0]; // Adicione esta linha para retornar o convite criado
 }
 
 // Função reutilizável para autenticação nos testes
 export async function prepareAuthentication(port) {
   try {
-    // Tentar primeiro fazer login com o admin das variáveis de ambiente
     const adminEmail =
       process.env.ADMIN_EMAIL || "admin@espacodialogico.com.br";
     const adminPassword = process.env.ADMIN_PASSWORD || "AdminDefaultPassword";
@@ -71,65 +70,20 @@ export async function prepareAuthentication(port) {
       },
     );
 
-    if (loginResponse.ok) {
-      const loginData = await loginResponse.json();
-      console.log(`Login realizado com admin existente: ${adminEmail}`);
-      return loginData.token;
+    if (!loginResponse.ok) {
+      const errorBody = await loginResponse.json();
+      throw new Error(
+        `Falha ao fazer login com o usuário admin: ${JSON.stringify(
+          errorBody,
+        )}`,
+      );
     }
 
-    // Se o login falhar, criar um usuário temporário para teste
-    console.log(
-      "Falha no login com admin existente, criando usuário temporário para teste",
-    );
-
-    // 1. Criar um convite de administrador
-    const invite = await createInvite(null, "admin");
-
-    // 2. Criar um usuário admin para o teste
-    const timestamp = Date.now();
-    const createUserResponse = await fetch(
-      `http://localhost:${port}/api/v1/users`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: `admin_${timestamp}`,
-          email: `admin_${timestamp}@example.com`,
-          password: "Senha@123",
-          inviteCode: invite.code,
-        }),
-      },
-    );
-
-    if (!createUserResponse.ok) {
-      console.error("Falha ao criar usuário:", await createUserResponse.json());
-      return null;
-    }
-
-    // 3. Fazer login para obter o token
-    const tempLoginResponse = await fetch(
-      `http://localhost:${port}/api/v1/auth/login`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: `admin_${timestamp}@example.com`,
-          password: "Senha@123",
-        }),
-      },
-    );
-
-    if (!tempLoginResponse.ok) {
-      console.error("Falha ao fazer login:", await tempLoginResponse.json());
-      return null;
-    }
-
-    const loginData = await tempLoginResponse.json();
+    const loginData = await loginResponse.json();
     return loginData.token;
   } catch (error) {
-    console.error("Erro ao preparar autenticação:", error);
+    console.error("Erro fatal ao preparar autenticação:", error);
+    // Retornar null para que os testes que dependem do token falhem claramente
     return null;
   }
 }
