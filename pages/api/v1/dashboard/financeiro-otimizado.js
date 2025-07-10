@@ -1,13 +1,14 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import financeiroOtimizado from "models/financeiroOtimizado.js";
+import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 
 // Criar o router
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização
-router.use(requirePermission("sessoes"));
+router.use(authMiddleware).use(requirePermission("sessoes"));
 
 // Endpoint para limpar o cache
 router.post(async (request, response) => {

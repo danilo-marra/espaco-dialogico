@@ -14,11 +14,9 @@ beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
-
-  // Verificar se o admin das variáveis de ambiente já existe
+  // Agora, o admin de desenvolvimento pode ser criado com segurança
   await ensureDevAdminExists();
-
-  // Obter token de autenticação para os testes
+  // E a autenticação pode ser preparada
   authToken = await prepareAuthentication(port);
 });
 
@@ -75,7 +73,7 @@ describe("GET /api/v1/terapeutas", () => {
       expect(response.status).toBe(401); // Unauthorized
 
       const responseBody = await response.json();
-      expect(responseBody.error).toBe("Não autorizado");
+      expect(responseBody.error).toBe("Token de autenticação não fornecido");
     });
   });
 });

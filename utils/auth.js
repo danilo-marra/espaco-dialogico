@@ -12,18 +12,9 @@ export async function verifyPassword(password, hashedPassword) {
 }
 
 // Gerar token JWT
-export function generateToken(user) {
+export function generateToken(payload) {
   const secret = process.env.JWT_SECRET || "sua_chave_secreta_temporaria";
-  return jwt.sign(
-    {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-      role: user.role || "terapeuta", // Adicionando a propriedade role ao token
-    },
-    secret,
-    { expiresIn: "7d" },
-  );
+  return jwt.sign(payload, secret, { expiresIn: "7d" });
 }
 
 // Verificar token JWT
