@@ -71,10 +71,25 @@ async function deleteByToken(token) {
   return result.rowCount > 0;
 }
 
+// Função para deletar todas as sessões de um usuário específico
+async function deleteAllByUserId(userId) {
+  const result = await database.query({
+    text: `
+      DELETE FROM user_sessions
+      WHERE user_id = $1
+      RETURNING id
+    `,
+    values: [userId],
+  });
+
+  return result.rowCount;
+}
+
 const userSession = {
   create,
   findByToken,
   deleteByToken,
+  deleteAllByUserId,
   hashToken,
 };
 

@@ -36,7 +36,11 @@ async function postHandler(request, response) {
       });
     }
 
-    // Criar uma sessão de usuário no banco de dados
+    // IMPLEMENTAÇÃO: UMA SESSÃO POR USUÁRIO
+    // Invalidar todas as sessões anteriores do usuário antes de criar uma nova
+    await userSession.deleteAllByUserId(userFound.id);
+
+    // Criar uma nova sessão de usuário no banco de dados
     const newSession = await userSession.create(userFound.id);
 
     // Gerar um JWT que contém apenas o token da sessão

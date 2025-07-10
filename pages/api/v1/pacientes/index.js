@@ -2,6 +2,7 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import paciente from "models/paciente.js";
 import { formidable } from "formidable";
+import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 import { requireTerapeutaAccess } from "utils/terapeutaMiddleware.js";
 
@@ -19,7 +20,7 @@ function getFormValue(field) {
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
-router.use(requirePermission("pacientes"));
+router.use(authMiddleware).use(requirePermission("pacientes"));
 router.use(requireTerapeutaAccess());
 
 router.get(getAllHandler);

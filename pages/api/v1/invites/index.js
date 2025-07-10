@@ -2,12 +2,13 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import invite from "models/invite.js";
 import user from "models/user.js";
+import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
-router.use(requirePermission("convites"));
+router.use(authMiddleware).use(requirePermission("convites"));
 router.get(getHandler);
 router.post(postHandler);
 
