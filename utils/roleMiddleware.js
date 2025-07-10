@@ -1,5 +1,3 @@
-import { verifyToken } from "./auth.js";
-
 /**
  * Normaliza o role para lowercase para garantir consistência
  * @param {string} role - Role do usuário
@@ -131,47 +129,25 @@ export function getResourceFromRoute(url) {
  * @returns {Function} Middleware function
  */
 export function requirePermission(requiredResource) {
-  return async (req, res, next) => {
-    try {
-      // Verificar se o usuário está autenticado
-      const authHeader = req.headers.authorization;
-
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({
-          error: "Não autorizado",
-          message: "Token de autenticação não fornecido",
-        });
-      }
-
-      const token = authHeader.split(" ")[1];
-      const decoded = verifyToken(token);
-
-      if (!decoded) {
-        return res.status(401).json({
-          error: "Não autorizado",
-          message: "Token inválido ou expirado",
-        });
-      }
-
-      // Adicionar usuário à requisição
-      req.user = decoded; // Verificar permissão
-      const userRole = normalizeRole(decoded.role || "terapeuta");
-
-      if (!hasPermission(userRole, requiredResource)) {
-        return res.status(403).json({
-          error: "Acesso negado",
-          message: `Você não tem permissão para acessar ${requiredResource}`,
-        });
-      }
-
-      return next();
-    } catch (error) {
-      console.error("Erro de autorização:", error);
-      return res.status(500).json({
-        error: "Erro interno",
-        message: "Falha na verificação de permissões",
+  return (req, res, next) => {
+    // Este middleware assume que o authMiddleware já rodou e populou req.user
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Não autorizado",
+        message: "Usuário não autenticado.",
       });
     }
+
+    const userRole = normalizeRole(req.user.role);
+
+    if (!hasPermission(userRole, requiredResource)) {
+      return res.status(403).json({
+        error: "Acesso negado",
+        message: `Você não tem permissão para acessar o recurso: ${requiredResource}`,
+      });
+    }
+
+    return next();
   };
 }
 
@@ -182,49 +158,26 @@ export function requirePermission(requiredResource) {
  * @returns {Function} Handler com autenticação e autorização
  */
 export function withRolePermission(handler, requiredResource) {
-  return async (req, res) => {
-    try {
-      // Verificar se o token está presente no cabeçalho
-      const authHeader = req.headers.authorization;
-
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({
-          error: "Não autorizado",
-          message: "Token de autenticação não fornecido",
-        });
-      }
-
-      // Extrair e verificar o token
-      const token = authHeader.split(" ")[1];
-      const decoded = verifyToken(token);
-
-      if (!decoded) {
-        return res.status(401).json({
-          error: "Não autorizado",
-          message: "Token inválido ou expirado",
-        });
-      }
-
-      // Adicionar usuário decodificado à solicitação
-      req.user = decoded; // Verificar permissão
-      const userRole = normalizeRole(decoded.role || "terapeuta");
-
-      if (!hasPermission(userRole, requiredResource)) {
-        return res.status(403).json({
-          error: "Acesso negado",
-          message: `Você não tem permissão para acessar ${requiredResource}`,
-        });
-      }
-
-      // Prosseguir para o handler
-      return handler(req, res);
-    } catch (error) {
-      console.error("Erro de autenticação/autorização:", error);
-      return res.status(500).json({
-        error: "Erro interno",
-        message: "Falha na verificação de permissões",
+  // Este wrapper assume que o withAuthMiddleware será aplicado primeiro,
+  // populando req.user.
+  return (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: "Não autorizado",
+        message: "Usuário não autenticado.",
       });
     }
+
+    const userRole = normalizeRole(req.user.role);
+
+    if (!hasPermission(userRole, requiredResource)) {
+      return res.status(403).json({
+        error: "Acesso negado",
+        message: `Você não tem permissão para acessar o recurso: ${requiredResource}`,
+      });
+    }
+
+    return handler(req, res);
   };
 }
 

@@ -7,7 +7,6 @@ import {
 import {
   ensureServerRunning,
   cleanupServer,
-  waitForServerReady,
 } from "tests/helpers/serverManager.js";
 
 // Use environment variables for port configuration
@@ -21,19 +20,13 @@ describe("POST /api/v1/terapeutas", () => {
   beforeAll(async () => {
     // Garantir que o servidor está rodando (inicia apenas se necessário)
     await ensureServerRunning(TEST_NAME, port);
-
     await orchestrator.waitForAllServices();
-    await waitForServerReady(port);
-
-    // Verificar se o admin das variáveis de ambiente já existe
+    await orchestrator.clearDatabase();
+    await orchestrator.runPendingMigrations();
+    // Agora, o admin de desenvolvimento pode ser criado com segurança
     await ensureDevAdminExists();
-
-    // Obter token de autenticação para os testes usando função utilitária
+    // E a autenticação pode ser preparada
     authToken = await prepareAuthentication(port);
-
-    if (!authToken) {
-      console.error("Falha ao obter token de autenticação");
-    }
   });
 
   afterAll(() => {
@@ -196,7 +189,7 @@ describe("POST /api/v1/terapeutas", () => {
       expect(response.status).toBe(401); // Unauthorized
 
       const responseBody = await response.json();
-      expect(responseBody.error).toBe("Não autorizado");
+      expect(responseBody.error).toBe("Token de autenticação não fornecido");
     });
   });
 });

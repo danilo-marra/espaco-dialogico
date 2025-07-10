@@ -1,6 +1,7 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import user from "models/user.js";
+import userSession from "models/userSession.js";
 import { verifyPassword, generateToken } from "utils/auth.js";
 
 const router = createRouter();
@@ -12,7 +13,6 @@ export default router.handler(controller.errorHandlers);
 async function postHandler(request, response) {
   const { email, password } = request.body;
 
-  // Validação básica dos campos obrigatórios
   if (!email || !password) {
     return response.status(400).json({
       error: "Email e senha são obrigatórios",
@@ -20,7 +20,6 @@ async function postHandler(request, response) {
   }
 
   try {
-    // Buscar usuário pelo email
     const userFound = await user.findOneByEmail(email).catch(() => null);
 
     if (!userFound) {
@@ -29,7 +28,6 @@ async function postHandler(request, response) {
       });
     }
 
-    // Verificar senha
     const isPasswordValid = await verifyPassword(password, userFound.password);
 
     if (!isPasswordValid) {
@@ -38,10 +36,16 @@ async function postHandler(request, response) {
       });
     }
 
-    // Gerar token JWT
-    const token = generateToken(userFound);
+    // IMPLEMENTAÇÃO: UMA SESSÃO POR USUÁRIO
+    // Invalidar todas as sessões anteriores do usuário antes de criar uma nova
+    await userSession.deleteAllByUserId(userFound.id);
 
-    // Remover a senha do objeto de resposta
+    // Criar uma nova sessão de usuário no banco de dados
+    const newSession = await userSession.create(userFound.id);
+
+    // Gerar um JWT que contém apenas o token da sessão
+    const token = generateToken({ sessionId: newSession.token });
+
     const userWithoutPassword = { ...userFound };
     delete userWithoutPassword.password;
 

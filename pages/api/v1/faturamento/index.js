@@ -1,12 +1,13 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
+import authMiddleware from "utils/authMiddleware.js";
 import { requireTerapeutaAccess } from "utils/terapeutaMiddleware.js";
 import database from "infra/database.js";
 import { format } from "date-fns";
 
 const router = createRouter();
 
-router.use(requireTerapeutaAccess());
+router.use(authMiddleware).use(requireTerapeutaAccess());
 router.get(getHandler);
 
 async function getHandler(req, res) {

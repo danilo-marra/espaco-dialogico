@@ -1,12 +1,13 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import user from "models/user.js";
+import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 
 const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização
-router.use(requirePermission("usuarios"));
+router.use(authMiddleware).use(requirePermission("usuarios"));
 router.get(getHandler);
 
 export default router.handler(controller.errorHandlers);

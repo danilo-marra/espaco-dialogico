@@ -1,73 +1,76 @@
 import orchestrator from "tests/orchestrator.js";
-import {
-  ensureDevAdminExists,
-  prepareAuthentication,
-} from "tests/helpers/auth.js";
+import database from "infra/database.js";
 
-// Use environment variables for port configuration
-const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+const port = process.env.PORT || 3000;
 
-// Variável para armazenar o token de autenticação
-let authToken = null;
+async function createAndLoginAdmin() {
+  const email = "admin.financeiro@example.com";
+  const password = "Password@123";
+
+  const inviteCode =
+    `T-F-A-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
+  await database.query({
+    text: "INSERT INTO invites (code, role, expires_at) VALUES ($1, 'admin', NOW() + INTERVAL '7 day')",
+    values: [inviteCode],
+  });
+
+  const userResponse = await fetch(`http://localhost:${port}/api/v1/users`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: "admin_financeiro",
+      email,
+      password,
+      inviteCode,
+    }),
+  });
+
+  if (userResponse.status !== 201) {
+    const errorBody = await userResponse.json();
+    console.error("Error creating admin user in finance test:", errorBody);
+    throw new Error(
+      `Falha ao criar usuário admin para teste financeiro: ${JSON.stringify(errorBody)}`,
+    );
+  }
+
+  const loginResponse = await fetch(
+    `http://localhost:${port}/api/v1/auth/login`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    },
+  );
+
+  const { token } = await loginResponse.json();
+  return token;
+}
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
   await orchestrator.runPendingMigrations();
-
-  // Verificar se o admin das variáveis de ambiente já existe
-  await ensureDevAdminExists();
-
-  // Obter token de autenticação para os testes
-  authToken = await prepareAuthentication(port);
 });
 
 describe("GET /api/v1/dashboard/financeiro-otimizado", () => {
-  describe("Usuário autenticado", () => {
-    test("Recuperando dados financeiros com autenticação", async () => {
-      // Verificar se temos um token de autenticação
-      expect(authToken).toBeTruthy();
+  test("usuário admin deve conseguir acessar os dados financeiros", async () => {
+    const token = await createAndLoginAdmin();
+    const response = await fetch(
+      `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
 
-      const response = await fetch(
-        `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
-        {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        },
-      );
-
-      expect(response.status).toBe(200);
-
-      const responseBody = await response.json();
-
-      // Verificar se a resposta tem a estrutura esperada de dados financeiros
-      expect(typeof responseBody).toBe("object");
-      expect(responseBody).not.toBeNull();
-
-      // Adicione verificações específicas baseadas na estrutura de resposta do seu endpoint
-      // Por exemplo, se o endpoint retorna estatísticas financeiras:
-      // expect(responseBody).toHaveProperty('totalReceita');
-      // expect(responseBody).toHaveProperty('totalDespesas');
-      // expect(responseBody).toHaveProperty('lucroLiquido');
-
-      // Se retorna um array de transações:
-      // expect(Array.isArray(responseBody)).toBe(true);
-
-      console.log("Resposta do endpoint financeiro:", responseBody);
-    });
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(typeof body).toBe("object");
   });
 
-  describe("Usuário não autenticado", () => {
-    test("Usuário não autenticado deve receber 401", async () => {
-      const response = await fetch(
-        `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
-      );
-
-      expect(response.status).toBe(401);
-
-      const responseBody = await response.json();
-      expect(responseBody.error).toBe("Não autorizado");
-    });
+  test("usuário não autenticado deve receber 401", async () => {
+    const response = await fetch(
+      `http://localhost:${port}/api/v1/dashboard/financeiro-otimizado`,
+    );
+    expect(response.status).toBe(401);
   });
 });

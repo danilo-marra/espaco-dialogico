@@ -15,6 +15,7 @@ interface AuthHook {
   loading: boolean;
   login: (_email: string, _password: string) => Promise<void>;
   logout: () => void;
+  logoutAll: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
   canEdit: boolean;
@@ -86,11 +87,36 @@ const useAuth = (): AuthHook => {
     router.push("/login");
   }, [router]);
 
+  // Função de logout completo (todos os dispositivos)
+  const logoutAll = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        await fetch("/api/v1/auth/logout-all", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao fazer logout completo:", error);
+    } finally {
+      // Limpar dados locais independentemente do resultado
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      setUser(null);
+      router.push("/login");
+    }
+  }, [router]);
+
   return {
     user,
     loading,
     login,
     logout,
+    logoutAll,
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
     canEdit: user?.role === "admin" || user?.role === "secretaria",

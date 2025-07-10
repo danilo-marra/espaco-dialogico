@@ -1,4 +1,3 @@
-import { verifyToken } from "./auth.js";
 import database from "infra/database.js";
 
 /**
@@ -29,33 +28,23 @@ function normalizeRole(role) {
 export function requireTerapeutaAccess() {
   return async (req, res, next) => {
     try {
-      // Verificar se o usuário está autenticado
-      const authHeader = req.headers.authorization;
-
-      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      // O authMiddleware já deve ter rodado antes e populado req.user
+      if (!req.user) {
         return res.status(401).json({
           error: "Não autorizado",
-          message: "Token de autenticação não fornecido",
+          message: "Usuário não autenticado",
         });
       }
 
-      const token = authHeader.split(" ")[1];
-      const decoded = verifyToken(token);
-
-      if (!decoded) {
-        return res.status(401).json({
-          error: "Não autorizado",
-          message: "Token inválido ou expirado",
-        });
-      } // Adicionar usuário à requisição
-      req.user = decoded;
-      const userRole = normalizeRole(decoded.role || "terapeuta");
+      const userRole = normalizeRole(req.user.role || "terapeuta");
 
       // Se não for terapeuta, permitir acesso (admin e secretaria têm acesso total)
       if (userRole !== "terapeuta") {
         return next();
-      } // Para terapeutas, verificar se tem acesso aos dados solicitados
-      const userId = decoded.id;
+      }
+
+      // Para terapeutas, verificar se tem acesso aos dados solicitados
+      const userId = req.user.id;
 
       // Buscar o terapeuta associado a este usuário
       const terapeutaResult = await database.query({
@@ -65,7 +54,7 @@ export function requireTerapeutaAccess() {
 
       if (terapeutaResult.rows.length === 0) {
         console.warn(
-          `Usuário ${userId} com role terapeuta não tem registro na tabela terapeutas`,
+          `Usuário ${userId} (${req.user.username || req.user.email}) com role terapeuta não tem registro na tabela terapeutas`,
         );
 
         // ALTERADO: Permitir acesso mesmo sem registro de terapeuta
