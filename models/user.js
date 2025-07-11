@@ -377,6 +377,27 @@ async function deleteById(userId) {
   return results.rows[0];
 }
 
+async function incrementTokenVersion(userId) {
+  const results = await database.query({
+    text: `
+      UPDATE users
+      SET token_version = token_version + 1
+      WHERE id = $1
+      RETURNING token_version
+    `,
+    values: [userId],
+  });
+
+  if (results.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Usuário não encontrado para atualizar a versão do token.",
+      action: "Verifique se o ID do usuário está correto.",
+    });
+  }
+
+  return results.rows[0].token_version;
+}
+
 const user = {
   getAll,
   create,
@@ -386,6 +407,7 @@ const user = {
   update,
   delete: deleteUser,
   deleteById,
+  incrementTokenVersion,
 };
 
 export default user;

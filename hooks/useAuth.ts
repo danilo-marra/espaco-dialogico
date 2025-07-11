@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { toast } from "sonner";
+import { authenticatedFetch, forceLogout } from "utils/authenticatedFetch";
 
 export interface User {
   id: number;
@@ -8,6 +9,7 @@ export interface User {
   email: string;
   role: string;
   name?: string;
+  token_version?: number;
 }
 
 interface AuthHook {
@@ -44,12 +46,13 @@ const useAuth = (): AuthHook => {
     async (loginEmail: string, loginPassword: string) => {
       setLoading(true);
       try {
-        const response = await fetch("/api/v1/auth/login", {
+        const response = await authenticatedFetch("/api/v1/auth/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+          skipAuthCheck: true, // Login não precisa de token
         });
 
         const data = await response.json();
@@ -81,21 +84,17 @@ const useAuth = (): AuthHook => {
 
   // Função de logout
   const logout = useCallback(() => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    setUser(null);
-    router.push("/login");
-  }, [router]);
+    forceLogout("Você foi desconectado com sucesso.");
+  }, []);
 
   // Função de logout completo (todos os dispositivos)
   const logoutAll = useCallback(async () => {
     try {
       const token = localStorage.getItem("authToken");
       if (token) {
-        await fetch("/api/v1/auth/logout-all", {
+        await authenticatedFetch("/api/v1/auth/logout-all", {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
@@ -104,12 +103,9 @@ const useAuth = (): AuthHook => {
       console.error("Erro ao fazer logout completo:", error);
     } finally {
       // Limpar dados locais independentemente do resultado
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("user");
-      setUser(null);
-      router.push("/login");
+      forceLogout("Você foi desconectado de todos os dispositivos.");
     }
-  }, [router]);
+  }, []);
 
   return {
     user,

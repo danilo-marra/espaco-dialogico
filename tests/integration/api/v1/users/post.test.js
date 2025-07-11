@@ -60,6 +60,7 @@ describe("POST /api/v1/users", () => {
       username: "test_user",
       email: "test@example.com",
       role: "terapeuta", // Deveria receber a role do convite (terapeuta)
+      token_version: 0, // Valor padrão para novos usuários
       created_at: responseBody.created_at,
       updated_at: responseBody.updated_at,
     });

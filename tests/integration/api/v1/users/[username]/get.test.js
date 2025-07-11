@@ -106,6 +106,7 @@ describe("GET /api/v1/users/[username]", () => {
         username: `MesmoCase${timestamp}`,
         email: `user${timestamp}@example.com`,
         role: "terapeuta", // Verificando o role padrão
+        token_version: 0, // Valor padrão para novos usuários
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });
@@ -166,6 +167,7 @@ describe("GET /api/v1/users/[username]", () => {
         username: `CaseDiferente${timestamp}`,
         email: `casediff${timestamp}@example.com`,
         role: "terapeuta", // Verificando o role padrão
+        token_version: 0, // Valor padrão para novos usuários
         created_at: response2Body.created_at,
         updated_at: response2Body.updated_at,
       });

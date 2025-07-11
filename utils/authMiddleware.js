@@ -12,20 +12,34 @@ async function authenticate(request) {
   const token = authHeader.split(" ")[1];
   const decodedJwt = verifyToken(token);
 
-  if (!decodedJwt || !decodedJwt.sessionId) {
+  if (
+    !decodedJwt ||
+    !decodedJwt.sessionId ||
+    !decodedJwt.userId ||
+    decodedJwt.tokenVersion === undefined
+  ) {
     throw new Error("Token inválido ou malformado");
   }
 
   const session = await userSession.findByToken(decodedJwt.sessionId);
 
-  if (!session) {
-    throw new Error("Sessão inválida ou expirada");
+  if (!session || session.user_id !== decodedJwt.userId) {
+    const err = new Error("Sessão inválida. Por favor, faça login novamente.");
+    err.statusCode = 401;
+    throw err;
   }
 
   const userFound = await user.findById(session.user_id);
 
   if (!userFound) {
     throw new Error("Usuário da sessão não encontrado");
+  }
+
+  // Verificar a versão do token
+  if (userFound.token_version !== decodedJwt.tokenVersion) {
+    const err = new Error("Sessão inválida. Por favor, faça login novamente.");
+    err.statusCode = 401;
+    throw err;
   }
 
   delete userFound.password;
