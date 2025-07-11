@@ -20,10 +20,15 @@ export const useFetchAgendamentos = () => {
 
   // Função para atualizar um agendamento
   const updateAgendamento = async (id: string, agendamento: Agendamento) => {
-    const response = await axiosInstance.put<Agendamento>(
+    const response = await axiosInstance.put(
       `/agendamentos/${id}`,
       agendamento,
     );
+
+    if (response.status < 200 || response.status >= 300) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     mutate(); // Revalidar os dados após a atualização
     return response.data;
   };

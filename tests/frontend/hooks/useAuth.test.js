@@ -16,6 +16,12 @@ jest.mock("sonner", () => ({
   },
 }));
 
+// Mock para authenticatedFetch
+jest.mock("utils/authenticatedFetch", () => ({
+  authenticatedFetch: jest.fn(),
+  forceLogout: jest.fn(),
+}));
+
 // Mock para fetch
 global.fetch = jest.fn();
 
@@ -26,6 +32,7 @@ describe("useAuth hook", () => {
     email: "test@example.com",
     role: "terapeuta",
     name: "Test User",
+    token_version: 0,
   };
 
   const mockAdminUser = {
@@ -34,6 +41,7 @@ describe("useAuth hook", () => {
     email: "admin@example.com",
     role: "admin",
     name: "Admin User",
+    token_version: 0,
   };
 
   // Mock router
@@ -107,8 +115,10 @@ describe("useAuth hook", () => {
   });
 
   test("deve fazer login com sucesso", async () => {
-    // Mock para o fetch retornar resposta bem-sucedida
-    global.fetch.mockResolvedValueOnce({
+    const { authenticatedFetch } = require("utils/authenticatedFetch");
+
+    // Mock para o authenticatedFetch retornar resposta bem-sucedida
+    authenticatedFetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         token: "fake-token",
@@ -126,8 +136,8 @@ describe("useAuth hook", () => {
       await result.current.login("test@example.com", "password123");
     });
 
-    // Verifica se fetch foi chamado corretamente
-    expect(global.fetch).toHaveBeenCalledWith("/api/v1/auth/login", {
+    // Verifica se authenticatedFetch foi chamado corretamente
+    expect(authenticatedFetch).toHaveBeenCalledWith("/api/v1/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -136,6 +146,7 @@ describe("useAuth hook", () => {
         email: "test@example.com",
         password: "password123",
       }),
+      skipAuthCheck: true,
     });
 
     // Verifica se localStorage foi atualizado
@@ -153,9 +164,11 @@ describe("useAuth hook", () => {
   });
 
   test("deve lidar com erro de login", async () => {
-    // Mock para o fetch retornar erro
+    const { authenticatedFetch } = require("utils/authenticatedFetch");
+
+    // Mock para o authenticatedFetch retornar erro
     const errorMessage = "Credenciais inválidas";
-    global.fetch.mockResolvedValueOnce({
+    authenticatedFetch.mockResolvedValueOnce({
       ok: false,
       json: async () => ({
         error: errorMessage,
@@ -190,7 +203,9 @@ describe("useAuth hook", () => {
     expect(result.current.isAuthenticated).toBe(false);
   });
 
-  test("deve fazer logout corretamente", () => {
+  test("deve fazer logout corretamente", async () => {
+    const { forceLogout } = require("utils/authenticatedFetch");
+
     // Configura um usuário inicialmente logado
     jest.spyOn(Storage.prototype, "getItem").mockImplementation((key) => {
       if (key === "user") {
@@ -198,9 +213,6 @@ describe("useAuth hook", () => {
       }
       return null;
     });
-
-    // Espia o localStorage.removeItem
-    const removeItemSpy = jest.spyOn(Storage.prototype, "removeItem");
 
     const { result } = renderHook(() => useAuth());
 
@@ -214,20 +226,14 @@ describe("useAuth hook", () => {
     expect(result.current.isAuthenticated).toBe(true);
 
     // Executa o logout
-    act(() => {
+    await act(async () => {
       result.current.logout();
     });
 
-    // Verifica se localStorage foi limpo
-    expect(removeItemSpy).toHaveBeenCalledWith("authToken");
-    expect(removeItemSpy).toHaveBeenCalledWith("user");
-
-    // Verifica se o estado foi atualizado
-    expect(result.current.user).toBeNull();
-    expect(result.current.isAuthenticated).toBe(false);
-
-    // Verifica se o redirecionamento foi chamado
-    expect(mockRouter.push).toHaveBeenCalledWith("/login");
+    // Verifica se forceLogout foi chamado
+    expect(forceLogout).toHaveBeenCalledWith(
+      "Você foi desconectado com sucesso.",
+    );
   });
 
   test("deve lidar com erro no JSON ao carregar usuário do localStorage", () => {
@@ -254,8 +260,10 @@ describe("useAuth hook", () => {
   });
 
   test("deve lidar com erro de rede durante login", async () => {
-    // Mock para o fetch lançar erro de rede
-    global.fetch.mockRejectedValueOnce(new Error("Erro de conexão"));
+    const { authenticatedFetch } = require("utils/authenticatedFetch");
+
+    // Mock para o authenticatedFetch lançar erro de rede
+    authenticatedFetch.mockRejectedValueOnce(new Error("Erro de conexão"));
 
     const { result } = renderHook(() => useAuth());
 

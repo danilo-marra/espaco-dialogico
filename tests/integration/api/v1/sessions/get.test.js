@@ -274,4 +274,195 @@ describe("POST /api/v1/admin/sessions", () => {
 
     expect(newTokenResponse.status).toBe(200);
   });
+
+  test("Deve forçar a revalidação do token se a sessão não existir no banco de dados", async () => {
+    const adminEmail = process.env.ADMIN_EMAIL || "danilo2311@gmail.com";
+    const adminPassword =
+      process.env.ADMIN_PASSWORD || "AdminPassword2025Secure";
+
+    // 1. Fazer login e obter um token
+    const loginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      },
+    );
+    expect(loginResponse.status).toBe(200);
+    const loginData = await loginResponse.json();
+    const adminToken = loginData.token;
+
+    // 2. Simular invalidação da sessão no servidor (ex: deploy de nova versão)
+    // Incrementar a token_version do usuário diretamente no banco
+    const { default: userModel } = await import("models/user.js");
+    // Re-fetch the admin user to ensure we have the latest data, including the correct ID
+    const freshAdminUser = await userModel.findOneByEmail(adminEmail);
+    await userModel.incrementTokenVersion(freshAdminUser.id);
+
+    // 3. Tentar usar o token antigo que ainda está no "cache" do cliente
+    const oldTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/admin/sessions`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${adminToken}`,
+        },
+      },
+    );
+
+    // A aplicação deve retornar 401, forçando o cliente a fazer login novamente
+    expect(oldTokenResponse.status).toBe(401);
+    const oldTokenBody = await oldTokenResponse.json();
+    expect(oldTokenBody.error).toBe(
+      "Sessão inválida. Por favor, faça login novamente.",
+    );
+  });
+
+  test("Deve manter apenas uma sessão ativa por usuário", async () => {
+    const adminEmail = process.env.ADMIN_EMAIL || "danilo2311@gmail.com";
+    const adminPassword =
+      process.env.ADMIN_PASSWORD || "AdminPassword2025Secure";
+
+    // 1. Fazer o primeiro login
+    const firstLoginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      },
+    );
+    expect(firstLoginResponse.status).toBe(200);
+    const firstLoginData = await firstLoginResponse.json();
+    const firstToken = firstLoginData.token;
+
+    // 2. Fazer o segundo login em outro "dispositivo"
+    const secondLoginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      },
+    );
+    expect(secondLoginResponse.status).toBe(200);
+    const secondLoginData = await secondLoginResponse.json();
+    const secondToken = secondLoginData.token;
+
+    // 3. Verificar se o primeiro token foi invalidado
+    const firstTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/me`, // Usar um endpoint qualquer para verificar a sessão
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${firstToken}`,
+        },
+      },
+    );
+    expect(firstTokenResponse.status).toBe(401);
+
+    // 4. Verificar se o segundo token é válido
+    const secondTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/me`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${secondToken}`,
+        },
+      },
+    );
+    expect(secondTokenResponse.status).toBe(200);
+  });
+
+  test("Deve demonstrar o comportamento do sistema de interceptação de sessão", async () => {
+    // Este teste documenta como o sistema funciona do ponto de vista do cliente
+    const adminEmail = process.env.ADMIN_EMAIL || "danilo2311@gmail.com";
+    const adminPassword =
+      process.env.ADMIN_PASSWORD || "AdminPassword2025Secure";
+
+    // 1. Fazer login normalmente
+    const loginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      },
+    );
+
+    expect(loginResponse.status).toBe(200);
+    const loginData = await loginResponse.json();
+    const token = loginData.token;
+
+    // 2. Verificar que o token funciona inicialmente
+    const validTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/me`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    expect(validTokenResponse.status).toBe(200);
+
+    // 3. Simular invalidação da sessão no servidor
+    const { default: userModel } = await import("models/user.js");
+    const adminUser = await userModel.findOneByEmail(adminEmail);
+    await userModel.incrementTokenVersion(adminUser.id);
+
+    // 4. Tentar usar o token invalidado
+    const invalidTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/me`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    // 5. Verificar que retorna 401 com mensagem específica
+    expect(invalidTokenResponse.status).toBe(401);
+    const invalidTokenBody = await invalidTokenResponse.json();
+    expect(invalidTokenBody.error).toBe(
+      "Sessão inválida. Por favor, faça login novamente.",
+    );
+
+    // 6. Verificar que uma nova sessão pode ser criada
+    const newLoginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+      },
+    );
+
+    expect(newLoginResponse.status).toBe(200);
+    const newLoginData = await newLoginResponse.json();
+    const newToken = newLoginData.token;
+
+    // 7. Verificar que o novo token funciona
+    const newValidTokenResponse = await fetch(
+      `http://localhost:${port}/api/v1/me`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${newToken}`,
+        },
+      },
+    );
+    expect(newValidTokenResponse.status).toBe(200);
+
+    // Documentar o comportamento esperado no frontend:
+    // - O authenticatedFetch detectaria o erro 401
+    // - Limparia o localStorage
+    // - Redirecionaria para /login
+    // - Mostraria toast de erro
+    console.log(
+      "✅ Sistema de interceptação: O frontend detectaria este erro 401 e redirecionaria automaticamente",
+    );
+  });
 });

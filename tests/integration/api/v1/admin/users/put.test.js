@@ -11,11 +11,11 @@ async function createTestUser(username, email, password, role = "terapeuta") {
   const hashedPassword = await bcrypt.hash(password, 10);
   const result = await database.query({
     text: `
-      INSERT INTO users (username, email, password, role)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO users (username, email, password, role, token_version)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `,
-    values: [username, email, hashedPassword, role],
+    values: [username, email, hashedPassword, role, 0],
   });
 
   return result.rows[0];

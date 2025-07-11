@@ -40,11 +40,18 @@ async function postHandler(request, response) {
     // Invalidar todas as sessões anteriores do usuário antes de criar uma nova
     await userSession.deleteAllByUserId(userFound.id);
 
+    // Incrementar a versão do token do usuário
+    const newTokenVersion = await user.incrementTokenVersion(userFound.id);
+
     // Criar uma nova sessão de usuário no banco de dados
     const newSession = await userSession.create(userFound.id);
 
-    // Gerar um JWT que contém apenas o token da sessão
-    const token = generateToken({ sessionId: newSession.token });
+    // Gerar um JWT que contém o token da sessão, o ID do usuário e a versão do token
+    const token = generateToken({
+      sessionId: newSession.token,
+      userId: userFound.id,
+      tokenVersion: newTokenVersion,
+    });
 
     const userWithoutPassword = { ...userFound };
     delete userWithoutPassword.password;

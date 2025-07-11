@@ -97,6 +97,8 @@ describe("POST /api/v1/auth/logout", () => {
     );
     expect(postLogoutResponse.status).toBe(401);
     const postLogoutBody = await postLogoutResponse.json();
-    expect(postLogoutBody.error).toBe("Sessão inválida ou expirada");
+    expect(postLogoutBody.error).toBe(
+      "Sessão inválida. Por favor, faça login novamente.",
+    );
   });
 });
