@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 // Script para criar índices otimizados para performance do dashboard
-// Execute: node scripts/otimizar-indices-dashboard.js
+// Execute: node infra/scripts/otimizar-indices-dashboard.js
 
-import financeiroOtimizado from "../models/financeiroOtimizado.js";
+import financeiroOtimizado from "../../models/financeiroOtimizado.js";
 
 async function main() {
   console.log("🚀 Iniciando otimização de índices para o dashboard...");

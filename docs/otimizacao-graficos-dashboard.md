@@ -129,7 +129,7 @@ CREATE INDEX idx_terapeutas_entrada ON terapeutas(dt_entrada);
 ### 1. Executar Otimizações de Índices
 
 ```bash
-node scripts/otimizar-indices-dashboard.js
+node infra/scripts/otimizar-indices-dashboard.js
 ```
 
 ### 2. Usar o Endpoint Otimizado
