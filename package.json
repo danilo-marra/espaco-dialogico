@@ -7,8 +7,8 @@
     "dev": "cross-env NODE_ENV=development npm run services:up && npm run services:wait:database && node infra/scripts/ensure-port-available.js && npm run migrations:up && next dev",
     "dev:safe": "cross-env NODE_ENV=development npm run services:up && npm run services:wait:database && node infra/scripts/ensure-port-available.js && npm run migrations:up && cross-env NEXT_MANUAL_START=true node infra/scripts/start-next-dev.js",
     "dev:clean": "npm run services:down && npm run dev",
-    "dev:isolated": "node scripts/dev-isolated.js",
-    "dev:isolated:safe": "npm run dev:fix-permissions && node scripts/dev-isolated.js",
+    "dev:isolated": "node infra/scripts/dev-isolated.js",
+    "dev:isolated:safe": "npm run dev:fix-permissions && node infra/scripts/dev-isolated.js",
     "dev:fix-permissions": "node infra/scripts/fix-next-permissions.js",
     "build": "next build",
     "postbuild": "node -e \"if(process.env.NODE_ENV !== 'development' && process.env.NODE_ENV !== 'test') require('./infra/scripts/run-migrations.js')\"",
@@ -84,7 +84,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "dotenv": "16.4.7",
-    "dotenv-expand": "12.0.1",
+    "dotenv-expand": "^12.0.1",
     "form-data": "^4.0.3",
     "formidable": "^3.5.2",
     "jsonwebtoken": "^9.0.2",
@@ -112,6 +112,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "11.1.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

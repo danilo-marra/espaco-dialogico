@@ -9,7 +9,7 @@ const { spawn } = require("child_process");
 const chalk = require("chalk");
 const fs = require("fs");
 const path = require("path");
-const { fixNextPermissions } = require("../infra/scripts/fix-next-permissions");
+const { fixNextPermissions } = require("./fix-next-permissions");
 
 async function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
