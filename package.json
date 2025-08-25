@@ -88,7 +88,7 @@
     "form-data": "^4.0.3",
     "formidable": "^3.5.2",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.469.0",
+    "lucide-react": "^0.536.0",
     "multer": "^1.4.5-lts.2",
     "next": "15.1.0",
     "next-cloudinary": "^6.16.0",
