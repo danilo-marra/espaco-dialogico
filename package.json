@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "cross-env NODE_ENV=development npm run services:up && npm run services:wait:database && node infra/scripts/ensure-port-available.js && npm run migrations:up && next dev",
     "dev:safe": "cross-env NODE_ENV=development npm run services:up && npm run services:wait:database && node infra/scripts/ensure-port-available.js && npm run migrations:up && cross-env NEXT_MANUAL_START=true node infra/scripts/start-next-dev.js",
