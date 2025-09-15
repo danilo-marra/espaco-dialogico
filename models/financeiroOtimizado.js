@@ -31,7 +31,8 @@ function getCache(key) {
 }
 
 // Limpeza periódica do cache
-setInterval(() => {
+// Mantemos referência para permitir cleanup explícito em ambientes de teste (evitar open handles do Jest)
+const cacheCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of cache.entries()) {
     if (now - value.timestamp > CACHE_TTL) {
@@ -39,6 +40,10 @@ setInterval(() => {
     }
   }
 }, CACHE_TTL);
+// Evita que o intervalo mantenha o event loop vivo (Node >= 10)
+if (typeof cacheCleanupInterval.unref === "function") {
+  cacheCleanupInterval.unref();
+}
 
 // Função otimizada para obter resumo financeiro com consulta única
 async function obterResumoFinanceiroOtimizado(periodo) {
@@ -321,6 +326,14 @@ const financeiroOtimizado = {
       timestamp: new Date(value.timestamp).toISOString(),
       hasData: !!value.data,
     }));
+  },
+  // Encerrar intervalos / recursos (usado em teardown de testes)
+  shutdown: () => {
+    try {
+      clearInterval(cacheCleanupInterval);
+    } catch (_) {
+      /* ignore */
+    }
   },
 };
 

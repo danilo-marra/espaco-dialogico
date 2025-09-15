@@ -1,14 +1,28 @@
 const path = require("path");
+const fs = require("fs");
 const dotenv = require("dotenv");
+const dotenvExpand = require("dotenv-expand");
 
-// Configurando caminho correto para as variáveis de ambiente
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
+// Permitir passar arquivo .env como primeiro argumento (default: .env.development.local)
+const envFile = process.argv[2] || ".env.development.local";
+const envPath = path.resolve(process.cwd(), envFile);
+if (fs.existsSync(envPath)) {
+  const cfg = dotenv.config({ path: envPath });
+  dotenvExpand.expand(cfg);
+  process.env.LOADED_ENV_FILE = envFile;
+  console.log(`🔧 Variáveis carregadas de ${envFile}`);
+} else {
+  console.warn(
+    `⚠️ Arquivo de ambiente '${envFile}' não encontrado. Prosseguindo com variáveis existentes.`,
+  );
+}
 
 // Importando migrator com caminho relativo correto
 const migrator = require(path.resolve(process.cwd(), "models/migrator.js"));
 
 console.log("Executando migrações automaticamente...");
 console.log(`NODE_ENV: ${process.env.NODE_ENV || "não definido"}`);
+console.log(`ENV file: ${process.env.LOADED_ENV_FILE || "não aplicado"}`);
 console.log(
   `Variáveis de admin definidas: ${Boolean(process.env.ADMIN_USERNAME && process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD)}`,
 );

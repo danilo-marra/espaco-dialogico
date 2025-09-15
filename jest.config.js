@@ -1,18 +1,11 @@
 const dotenv = require("dotenv");
 
-// Carregar configurações para desenvolvimento por padrão (se não for teste)
+// Para execução direta (jest --watch / arquivo único) garantir carregamento .env.test
 if (process.env.NODE_ENV !== "test") {
-  dotenv.config({ path: ".env.development" });
+  process.env.NODE_ENV = "test";
 }
-
-// Definir variável de ambiente para controlar a verbosidade dos logs
+dotenv.config({ path: ".env.test" });
 process.env.TEST_VERBOSE = process.env.TEST_VERBOSE || "false";
-
-// Prevenir execução de testes se não estiver em ambiente de teste explícito
-if (process.env.NODE_ENV !== "test" && !process.env.JEST_EXPLICIT_RUN) {
-  console.log("⚠️ Testes não serão executados fora do ambiente de teste!");
-  process.exit(0);
-}
 
 const nextJest = require("next/jest");
 
@@ -23,6 +16,8 @@ const jestConfig = createJestConfig({
   moduleDirectories: ["node_modules", "<rootDir>"],
   testTimeout: 120000, // Increased from 60000 to 120000
   setupFiles: ["<rootDir>/tests/setup.js", "<rootDir>/jest.env.js"],
+  globalSetup: "<rootDir>/tests/global-setup.js",
+  globalTeardown: "<rootDir>/tests/global-teardown.js",
   testEnvironment: "jsdom",
   setupFilesAfterEnv: [
     "@testing-library/jest-dom",
