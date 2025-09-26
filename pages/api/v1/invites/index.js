@@ -27,14 +27,6 @@ async function getHandler(request, response) {
 
 // Criar um novo convite
 async function postHandler(request, response) {
-  // Verificar se o usuário é um administrador
-  if (request.user.role !== "admin") {
-    return response.status(403).json({
-      error: "Acesso negado",
-      action: "Apenas administradores podem criar convites",
-    });
-  }
-
   const { email, role, expiresInDays } = request.body;
   const userId = request.user.id;
   const username = request.user.username;
