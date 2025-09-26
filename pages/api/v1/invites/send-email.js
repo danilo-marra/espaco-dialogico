@@ -1,8 +1,9 @@
 import { sendInviteEmail } from "../../../../utils/emailService.js";
-import { verifyToken } from "../../../../utils/auth.js";
 import database from "../../../../infra/database";
+import { withAuthMiddleware } from "../../../../utils/authMiddleware.js";
+import { withRolePermission } from "../../../../utils/roleMiddleware.js";
 
-export default async function handler(request, response) {
+async function handler(request, response) {
   // Verificar método
   if (request.method !== "POST") {
     return response.status(405).json({
@@ -11,29 +12,6 @@ export default async function handler(request, response) {
     });
   }
 
-  // Verificar autenticação e permissão de admin
-  try {
-    const token = request.headers.authorization?.replace("Bearer ", "");
-
-    if (!token) {
-      return response.status(401).json({
-        error: "Token de acesso requerido",
-      });
-    }
-
-    const user = verifyToken(token);
-
-    if (!user || user.role !== "admin") {
-      return response.status(403).json({
-        error: "Acesso negado",
-        message: "Apenas administradores podem enviar emails",
-      });
-    }
-  } catch (error) {
-    return response.status(401).json({
-      error: "Token inválido",
-    });
-  } // Processar envio de email
   try {
     const { inviteId } = request.body;
 
@@ -160,3 +138,5 @@ export default async function handler(request, response) {
     });
   }
 }
+
+export default withAuthMiddleware(withRolePermission(handler, "convites"));
