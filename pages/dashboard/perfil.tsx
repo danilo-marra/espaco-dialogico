@@ -118,7 +118,7 @@ export default function PerfilPage() {
     try {
       const token = localStorage.getItem("authToken");
 
-      const response = await fetch("/api/v1/users/change-password", {
+      const response = await fetch("/api/v1/users/change-password/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

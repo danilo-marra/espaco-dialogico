@@ -23,7 +23,7 @@ const SessionCheck: React.FC<SessionCheckProps> = ({ children }) => {
       }
 
       try {
-        const response = await authenticatedFetch("/api/v1/me", {
+        const response = await authenticatedFetch("/api/v1/me/", {
           method: "GET",
         });
 

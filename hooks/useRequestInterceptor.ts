@@ -64,7 +64,7 @@ const useRequestInterceptor = (): RequestInterceptor => {
     }
 
     try {
-      const response = await fetch("/api/v1/me", {
+      const response = await fetch("/api/v1/me/", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

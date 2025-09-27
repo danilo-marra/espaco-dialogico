@@ -9,7 +9,7 @@ const fetcher = async (url: string): Promise<Agendamento[]> => {
 
 export const useFetchAgendamentos = () => {
   const { data, error, isLoading, mutate } = useSWR<Agendamento[]>(
-    "/agendamentos",
+    "/agendamentos/",
     fetcher,
     {
       revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
@@ -21,7 +21,7 @@ export const useFetchAgendamentos = () => {
   // Função para atualizar um agendamento
   const updateAgendamento = async (id: string, agendamento: Agendamento) => {
     const response = await axiosInstance.put(
-      `/agendamentos/${id}`,
+      `/agendamentos/${id}/`,
       agendamento,
     );
 

@@ -137,7 +137,7 @@ describe("useAuth hook", () => {
     });
 
     // Verifica se authenticatedFetch foi chamado corretamente
-    expect(authenticatedFetch).toHaveBeenCalledWith("/api/v1/auth/login", {
+    expect(authenticatedFetch).toHaveBeenCalledWith("/api/v1/auth/login/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
