@@ -5,7 +5,7 @@
 
 ## Visão Geral
 
-Este repositório contém o código para o projeto Espaço Dialógico, que é um site e um sistema de controle financeiro para uma clínica de psicologia infantil. 
+Este repositório contém o código para o projeto Espaço Dialógico, que é um site e um sistema de controle financeiro para uma clínica de psicologia infantil.
 
 ## Objetivo
 
