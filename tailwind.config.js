@@ -74,10 +74,15 @@ module.exports = {
             transform: "translate(-50%, -50%) scale(1)",
           },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
       },
       animation: {
         overlayShow: "overlayShow 150ms cubic-bezier(0.16, 1, 0.3, 1)",
         contentShow: "contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1)",
+        shimmer: "shimmer 2s infinite",
       },
       borderRadius: {
         lg: "var(--radius)",
