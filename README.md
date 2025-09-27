@@ -3,15 +3,15 @@
 - Site e Sistema de Controle de Finanças
 - Inspirado no projeto [Tabnews](https://github.com/filipedeschamps/tabnews.com.br) do [Filipe de Schamps](https://github.com/filipedeschamps) durante as aulas do [curso.dev](https://curso.dev/)
 
-## Overview
+## Visão Geral
 
-This repository contains the code for the Espaço Dialógico project, which is a website and financial control system for a child psychology clinic.
+Este repositório contém o código para o projeto Espaço Dialógico, que é um site e um sistema de controle financeiro para uma clínica de psicologia infantil.
 
-## Purpose
+## Objetivo
 
-The purpose of this project is to provide a platform for managing the clinic's website and financial operations.
+O objetivo deste projeto é fornecer uma plataforma para gerenciar o site e as operações financeiras da clínica.
 
-## Technologies Used
+## Tecnologias Utilizadas
 
 - Next.js
 - React
