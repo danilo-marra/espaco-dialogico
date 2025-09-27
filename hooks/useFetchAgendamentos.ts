@@ -12,9 +12,26 @@ export const useFetchAgendamentos = () => {
     "/agendamentos/",
     fetcher,
     {
-      revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
-      revalidateIfStale: false, // Não revalidar dados antigos automaticamente
-      dedupingInterval: 10000, // Deduplicar requisições similares em um intervalo de 10 segundos
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      revalidateOnMount: true,
+      dedupingInterval: 10000, // 10 segundos - agendamentos são muito dinâmicos
+      refreshInterval: 60000, // 1 minuto - dados altamente dinâmicos
+      keepPreviousData: true,
+      errorRetryCount: 3,
+      errorRetryInterval: 1500,
+      // Comparação otimizada para agendamentos
+      compare: (a, b) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+        if (a.length !== b.length) return false;
+        return a.every(
+          (item, index) =>
+            item.id === b[index]?.id &&
+            item.statusAgendamento === b[index]?.statusAgendamento &&
+            item.dataAgendamento === b[index]?.dataAgendamento,
+        );
+      },
     },
   );
 
