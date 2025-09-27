@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsChecking(true);
     try {
       // Usar fetch diretamente para evitar loop com o interceptor
-      const response = await fetch("/api/v1/me", {
+      const response = await fetch("/api/v1/me/", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
