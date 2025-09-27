@@ -9,7 +9,7 @@ const fetcher = async (url: string): Promise<Paciente[]> => {
 
 export const useFetchPacientes = () => {
   const { data, error, isLoading, mutate } = useSWR<Paciente[]>(
-    "/pacientes",
+    "/pacientes/",
     fetcher,
     {
       revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco

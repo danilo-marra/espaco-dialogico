@@ -46,7 +46,7 @@ const useAuth = (): AuthHook => {
     async (loginEmail: string, loginPassword: string) => {
       setLoading(true);
       try {
-        const response = await authenticatedFetch("/api/v1/auth/login", {
+        const response = await authenticatedFetch("/api/v1/auth/login/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -92,7 +92,7 @@ const useAuth = (): AuthHook => {
     try {
       const token = localStorage.getItem("authToken");
       if (token) {
-        await authenticatedFetch("/api/v1/auth/logout-all", {
+        await authenticatedFetch("/api/v1/auth/logout-all/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

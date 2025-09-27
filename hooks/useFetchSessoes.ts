@@ -9,7 +9,7 @@ const fetcher = async (url: string): Promise<Sessao[]> => {
 
 export const useFetchSessoes = () => {
   const { data, error, isLoading, mutate } = useSWR<Sessao[]>(
-    "/sessoes",
+    "/sessoes/",
     fetcher,
     {
       revalidateOnFocus: true, // Revalidar quando o usuário voltar à aba

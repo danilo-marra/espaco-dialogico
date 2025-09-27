@@ -9,7 +9,7 @@ const fetcher = async (url: string): Promise<Transacao[]> => {
 
 export function useFetchTransacoes() {
   const { data, error, isLoading, mutate } = useSWR<Transacao[]>(
-    "/transacoes",
+    "/transacoes/",
     fetcher,
     {
       revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco

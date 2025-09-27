@@ -36,7 +36,7 @@ export default function ConvitesPage() {
     setIsLoadingInvites(true);
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/v1/invites", {
+      const response = await fetch("/api/v1/invites/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -76,7 +76,7 @@ export default function ConvitesPage() {
 
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch("/api/v1/invites", {
+      const response = await fetch("/api/v1/invites/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -200,7 +200,7 @@ export default function ConvitesPage() {
         inviteId: inviteId,
       };
 
-      const response = await fetch("/api/v1/invites/send-email", {
+      const response = await fetch("/api/v1/invites/send-email/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

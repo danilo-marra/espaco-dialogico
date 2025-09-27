@@ -35,8 +35,8 @@ export function useOptimizedDashboardFinanceiro(periodo?: string) {
   const { mutate } = useSWRConfig();
 
   const url = periodo
-    ? `/dashboard/financeiro-otimizado?periodo=${periodo}`
-    : `/dashboard/financeiro-otimizado`;
+    ? `/dashboard/financeiro-otimizado/?periodo=${periodo}`
+    : `/dashboard/financeiro-otimizado/`;
 
   const { data, error, isLoading, isValidating } = useSWR<{
     data: ResumoFinanceiro | any;
@@ -61,7 +61,7 @@ export function useOptimizedDashboardFinanceiro(periodo?: string) {
       const periodoAnterior = `${mesAnterior.getFullYear()}-${String(
         mesAnterior.getMonth() + 1,
       ).padStart(2, "0")}`;
-      mutate(`/dashboard/financeiro-otimizado?periodo=${periodoAnterior}`);
+      mutate(`/dashboard/financeiro-otimizado/?periodo=${periodoAnterior}`);
 
       // Mês seguinte
       const mesSeguinte = new Date(dataBase);
@@ -69,7 +69,7 @@ export function useOptimizedDashboardFinanceiro(periodo?: string) {
       const periodoSeguinte = `${mesSeguinte.getFullYear()}-${String(
         mesSeguinte.getMonth() + 1,
       ).padStart(2, "0")}`;
-      mutate(`/dashboard/financeiro-otimizado?periodo=${periodoSeguinte}`);
+      mutate(`/dashboard/financeiro-otimizado/?periodo=${periodoSeguinte}`);
     }
   }, [periodo, mutate]);
 
@@ -136,7 +136,7 @@ export function useOptimizedDashboardFinanceiroHistorico() {
       totalSaidas: number;
       saldoFinal: number;
     }>
-  >(`/dashboard/financeiro-otimizado?historico=true`, historicoFetcher, {
+  >(`/dashboard/financeiro-otimizado/?historico=true`, historicoFetcher, {
     revalidateOnFocus: false,
     revalidateIfStale: false,
     revalidateOnMount: true,
@@ -218,7 +218,7 @@ export function usePreloadFinanceiro() {
 
   // Pré-carregar os últimos 3 meses usando múltiplas chamadas SWR
   const preload1 = useSWR(
-    `/dashboard/financeiro-otimizado?periodo=${periodos[0]}`,
+    `/dashboard/financeiro-otimizado/?periodo=${periodos[0]}`,
     fetcher, // Usando fetcher original, não historicoFetcher
     {
       revalidateOnFocus: false,
@@ -229,7 +229,7 @@ export function usePreloadFinanceiro() {
   );
 
   const preload2 = useSWR(
-    `/dashboard/financeiro-otimizado?periodo=${periodos[1]}`,
+    `/dashboard/financeiro-otimizado/?periodo=${periodos[1]}`,
     fetcher, // Usando fetcher original, não historicoFetcher
     {
       revalidateOnFocus: false,
@@ -240,7 +240,7 @@ export function usePreloadFinanceiro() {
   );
 
   const preload3 = useSWR(
-    `/dashboard/financeiro-otimizado?periodo=${periodos[2]}`,
+    `/dashboard/financeiro-otimizado/?periodo=${periodos[2]}`,
     fetcher, // Usando fetcher original, não historicoFetcher
     {
       revalidateOnFocus: false,
@@ -267,7 +267,7 @@ export function useFinanceiroSync() {
 
   const invalidateFinanceiro = (periodo: string) => {
     // Invalida o cache para forçar um refresh em outras abas/componentes
-    mutate(`/dashboard/financeiro-otimizado?periodo=${periodo}`);
+    mutate(`/dashboard/financeiro-otimizado/?periodo=${periodo}`);
   };
 
   return { invalidateFinanceiro };

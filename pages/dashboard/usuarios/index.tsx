@@ -53,7 +53,7 @@ export default function UsersPage() {
         token ? "Disponível" : "Não disponível",
       );
 
-      const response = await fetch("/api/v1/admin/users", {
+      const response = await fetch("/api/v1/admin/users/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
