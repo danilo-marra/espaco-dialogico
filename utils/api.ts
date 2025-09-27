@@ -25,10 +25,10 @@ export const axiosInstance = axios.create({
   timeout: getTimeout(),
 });
 
-// Configurar interceptores, se necessário
+// Configurar interceptadores otimizados
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Adicionar token de autenticação, se necessário
+    // Adicionar token de autenticação
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("authToken");
       if (token && config.headers) {
@@ -36,8 +36,20 @@ axiosInstance.interceptors.request.use(
       }
     }
 
-    // Adicionar timestamp para monitoramento de performance
-    (config as any).metadata = { startTime: Date.now() };
+    // Metadata para monitoramento detalhado
+    (config as any).metadata = {
+      startTime: performance.now(),
+      requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      url: config.url,
+      method: config.method?.toUpperCase(),
+    };
+
+    // Log de debug em desenvolvimento
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        `🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`,
+      );
+    }
 
     return config;
   },
@@ -46,13 +58,54 @@ axiosInstance.interceptors.request.use(
 
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Log de performance para debugging
+    // Monitoramento detalhado de performance
     if ((response.config as any).metadata) {
-      const duration = Date.now() - (response.config as any).metadata.startTime;
-      if (duration > 10000) {
-        // Log requisições que demoram mais de 10s
+      const metadata = (response.config as any).metadata;
+      const duration = performance.now() - metadata.startTime;
+
+      // Adicionar headers de performance na resposta
+      response.headers["x-response-time"] = `${Math.round(duration)}ms`;
+      response.headers["x-request-id"] = metadata.requestId;
+
+      // Logs estruturados por categoria de performance
+      if (process.env.NODE_ENV === "development") {
+        const emoji =
+          duration < 100
+            ? "⚡"
+            : duration < 500
+              ? "🟡"
+              : duration < 1000
+                ? "🟠"
+                : "🔴";
+        console.log(
+          `${emoji} ${metadata.method} ${metadata.url} - ${Math.round(duration)}ms`,
+        );
+      }
+
+      // Alertas para diferentes limiares
+      if (duration > 2000) {
         console.warn(
-          `Slow API request: ${response.config.url} took ${duration}ms`,
+          `🐌 Very slow API: ${metadata.method} ${metadata.url} - ${Math.round(duration)}ms`,
+        );
+      } else if (duration > 1000) {
+        console.warn(
+          `⏰ Slow API: ${metadata.method} ${metadata.url} - ${Math.round(duration)}ms`,
+        );
+      }
+
+      // Dispatch evento customizado para monitoramento global
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("apiPerformance", {
+            detail: {
+              url: metadata.url,
+              method: metadata.method,
+              duration: Math.round(duration),
+              status: response.status,
+              requestId: metadata.requestId,
+              timestamp: Date.now(),
+            },
+          }),
         );
       }
     }
@@ -90,16 +143,34 @@ axiosInstance.interceptors.response.use(
       }
     }
 
-    // Log de erros para debugging
+    // Log estruturado de erros
     if ((error.config as any)?.metadata) {
-      const duration = Date.now() - (error.config as any).metadata.startTime;
-      console.error(
-        `API request failed after ${duration}ms: ${error.config?.url}`,
-        {
-          status: error.response?.status,
-          message: error.message,
-        },
-      );
+      const metadata = (error.config as any).metadata;
+      const duration = performance.now() - metadata.startTime;
+
+      console.error(`❌ API Error: ${metadata.method} ${metadata.url}`, {
+        duration: `${Math.round(duration)}ms`,
+        status: error.response?.status,
+        message: error.message,
+        requestId: metadata.requestId,
+      });
+
+      // Dispatch evento de erro para monitoramento
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("apiError", {
+            detail: {
+              url: metadata.url,
+              method: metadata.method,
+              duration: Math.round(duration),
+              status: error.response?.status || 0,
+              message: error.message,
+              requestId: metadata.requestId,
+              timestamp: Date.now(),
+            },
+          }),
+        );
+      }
     }
 
     // Tratar erros de resposta globalmente

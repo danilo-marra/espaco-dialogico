@@ -12,9 +12,25 @@ export const useFetchTerapeutas = () => {
     "/terapeutas/",
     fetcher,
     {
-      revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
-      revalidateIfStale: false, // Não revalidar dados antigos automaticamente
-      dedupingInterval: 10000, // Deduplicar requisições similares em um intervalo de 10 segundos
+      revalidateOnFocus: false,
+      revalidateIfStale: true, // Permitir revalidação quando dados ficarem antigos
+      revalidateOnMount: true, // Revalidar na montagem do componente
+      dedupingInterval: 30000, // 30 segundos - terapeutas mudam pouco
+      refreshInterval: 300000, // 5 minutos - refresh automático
+      keepPreviousData: true, // Manter dados anteriores durante carregamento
+      errorRetryCount: 3,
+      errorRetryInterval: 2000,
+      // Comparação personalizada para evitar re-renders desnecessários
+      compare: (a, b) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+        if (a.length !== b.length) return false;
+        return a.every(
+          (item, index) =>
+            item.id === b[index]?.id &&
+            item.updated_at === b[index]?.updated_at,
+        );
+      },
     },
   );
   return {

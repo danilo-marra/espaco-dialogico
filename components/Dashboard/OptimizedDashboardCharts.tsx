@@ -150,7 +150,7 @@ export function OptimizedDashboardCharts() {
     try {
       // Limpa o cache do backend primeiro
       await axiosInstance.post(
-        "/dashboard/financeiro-otimizado?clearCache=true",
+        "/dashboard/financeiro-otimizado/?clearCache=true",
       );
       // Revalida os dados no frontend
       await mutateFinanceiro();

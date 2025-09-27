@@ -12,15 +12,29 @@ export const useFetchSessoes = () => {
     "/sessoes/",
     fetcher,
     {
-      revalidateOnFocus: true, // Revalidar quando o usuário voltar à aba
-      revalidateIfStale: true, // Revalidar dados antigos automaticamente
-      revalidateOnReconnect: true, // Revalidar quando a conexão for restabelecida
-      dedupingInterval: 1000, // Reduzido para 1 segundo para melhor responsividade
-      refreshInterval: 0, // Não atualizar automaticamente por tempo
-      errorRetryInterval: 5000, // Tentar novamente após erro em 5 segundos
-      focusThrottleInterval: 1000, // Limitar revalidação por foco a 1 segundo
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      revalidateOnMount: true,
+      dedupingInterval: 15000, // 15 segundos - sessões mudam frequentemente
+      refreshInterval: 120000, // 2 minutos - dados mais dinâmicos
+      keepPreviousData: true,
+      errorRetryCount: 3,
+      errorRetryInterval: 2000,
+      // Comparação otimizada para sessões
+      compare: (a, b) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+        if (a.length !== b.length) return false;
+        return a.every(
+          (item, index) =>
+            item.id === b[index]?.id &&
+            item.updated_at === b[index]?.updated_at &&
+            item.pagamentoRealizado === b[index]?.pagamentoRealizado,
+        );
+      },
     },
   );
+
   return {
     sessoes: data,
     isLoading,

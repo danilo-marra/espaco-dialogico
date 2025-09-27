@@ -12,9 +12,26 @@ export function useFetchTransacoes() {
     "/transacoes/",
     fetcher,
     {
-      revalidateOnFocus: false, // Não revalidar quando a aba/janela ganhar foco
-      revalidateIfStale: true, // Permitir revalidação de dados antigos
-      dedupingInterval: 5000, // Reduzir o intervalo de deduplicação
+      revalidateOnFocus: false,
+      revalidateIfStale: true,
+      revalidateOnMount: true,
+      dedupingInterval: 20000, // 20 segundos - transações têm frequência média
+      refreshInterval: 240000, // 4 minutos - dados moderadamente dinâmicos
+      keepPreviousData: true,
+      errorRetryCount: 3,
+      errorRetryInterval: 2000,
+      // Comparação otimizada para transações
+      compare: (a, b) => {
+        if (!a && !b) return true;
+        if (!a || !b) return false;
+        if (a.length !== b.length) return false;
+        return a.every(
+          (item, index) =>
+            item.id === b[index]?.id &&
+            item.valor === b[index]?.valor &&
+            item.tipo === b[index]?.tipo,
+        );
+      },
     },
   );
 
