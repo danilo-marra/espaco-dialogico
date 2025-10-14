@@ -85,7 +85,9 @@ export const AgendaPorTerapeuta: React.FC<AgendaPorTerapeutaProps> = ({
                               ? "bg-green-500"
                               : agendamento.localAgendamento === "Sala Azul"
                                 ? "bg-blue-500"
-                                : "bg-yellow-400"
+                                : agendamento.localAgendamento === "Sala 321"
+                                  ? "bg-purple-500"
+                                  : "bg-yellow-400"
                           }`}
                       ></div>
                       {agendamento.localAgendamento}

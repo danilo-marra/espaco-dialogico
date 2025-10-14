@@ -67,6 +67,7 @@ export default function Agenda() {
   const [chosedRoom, setChosedRoom] = useState({
     salaVerde: true,
     salaAzul: true,
+    sala321: true,
   });
   const [selectedStatus, setSelectedStatus] = useState({
     confirmado: true,
@@ -177,11 +178,13 @@ export default function Agenda() {
       const isSalaMatch =
         (agendamento.localAgendamento === "Sala Verde" &&
           chosedRoom.salaVerde) ||
-        (agendamento.localAgendamento === "Sala Azul" && chosedRoom.salaAzul);
+        (agendamento.localAgendamento === "Sala Azul" && chosedRoom.salaAzul) ||
+        (agendamento.localAgendamento === "Sala 321" && chosedRoom.sala321);
 
       const needsRoom =
         agendamento.localAgendamento === "Sala Verde" ||
-        agendamento.localAgendamento === "Sala Azul";
+        agendamento.localAgendamento === "Sala Azul" ||
+        agendamento.localAgendamento === "Sala 321";
 
       // Verificar status
       const isStatusMatch =
@@ -432,6 +435,9 @@ export default function Agenda() {
     const salaAzul = agendamentosPeriodo.filter(
       (a) => a.localAgendamento === "Sala Azul",
     ).length;
+    const sala321 = agendamentosPeriodo.filter(
+      (a) => a.localAgendamento === "Sala 321",
+    ).length;
 
     return {
       totalAgendamentos: agendamentosPeriodo.length,
@@ -439,6 +445,7 @@ export default function Agenda() {
       cancelados,
       ocupacaoSalaVerde: salaVerde,
       ocupacaoSalaAzul: salaAzul,
+      ocupacaoSala321: sala321,
     };
   }, [
     agendamentos,
@@ -465,7 +472,7 @@ export default function Agenda() {
   };
 
   // Handlers para filtros de sala
-  const handleRoomChange = (room: "salaVerde" | "salaAzul") => {
+  const handleRoomChange = (room: "salaVerde" | "salaAzul" | "sala321") => {
     setChosedRoom((prev) => ({
       ...prev,
       [room]: !prev[room],
@@ -778,6 +785,9 @@ export default function Agenda() {
                   <span className="text-blue-600 font-medium">
                     Sala Azul: {estatisticasAgendamentos.ocupacaoSalaAzul}
                   </span>
+                  <span className="text-purple-600 font-medium">
+                    Sala 321: {estatisticasAgendamentos.ocupacaoSala321}
+                  </span>
                 </div>
               </div>
             </div>
@@ -819,6 +829,10 @@ export default function Agenda() {
                 <div className="flex items-center mt-1">
                   <div className="w-3 h-3 rounded-sm bg-blue-500 mr-2"></div>
                   <span className="text-sm">Sala Azul</span>
+                </div>
+                <div className="flex items-center mt-1">
+                  <div className="w-3 h-3 rounded-sm bg-purple-500 mr-2"></div>
+                  <span className="text-sm">Sala 321</span>
                 </div>
                 <div className="flex items-center mt-1">
                   <div className="w-3 h-3 rounded-sm bg-yellow-400 mr-2"></div>
@@ -985,6 +999,15 @@ export default function Agenda() {
                   onChange={() => handleRoomChange("salaAzul")}
                 />
                 <span>Sala Azul</span>
+              </label>
+              <label className="flex items-center whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  className="form-checkbox h-4 w-4 text-azul mr-2"
+                  checked={chosedRoom.sala321}
+                  onChange={() => handleRoomChange("sala321")}
+                />
+                <span>Sala 321</span>
               </label>
             </div>
           </div>

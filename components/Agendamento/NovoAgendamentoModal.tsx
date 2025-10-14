@@ -57,7 +57,12 @@ const statusAgendamento = ["Confirmado", "Cancelado"];
 const modalidadesAgendamento = ["Presencial", "Online"];
 
 // Locais de agendamento
-const locaisAgendamento = ["Sala Verde", "Sala Azul", "Não Precisa de Sala"];
+const locaisAgendamento = [
+  "Sala Verde",
+  "Sala Azul",
+  "Sala 321",
+  "Não Precisa de Sala",
+];
 
 // Periodicidade de agendamento
 const periodicidadeAgendamento = ["Não repetir", "Semanal", "Quinzenal"];
@@ -802,7 +807,7 @@ export function NovoAgendamentoModal({
                 htmlFor="sessaoRealizada"
                 className={`font-medium ${selectedStatus === "Cancelado" ? "text-gray-400" : ""}`}
               >
-                Sessão Realizada (gera registro de sessão)
+                Sessão Realizada
                 {selectedStatus === "Cancelado" && (
                   <span className="text-sm text-gray-500 block">
                     Agendamentos cancelados não podem ter sessão realizada

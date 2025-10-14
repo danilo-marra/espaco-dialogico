@@ -127,7 +127,9 @@ export const AgendaPeriodoPersonalizado: React.FC<
                       className={`border-2 ${
                         agendamento.localAgendamento === "Sala Verde"
                           ? "border-green-500"
-                          : "border-blue-500"
+                          : agendamento.localAgendamento === "Sala Azul"
+                            ? "border-blue-500"
+                            : "border-purple-500"
                       }`}
                     />
                   </div>

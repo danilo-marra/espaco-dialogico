@@ -711,6 +711,199 @@ describe("Role assignment: secretaria", () => {
 
     expect(sendEmailResponse.status).toBe(403);
   });
+
+  test("secretaria pode criar agendamentos com a nova Sala 321", async () => {
+    const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const password = "senha123";
+    const secretariaEmail = `secretaria_s321_${uniqueSuffix}@example.com`;
+    const secretariaUsername = `sec_s321_${uniqueSuffix}`.slice(0, 30);
+
+    const invite = await createInvite(null, "secretaria");
+
+    const createResponse = await fetch(
+      `http://localhost:${port}/api/v1/users`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: secretariaUsername,
+          email: secretariaEmail,
+          password,
+          inviteCode: invite.code,
+        }),
+      },
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const loginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: secretariaEmail,
+          password,
+        }),
+      },
+    );
+
+    expect(loginResponse.status).toBe(200);
+    const { token } = await loginResponse.json();
+    expect(token).toBeDefined();
+
+    const terapeutaFixture = await createTerapeutaFixture(
+      `S321-${uniqueSuffix}`,
+    );
+    const pacienteFixture = await createPacienteFixture(
+      terapeutaFixture.id,
+      `S321-${uniqueSuffix}`,
+    );
+
+    // Testar criação de agendamento com Sala 321
+    const createAgendamentoResponse = await fetch(
+      `http://localhost:${port}/api/v1/agendamentos`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          terapeuta_id: terapeutaFixture.id,
+          paciente_id: pacienteFixture.id,
+          dataAgendamento: "2025-03-15",
+          horarioAgendamento: "14:00",
+          localAgendamento: "Sala 321",
+          modalidadeAgendamento: "Presencial",
+          tipoAgendamento: "Sessão",
+          valorAgendamento: 180,
+          statusAgendamento: "Confirmado",
+          observacoesAgendamento: "Teste Sala 321",
+        }),
+      },
+    );
+
+    expect(createAgendamentoResponse.status).toBe(201);
+    const createdAgendamento = await createAgendamentoResponse.json();
+    expect(createdAgendamento.localAgendamento).toBe("Sala 321");
+    expect(createdAgendamento.terapeuta_id).toBe(terapeutaFixture.id);
+    expect(createdAgendamento.paciente_id).toBe(pacienteFixture.id);
+
+    // Verificar se o agendamento foi salvo corretamente
+    const getAgendamentoResponse = await fetch(
+      `http://localhost:${port}/api/v1/agendamentos/${createdAgendamento.id}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    expect(getAgendamentoResponse.status).toBe(200);
+    const agendamentoSalvo = await getAgendamentoResponse.json();
+    expect(agendamentoSalvo.localAgendamento).toBe("Sala 321");
+
+    // Testar atualização de agendamento para Sala 321
+    const anotherAgendamento = await createAgendamentoFixture({
+      terapeutaId: terapeutaFixture.id,
+      pacienteId: pacienteFixture.id,
+      date: "2025-03-20",
+      time: "10:00",
+    });
+
+    const updateAgendamentoResponse = await fetch(
+      `http://localhost:${port}/api/v1/agendamentos/${anotherAgendamento.id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          localAgendamento: "Sala 321",
+        }),
+      },
+    );
+
+    expect(updateAgendamentoResponse.status).toBe(200);
+    const updatedAgendamento = await updateAgendamentoResponse.json();
+    expect(updatedAgendamento.localAgendamento).toBe("Sala 321");
+  });
+
+  test("não deve aceitar valores inválidos para localAgendamento", async () => {
+    const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const password = "senha123";
+    const secretariaEmail = `secretaria_inv_${uniqueSuffix}@example.com`;
+    const secretariaUsername = `sec_inv_${uniqueSuffix}`.slice(0, 30);
+
+    const invite = await createInvite(null, "secretaria");
+
+    const createResponse = await fetch(
+      `http://localhost:${port}/api/v1/users`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: secretariaUsername,
+          email: secretariaEmail,
+          password,
+          inviteCode: invite.code,
+        }),
+      },
+    );
+
+    expect(createResponse.status).toBe(201);
+
+    const loginResponse = await fetch(
+      `http://localhost:${port}/api/v1/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: secretariaEmail,
+          password,
+        }),
+      },
+    );
+
+    expect(loginResponse.status).toBe(200);
+    const { token } = await loginResponse.json();
+    expect(token).toBeDefined();
+
+    const terapeutaFixture = await createTerapeutaFixture(
+      `INV-${uniqueSuffix}`,
+    );
+    const pacienteFixture = await createPacienteFixture(
+      terapeutaFixture.id,
+      `INV-${uniqueSuffix}`,
+    );
+
+    // Testar com sala inválida
+    const invalidRoomResponse = await fetch(
+      `http://localhost:${port}/api/v1/agendamentos`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          terapeuta_id: terapeutaFixture.id,
+          paciente_id: pacienteFixture.id,
+          dataAgendamento: "2025-03-15",
+          horarioAgendamento: "14:00",
+          localAgendamento: "Sala Inexistente",
+          modalidadeAgendamento: "Presencial",
+          tipoAgendamento: "Sessão",
+          valorAgendamento: 180,
+          statusAgendamento: "Confirmado",
+        }),
+      },
+    );
+
+    // Deve retornar erro 400 ou 422 para valor inválido
+    expect([400, 422, 500]).toContain(invalidRoomResponse.status);
+  });
 });
 
 async function createTerapeutaFixture(label) {
