@@ -40,7 +40,7 @@ export const agendamentoSchema = z
       }),
 
     localAgendamento: z.enum(
-      ["Sala Verde", "Sala Azul", "Não Precisa de Sala"],
+      ["Sala Verde", "Sala Azul", "Sala 321", "Não Precisa de Sala"],
       {
         required_error: "Local é obrigatório",
         invalid_type_error: "Local inválido",

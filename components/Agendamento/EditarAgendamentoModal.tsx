@@ -42,7 +42,12 @@ const statusAgendamento = ["Confirmado", "Cancelado"];
 const modalidadesAgendamento = ["Presencial", "Online"];
 
 // Locais de agendamento
-const locaisAgendamento = ["Sala Verde", "Sala Azul", "Não Precisa de Sala"];
+const locaisAgendamento = [
+  "Sala Verde",
+  "Sala Azul",
+  "Sala 321",
+  "Não Precisa de Sala",
+];
 
 // Dias da semana
 const diasDaSemana = [

@@ -67,7 +67,11 @@ export interface Agendamento {
   pacienteInfo?: Paciente;
   dataAgendamento: Date | string;
   horarioAgendamento: string;
-  localAgendamento: "Sala Verde" | "Sala Azul" | "Não Precisa de Sala";
+  localAgendamento:
+    | "Sala Verde"
+    | "Sala Azul"
+    | "Sala 321"
+    | "Não Precisa de Sala";
   modalidadeAgendamento: "Presencial" | "Online";
   tipoAgendamento:
     | "Sessão"

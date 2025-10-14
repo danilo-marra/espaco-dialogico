@@ -44,7 +44,12 @@ function randomTimeSlot() {
 /**
  * Locais de agendamento disponíveis
  */
-const locaisAgendamento = ["Sala Verde", "Sala Azul", "Não Precisa de Sala"];
+const locaisAgendamento = [
+  "Sala Verde",
+  "Sala Azul",
+  "Sala 321",
+  "Não Precisa de Sala",
+];
 
 /**
  * Modalidades de agendamento disponíveis
