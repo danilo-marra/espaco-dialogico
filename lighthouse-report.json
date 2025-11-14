@@ -2687,7 +2687,7 @@
                 "width": 115,
                 "height": 24
               },
-              "snippet": "<a href=\"tel:+5561992095674\" class=\"text-azul hover:underline\">",
+              "snippet": "<a href=\"tel:+5561992968282\" class=\"text-azul hover:underline\">",
               "nodeLabel": "(61) 99209-5674",
               "explanation": "Fix any of the following:\n  Element has insufficient color contrast of 3.47 (foreground color: #3395ae, background color: #ffffff, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
             },
@@ -2771,7 +2771,7 @@
                 "width": 380,
                 "height": 72
               },
-              "snippet": "<a href=\"https://wa.me/5561992095674?text=Olá,%20gostaria%20de%20agendar%20uma%20co…\" class=\"bg-rosa text-white px-8 py-3 rounded-full font-medium hover:bg-opacity-90 …\" target=\"_blank\" rel=\"noopener noreferrer\">",
+              "snippet": "<a href=\"https://wa.me/5561992968282?text=Olá,%20gostaria%20de%20agendar%20uma%20co…\" class=\"bg-rosa text-white px-8 py-3 rounded-full font-medium hover:bg-opacity-90 …\" target=\"_blank\" rel=\"noopener noreferrer\">",
               "nodeLabel": "Agende um atendimento com a nossa equipe",
               "explanation": "Fix any of the following:\n  Element has insufficient color contrast of 4.26 (foreground color: #ffffff, background color: #c3586a, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
             }
@@ -2874,7 +2874,7 @@
                 "width": 260,
                 "height": 24
               },
-              "snippet": "<a href=\"tel:+5561992095674\" class=\"text-white/80 hover:text-white flex items-center justify-center md:justify…\">",
+              "snippet": "<a href=\"tel:+5561992968282\" class=\"text-white/80 hover:text-white flex items-center justify-center md:justify…\">",
               "nodeLabel": "(61) 99209-5674",
               "explanation": "Fix any of the following:\n  Element has insufficient color contrast of 2.78 (foreground color: #d6eaef, background color: #3395ae, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
             },
