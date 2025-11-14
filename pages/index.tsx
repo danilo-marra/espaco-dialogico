@@ -381,7 +381,7 @@ function Home() {
                   <div className="flex items-center">
                     <Phone size={24} weight="fill" className="text-rosa mr-2" />
                     <a
-                      href="tel:+5561992095674"
+                      href="tel:+5561992968282"
                       className="text-azul hover:underline"
                     >
                       (61) 99209-5674
@@ -411,7 +411,7 @@ function Home() {
                   Dialógico.
                 </p>
                 <a
-                  href="https://wa.me/5561992095674?text=Olá,%20gostaria%20de%20agendar%20uma%20consulta%20no%20Espaço%20Dialógico"
+                  href="https://wa.me/5561992968282?text=Olá,%20gostaria%20de%20agendar%20uma%20consulta%20no%20Espaço%20Dialógico"
                   className="bg-rosa text-white px-8 py-3 rounded-full font-medium hover:bg-opacity-90 transition-all inline-flex items-center"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -444,7 +444,7 @@ function Home() {
             <div className="flex flex-col space-y-2 text-center md:text-left">
               <h3 className="font-semibold text-lg mb-2">Contato</h3>
               <a
-                href="tel:+5561992095674"
+                href="tel:+5561992968282"
                 className="text-white/80 hover:text-white flex items-center justify-center md:justify-start"
               >
                 <Phone size={16} className="mr-2" /> (61) 99209-5674
