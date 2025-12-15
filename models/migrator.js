@@ -2,8 +2,8 @@ const { resolve } = require("node:path");
 const database = require("../infra/database.js");
 
 async function getMigrate() {
-  const { default: migrate } = await import("node-pg-migrate");
-  return migrate;
+  const pgMigrate = await import("node-pg-migrate");
+  return pgMigrate.default;
 }
 
 const defaultMigrationOptions = {
