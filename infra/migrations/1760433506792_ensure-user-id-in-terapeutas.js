@@ -1,5 +1,11 @@
+/**
+ * Migração para garantir que a coluna user_id existe na tabela terapeutas
+ * Esta é uma migração idempotente que verifica se a coluna já existe antes de criá-la
+ * Criada após outras migrações para manter compatibilidade com banco de produção
+ */
+
 exports.up = (pgm) => {
-  // Verificar se a coluna já existe antes de tentar criá-la
+  // Verificar se a coluna já existe (ela deve existir se esta migração já rodou antes)
   pgm.sql(`
     DO $$ 
     BEGIN 
