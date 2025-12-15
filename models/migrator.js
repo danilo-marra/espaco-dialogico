@@ -1,6 +1,10 @@
-const migrate = require("node-pg-migrate").default;
 const { resolve } = require("node:path");
 const database = require("../infra/database.js");
+
+async function getMigrate() {
+  const { default: migrate } = await import("node-pg-migrate");
+  return migrate;
+}
 
 const defaultMigrationOptions = {
   dryRun: false, // Alterado para false para permitir que migrações reais sejam executadas
@@ -14,6 +18,7 @@ async function listPendingMigrations() {
   let dbClient;
 
   try {
+    const migrate = await getMigrate();
     dbClient = await database.getNewClient();
     const pendingMigrations = await migrate({
       ...defaultMigrationOptions,
@@ -30,6 +35,7 @@ async function runPendingMigrations() {
   let dbClient;
 
   try {
+    const migrate = await getMigrate();
     dbClient = await database.getNewClient();
     const migratedMigrations = await migrate({
       ...defaultMigrationOptions,
@@ -48,6 +54,7 @@ async function runSpecificMigration(migrationName) {
   let dbClient;
 
   try {
+    const migrate = await getMigrate();
     dbClient = await database.getNewClient();
     const result = await migrate({
       ...defaultMigrationOptions,
