@@ -2,15 +2,22 @@ const { resolve } = require("node:path");
 const database = require("../infra/database.js");
 
 async function getMigrate() {
-  const pgMigrate = await import("node-pg-migrate");
-  return pgMigrate.default;
+  // Tenta carregar o módulo usando dynamic import
+  try {
+    const pgMigrateModule = await import("node-pg-migrate");
+    return pgMigrateModule.default || pgMigrateModule;
+  } catch (error) {
+    // Fallback: tenta usar require tradicional
+    console.warn("Dynamic import falhou, usando require tradicional");
+    return require("node-pg-migrate");
+  }
 }
 
 const defaultMigrationOptions = {
-  dryRun: false, // Alterado para false para permitir que migrações reais sejam executadas
+  dryRun: false,
   dir: resolve("infra", "migrations"),
   direction: "up",
-  log: () => console.log, // Adicionado console.log para melhor visibilidade
+  log: () => {}, // Silenciado para não poluir os logs de teste
   migrationsTable: "pgmigrations",
 };
 
@@ -18,11 +25,15 @@ async function listPendingMigrations() {
   let dbClient;
 
   try {
-    const migrate = await getMigrate();
+    const pgMigrateModule = await getMigrate();
+    const migrate =
+      typeof pgMigrateModule === "function"
+        ? pgMigrateModule
+        : pgMigrateModule.default;
     dbClient = await database.getNewClient();
     const pendingMigrations = await migrate({
       ...defaultMigrationOptions,
-      dryRun: true, // Para listagem, mantemos dryRun como true
+      dryRun: true,
       dbClient,
     });
     return pendingMigrations;
@@ -35,12 +46,15 @@ async function runPendingMigrations() {
   let dbClient;
 
   try {
-    const migrate = await getMigrate();
+    const pgMigrateModule = await getMigrate();
+    const migrate =
+      typeof pgMigrateModule === "function"
+        ? pgMigrateModule
+        : pgMigrateModule.default;
     dbClient = await database.getNewClient();
     const migratedMigrations = await migrate({
       ...defaultMigrationOptions,
       dbClient,
-      // dryRun já é false por padrão agora
     });
 
     return migratedMigrations;
@@ -49,12 +63,15 @@ async function runPendingMigrations() {
   }
 }
 
-// Adiciona nova função para forçar a execução de uma migração específica
 async function runSpecificMigration(migrationName) {
   let dbClient;
 
   try {
-    const migrate = await getMigrate();
+    const pgMigrateModule = await getMigrate();
+    const migrate =
+      typeof pgMigrateModule === "function"
+        ? pgMigrateModule
+        : pgMigrateModule.default;
     dbClient = await database.getNewClient();
     const result = await migrate({
       ...defaultMigrationOptions,
@@ -71,7 +88,7 @@ async function runSpecificMigration(migrationName) {
 const migrator = {
   listPendingMigrations,
   runPendingMigrations,
-  runSpecificMigration, // Exporta a nova função
+  runSpecificMigration,
 };
 
 module.exports = migrator;
