@@ -49,7 +49,6 @@ async function createAndLoginAdmin() {
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
 });
 
 describe("GET /api/v1/dashboard/financeiro-otimizado", () => {

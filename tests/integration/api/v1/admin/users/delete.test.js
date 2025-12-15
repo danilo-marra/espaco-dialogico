@@ -45,7 +45,6 @@ async function loginUser(email, password) {
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
 
   // Verificar se o admin das variáveis de ambiente já existe
   await ensureDevAdminExists();

@@ -4,14 +4,14 @@ import database from "infra/database.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
-import terapeutaMiddleware from "utils/terapeutaMiddleware.js";
+import { requireTerapeutaAccess } from "utils/terapeutaMiddleware.js";
 
 // Criar o router
 const router = createRouter();
 
 // Aplicar middlewares
 router.use(authMiddleware);
-router.use(terapeutaMiddleware);
+router.use(requireTerapeutaAccess());
 
 // Definir handler para POST (batch operations)
 router.post(postHandler);

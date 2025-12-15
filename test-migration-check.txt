@@ -1,0 +1,119 @@
+
+> espaco-dialogico@1.0.0 test
+> npm run services:up && npm run services:wait:database && npm run db:ensure:test && cross-env NODE_ENV=test JEST_EXPLICIT_RUN=true concurrently -k -s first "next dev" "wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit"
+
+
+> espaco-dialogico@1.0.0 services:up
+> docker compose -f infra/compose.yaml up -d
+
+ Container espaco_dialogico  Running
+
+> espaco-dialogico@1.0.0 services:wait:database
+> node infra/scripts/wait-for-postgres.js
+
+
+
+­ƒöä Esperando PostgreSQL ficar dispon├¡vel...
+
+Ô£à PostgreSQL est├í pronto e operacional!
+
+
+> espaco-dialogico@1.0.0 db:ensure:test
+> node infra/scripts/ensure-test-db.js .env.test
+
+­ƒöº Carregado arquivo de ambiente: .env.test
+­ƒöù (Tentativa 1/20) Conectando (host=localhost port=5434 user=local_user)...
+Ô£à Conex├úo administrativa estabelecida.
+Ô£à Banco de teste 'local_db_test' j├í existe.
+[1] waiting for 1 resources: http://localhost:3000/api/v1/status
+[1] making HTTP(S) head request to  url:http://localhost:3000/api/v1/status ...
+[1]   HTTP(S) error for http://localhost:3000/api/v1/status AggregateError: Error
+[0]    Ôû▓ Next.js 15.4.10
+[0]    - Local:        http://localhost:3000
+[0]    - Network:      http://192.168.0.44:3000
+[0]    - Environments: .env.test
+[0] 
+[0]  Ô£ô Starting...
+[1] making HTTP(S) head request to  url:http://localhost:3000/api/v1/status ...
+[1] making HTTP(S) head request to  url:http://localhost:3000/api/v1/status ...
+[0]  Ô£ô Ready in 2.6s
+[1] making HTTP(S) head request to  url:http://localhost:3000/api/v1/status ...
+[0]  Ôùï Compiling /api/v1/status ...
+[0]  Ô£ô Compiled /api/v1/status in 511ms (299 modules)
+[1] making HTTP(S) head request to  url:http://localhost:3000/api/v1/status ...
+[0]  HEAD /api/v1/status/ 200 in 191ms
+[0]  HEAD /api/v1/status/ 200 in 1921ms
+[1]   HTTP(S) result for http://localhost:3000/api/v1/status: {
+[1]   status: 200,
+[1]   statusText: 'OK',
+[1]   headers: Object [AxiosHeaders] {
+[1]     'content-type': 'application/json; charset=utf-8',
+[1]     etag: '"ogqlyzgiwe3p"',
+[1]     'content-length': '133',
+[1]     vary: 'Accept-Encoding',
+[1]     date: 'Mon, 15 Dec 2025 18:00:23 GMT',
+[1]     connection: 'keep-alive',
+[1]     'keep-alive': 'timeout=5'
+[1]   },
+[1]   data: ''
+[1] }
+[0]  HEAD /api/v1/status/ 200 in 1922ms
+[1] wait-on(6988) complete
+[0]  HEAD /api/v1/status/ 200 in 1916ms
+[1] ­ƒöº Carregado arquivo de ambiente: .env.test
+[1] ­ƒöù (Tentativa 1/20) Conectando (host=localhost port=5434 user=local_user)...
+[1] Ô£à Conex├úo administrativa estabelecida.
+[1] Ô£à Banco de teste 'local_db_test' j├í existe.
+[1] ­ƒöä Executando migra├º├Áes de teste...
+[1] ­ƒöº Vari├íveis carregadas de .env.test
+[1] Executando migra├º├Áes automaticamente...
+[1] NODE_ENV: test
+[1] ENV file: .env.test
+[1] Vari├íveis de admin definidas: true
+[1] Verifica├º├úo da coluna 'role' na tabela 'users' conclu├¡da
+[1] Admin user Danilo (danilo2311@gmail.com) created or updated successfully
+[1] Migra├º├úo de roles conclu├¡da: 'user' ÔåÆ 'terapeuta', adicionado 'secretaria'
+[1] Migra├º├úo: Adicionada coluna last_email_sent na tabela invites
+[1] Migra├º├úo de corre├º├úo de timestamp - campos dt_nascimento e origem j├í foram tornados opcionais anteriormente
+[1] Migra├º├úo de corre├º├úo de timestamp - coluna 'curriculo' j├í foi removida anteriormente
+[1] Migra├º├Áes pendentes encontradas: 25
+[1] - 1735219600000_add-user-id-to-terapeutas
+[1] - 1740143991070_create-users
+[1] - 1741048796523_create-invites
+[1] - 1741048800000_add-role-to-users
+[1] - 1744376265471_create-pacientes
+[1] - 1744549368040_create-agendamento
+[1] - 1744549368049_create-sessoes
+[1] - 1744648322521_add-valor-repasse-to-sessoes
+[1] - 1746794771891_create-admin
+[1] - 1746798677616_add-agendamento-id-to-sessoes
+[1] - 1750434568631_create-transacoes
+[1] - 1750441189723_create-user-sessions
+[1] - 1750696179576_update-user-roles
+[1] - 1750699950000_add-email-tracking-to-invites
+[1] - 1751282806741_add-sessao-realizada-to-agendamentos
+[1] - 1751389870451_add-repasse-realizado-to-sessoes
+[1] - 1751456684832_add-nota-fiscal-and-update-sessoes
+[1] - 1751804247792_update-terapeutas-schema
+[1] - 1751808400000_add-curriculo-arquivo-to-terapeutas
+[1] - 1751890772373_add-falta-to-agendamento
+[1] - 1751979228692_make-paciente-fields-optional
+[1] - 1751979244388_remove-curriculo-from-terapeutas
+[1] - 1752061264872_remove-remarcado-from-agendamento
+[1] - 1752239236049_add-token-version-to-users
+[1] - 1760433506791_add-sala-321-to-agendamentos
+[1] Erro ao executar migra├º├Áes: relation "users" does not exist
+[1] error: relation "users" does not exist
+[1]     at C:\www\espaco-dialogico\node_modules\pg\lib\client.js:535:17
+[1]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[1]     at async Object.query (file:///C:/www/espaco-dialogico/node_modules/node-pg-migrate/dist/bundle/index.js:3499:14)
+[1]     at async runner (file:///C:/www/espaco-dialogico/node_modules/node-pg-migrate/dist/bundle/index.js:3814:7)
+[1]     at async Object.runPendingMigrations (file:///C:/www/espaco-dialogico/models/migrator.mjs:58:32)
+[1]     at async runMigrations (file:///C:/www/espaco-dialogico/infra/scripts/run-migrations.mjs:50:20)
+[1] Error: Jest: Got error running globalSetup - C:\www\espaco-dialogico\tests\global-setup.js, reason: infra/scripts/run-migrations.mjs saiu com c├│digo 1
+[1]     at ChildProcess.<anonymous> (C:\www\espaco-dialogico\tests\global-setup.js:121:25)
+[1]     at ChildProcess.emit (node:events:507:28)
+[1]     at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+[1] wait-on -t 30000 -i 1000 -v http://localhost:3000/api/v1/status && jest --runInBand --verbose --forceExit exited with code 1
+--> Sending SIGTERM to other processes..
+[0] next dev exited with code 1

@@ -10,7 +10,6 @@ describe("GET /api/v1/transacoes", () => {
   // Limpar banco e recriar estrutura antes de cada teste
   beforeEach(async () => {
     await orchestrator.clearDatabase();
-    await orchestrator.runPendingMigrations();
   });
 
   describe("Anonymous user", () => {

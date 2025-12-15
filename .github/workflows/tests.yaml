@@ -49,7 +49,7 @@ jobs:
       - run: npm ci
 
       - name: Run migrations for test database
-        run: npx cross-env NODE_ENV=test node infra/scripts/run-migrations.js
+        run: npx cross-env NODE_ENV=test node infra/scripts/run-migrations.mjs
         env:
           NODE_ENV: test
           POSTGRES_HOST: localhost

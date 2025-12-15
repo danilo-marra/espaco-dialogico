@@ -22,7 +22,6 @@ describe("POST /api/v1/terapeutas", () => {
     await ensureServerRunning(TEST_NAME, port);
     await orchestrator.waitForAllServices();
     await orchestrator.clearDatabase();
-    await orchestrator.runPendingMigrations();
     // Agora, o admin de desenvolvimento pode ser criado com segurança
     await ensureDevAdminExists();
     // E a autenticação pode ser preparada
