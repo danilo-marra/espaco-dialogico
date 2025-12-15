@@ -19,7 +19,6 @@ beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await waitForServerReady(port);
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
 });
 
 afterAll(() => {

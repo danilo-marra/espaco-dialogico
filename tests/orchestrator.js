@@ -1,6 +1,6 @@
 import retry from "async-retry";
 import database from "infra/database.js";
-import migrator from "models/migrator.js";
+// Não importar migrator no orchestrator - deixar que os testes que precisem o façam
 
 // Importar node-fetch para ambientes onde fetch não está disponível nativamente
 import fetch from "node-fetch";
@@ -73,7 +73,18 @@ async function waitForAllServices() {
 async function clearDatabase() {
   conditionalLog("🗑️ Limpando banco de dados...");
   try {
-    await database.query("drop schema public cascade; create schema public;");
+    // Em vez de drop schema, apenas truncar todas as tabelas
+    // Isso mantém o schema e as migrações intactas
+    const result = await database.query(`
+      SELECT tablename FROM pg_tables 
+      WHERE schemaname = 'public' 
+      AND tablename != 'pgmigrations'
+    `);
+
+    for (const row of result.rows) {
+      await database.query(`TRUNCATE TABLE "${row.tablename}" CASCADE`);
+    }
+
     conditionalLog("✅ Banco de dados limpo com sucesso");
   } catch (error) {
     console.error(`❌ Erro ao limpar banco de dados: ${error.message}`);
@@ -81,9 +92,23 @@ async function clearDatabase() {
   }
 }
 
+async function dropAllTables() {
+  conditionalLog("🗑️ Removendo todas as tabelas...");
+  try {
+    await database.query("DROP SCHEMA public CASCADE; CREATE SCHEMA public;");
+    conditionalLog("✅ Schema recriado com sucesso");
+  } catch (error) {
+    console.error(`❌ Erro ao recriar schema: ${error.message}`);
+    throw error;
+  }
+}
+
 async function runPendingMigrations() {
   conditionalLog("🔄 Executando migrações pendentes...");
   try {
+    // Importar migrator dinamicamente apenas quando necessário
+    const { default: migrator } = await import("models/migrator.mjs");
+
     // Substituir o console.log padrão temporariamente para suprimir logs das migrações
     const originalConsoleLog = console.log;
 
@@ -107,6 +132,7 @@ async function runPendingMigrations() {
 const orchestrator = {
   waitForAllServices,
   clearDatabase,
+  dropAllTables,
   runPendingMigrations,
 };
 

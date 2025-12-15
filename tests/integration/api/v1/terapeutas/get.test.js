@@ -13,7 +13,6 @@ let authToken = null;
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
   // Agora, o admin de desenvolvimento pode ser criado com segurança
   await ensureDevAdminExists();
   // E a autenticação pode ser preparada

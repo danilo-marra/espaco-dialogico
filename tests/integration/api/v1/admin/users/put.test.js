@@ -45,7 +45,6 @@ async function loginUser(email, password) {
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
 });
 
 describe("PUT /api/v1/admin/users/[userId]", () => {

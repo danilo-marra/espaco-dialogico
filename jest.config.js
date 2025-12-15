@@ -30,6 +30,13 @@ const jestConfig = createJestConfig({
     "<rootDir>/pages/api/v1/email/",
     "<rootDir>/pages/api/v1/invites/send-email.js",
   ],
+  // Configurar transformIgnorePatterns para processar node-pg-migrate
+  transformIgnorePatterns: ["node_modules/(?!(node-pg-migrate|glob)/)"],
+  // Mock manual para migrator
+  moduleNameMapper: {
+    "^models/migrator\\.mjs$": "<rootDir>/tests/mocks/migrator.js",
+    "^models/migrator\\.js$": "<rootDir>/tests/mocks/migrator.js",
+  },
   // Configurações para reduzir a verbosidade dos logs
   verbose: false,
   silent: process.env.TEST_VERBOSE !== "true",

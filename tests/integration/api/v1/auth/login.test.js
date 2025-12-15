@@ -49,7 +49,6 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await orchestrator.clearDatabase();
-  await orchestrator.runPendingMigrations();
 });
 
 describe("POST /api/v1/auth/login", () => {

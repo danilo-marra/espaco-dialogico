@@ -5,7 +5,7 @@ const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 
 beforeAll(async () => {
   await orchestrator.waitForAllServices();
-  await orchestrator.clearDatabase();
+  await orchestrator.dropAllTables();
 });
 
 describe("POST /api/v1/migrations", () => {

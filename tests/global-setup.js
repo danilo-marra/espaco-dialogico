@@ -48,7 +48,9 @@ module.exports = async () => {
     await runNodeScript("infra/scripts/ensure-test-db.js", envFile); // se falhar aqui, deixa propagar
   }
   // Rodar migrações de teste
-  await runNodeScript("infra/scripts/run-migrations.js", envFile);
+  console.log("🔄 Executando migrações de teste...");
+  await runNodeScript("infra/scripts/run-migrations.mjs", envFile);
+  console.log("✅ Migrações executadas com sucesso!");
 
   // Subir Next somente se não estiver rodando
   const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;

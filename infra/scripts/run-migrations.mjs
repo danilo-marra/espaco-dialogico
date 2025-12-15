@@ -1,7 +1,11 @@
-const path = require("path");
-const fs = require("fs");
-const dotenv = require("dotenv");
-const dotenvExpand = require("dotenv-expand");
+import path from "path";
+import fs from "fs";
+import dotenv from "dotenv";
+import dotenvExpand from "dotenv-expand";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Permitir passar arquivo .env como primeiro argumento (default: .env.development.local)
 const envFile = process.argv[2] || ".env.development.local";
@@ -18,7 +22,9 @@ if (fs.existsSync(envPath)) {
 }
 
 // Importando migrator com caminho relativo correto
-const migrator = require(path.resolve(process.cwd(), "models/migrator.js"));
+const { default: migrator } = await import(
+  `file:///${path.resolve(process.cwd(), "models/migrator.mjs").replace(/\\/g, "/")}`
+);
 
 console.log("Executando migrações automaticamente...");
 console.log(`NODE_ENV: ${process.env.NODE_ENV || "não definido"}`);
