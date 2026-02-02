@@ -1,9 +1,24 @@
-import {
-  InternalServerError,
-  MethodNotAllowedError,
-  NotFoundError,
-  ValidationError,
-} from "infra/errors";
+import { InternalServerError, MethodNotAllowedError } from "infra/errors";
+
+const ERROR_STATUS_FALLBACK = {
+  ValidationError: 400,
+  NotFoundError: 404,
+};
+
+function serializeKnownError(error) {
+  const statusCode =
+    error.statusCode || error.status_code || ERROR_STATUS_FALLBACK[error.name];
+
+  return {
+    statusCode,
+    body: {
+      name: error.name,
+      message: error.message,
+      action: error.action,
+      status_code: statusCode,
+    },
+  };
+}
 
 function onNoMatchHandler(request, response) {
   const publicErrorObject = new MethodNotAllowedError();
@@ -11,8 +26,9 @@ function onNoMatchHandler(request, response) {
 }
 
 function onErrorHandler(error, request, response) {
-  if (error instanceof ValidationError || error instanceof NotFoundError) {
-    return response.status(error.statusCode).json(error);
+  if (error?.name === "ValidationError" || error?.name === "NotFoundError") {
+    const { statusCode, body } = serializeKnownError(error);
+    return response.status(statusCode).json(body);
   }
 
   const publicErrorObject = new InternalServerError({
