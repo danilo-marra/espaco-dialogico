@@ -6,6 +6,13 @@
  *   3) Aplicar no banco:
  *        node infra/scripts/import-xlsx.js --file infra/data/preenchido.xlsx --apply
  *
+ * Defaults usados quando campos obrigatórios faltarem:
+ *   - terapeutas.dt_entrada: 01/01/2025
+ *   - terapeutas.chave_pix: "PENDENTE"
+ *   - pacientes.dt_nascimento: 01/01/2000
+ *   - pacientes.dt_entrada: 12/12/2025
+ *   - pacientes.nome_responsavel / telefone_responsavel: "PENDENTE"
+ *
  * Banco de produção (Vercel):
  *   vercel env pull .env.production.local
  *   set NODE_ENV=production && node infra/scripts/ensure-unique-indexes.js
@@ -60,6 +67,15 @@ const ORIGENS = new Set([
   "Busca no Google",
   "Outros",
 ]);
+
+const DEFAULTS = {
+  terapeuta_dt_entrada: "01/01/2025",
+  terapeuta_chave_pix: "PENDENTE",
+  paciente_dt_nascimento: "01/01/2000",
+  paciente_dt_entrada: "12/12/2025",
+  paciente_nome_responsavel: "PENDENTE",
+  paciente_telefone_responsavel: "(00) 00000-0000",
+};
 
 const onlyDigits = (s) => (s || "").toString().replace(/\D+/g, "");
 const toStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
@@ -125,8 +141,11 @@ async function upsertTerapeuta(client, t) {
     email,
     crp: toStr(t.crp) || null,
     dt_nascimento: toDateOrNull(t.dt_nascimento),
-    dt_entrada: toDateOrNull(t.dt_entrada) || new Date(),
-    chave_pix: toStr(t.chave_pix),
+    dt_entrada:
+      toDateOrNull(t.dt_entrada) ||
+      toDateOrNull(DEFAULTS.terapeuta_dt_entrada) ||
+      new Date(),
+    chave_pix: toStr(t.chave_pix) || DEFAULTS.terapeuta_chave_pix,
     foto: toStr(t.foto) || null,
     curriculo_arquivo: toStr(t.curriculo_arquivo) || null,
   };
@@ -212,15 +231,23 @@ async function upsertPaciente(client, p) {
 
   const payload = {
     nome: toStr(p.nome),
-    dt_nascimento: toDateOrNull(p.dt_nascimento),
+    dt_nascimento:
+      toDateOrNull(p.dt_nascimento) ||
+      toDateOrNull(DEFAULTS.paciente_dt_nascimento),
     terapeuta_id: terapeutaId,
-    nome_responsavel: toStr(p.nome_responsavel),
-    telefone_responsavel: normPhone(p.telefone_responsavel),
+    nome_responsavel:
+      toStr(p.nome_responsavel) || DEFAULTS.paciente_nome_responsavel,
+    telefone_responsavel:
+      normPhone(p.telefone_responsavel) ||
+      DEFAULTS.paciente_telefone_responsavel,
     email_responsavel: normEmail(p.email_responsavel),
     cpf_responsavel: cpf,
     endereco_responsavel: toStr(p.endereco_responsavel),
     origem: normOrigem(p.origem),
-    dt_entrada: toDateOrNull(p.dt_entrada) || new Date(),
+    dt_entrada:
+      toDateOrNull(p.dt_entrada) ||
+      toDateOrNull(DEFAULTS.paciente_dt_entrada) ||
+      new Date(),
   };
 
   if (existing) {
@@ -283,7 +310,7 @@ async function main() {
   const errors = [];
 
   // Validações
-  const terReq = ["nome", "telefone", "email", "dt_entrada", "chave_pix"];
+  const terReq = ["nome", "telefone", "email"];
   terapeutasRows.forEach((r, i) => {
     const e = requireFields(r, terReq, `Terapeuta (linha ${i + 2})`);
     if (e) errors.push(e);
@@ -292,13 +319,9 @@ async function main() {
   // dt_nascimento é NOT NULL na tabela "pacientes"; exigir na planilha
   const pacReq = [
     "nome",
-    "dt_nascimento",
-    "nome_responsavel",
-    "telefone_responsavel",
     "email_responsavel",
     "cpf_responsavel",
     "endereco_responsavel",
-    "dt_entrada",
   ];
   pacientesRows.forEach((r, i) => {
     const e = requireFields(r, pacReq, `Paciente (linha ${i + 2})`);
