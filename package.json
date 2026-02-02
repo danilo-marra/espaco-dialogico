@@ -42,7 +42,7 @@
     "migrations:down:all": "node-pg-migrate -m infra/migrations --envPath .env.development down --count all",
     "lint:prettier:check": "prettier --check .",
     "lint:prettier:fix": "prettier --write .",
-    "lint:eslint:check": "next lint --dir .",
+    "lint:eslint:check": "eslint . --max-warnings=0",
     "migrations:reset:production": "cross-env FORCE_RESET=CONFIRMAR node infra/scripts/reset-remote-migrations.js .env.production",
     "migrations:reset:staging": "cross-env FORCE_RESET=CONFIRMAR node infra/scripts/reset-remote-migrations.js .env.staging",
     "migrations:reset:production-safe": "node infra/scripts/reset-remote-migrations.js .env.production",
@@ -59,7 +59,7 @@
   "lint-staged": {
     "*": "secretlint",
     "*.{js,jsx,ts,tsx}": [
-      "npm run lint:eslint:check --",
+      "eslint --max-warnings=0",
       "npm run lint:prettier:fix --"
     ],
     "*.{md,html,css}": [
@@ -95,7 +95,7 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.469.0",
     "multer": "^2.0.2",
-    "next": "15.4.10",
+    "next": "16.1.5",
     "next-cloudinary": "^6.16.0",
     "next-connect": "^1.0.0",
     "next-themes": "^0.4.4",

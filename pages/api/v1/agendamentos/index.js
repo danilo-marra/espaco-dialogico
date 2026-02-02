@@ -13,6 +13,13 @@ import {
 // Criar o router
 const router = createRouter();
 
+const VALID_LOCAL_AGENDAMENTO = new Set([
+  "Sala Verde",
+  "Sala Azul",
+  "Sala 321",
+  "Não Precisa de Sala",
+]);
+
 // Aplicar middleware de autenticação e autorização para proteger as rotas
 router.use(authMiddleware);
 router.use(requirePermission("agendamentos"));
@@ -69,6 +76,18 @@ async function postHandler(req, res) {
   try {
     // Extrair os dados do corpo da requisição
     const agendamentoData = req.body;
+
+    const localAgendamento =
+      typeof agendamentoData.localAgendamento === "string"
+        ? agendamentoData.localAgendamento.trim()
+        : agendamentoData.localAgendamento;
+
+    if (localAgendamento && !VALID_LOCAL_AGENDAMENTO.has(localAgendamento)) {
+      return res.status(422).json({
+        error: "Valor inválido",
+        message: "localAgendamento inválido.",
+      });
+    }
 
     const userRole = req.user.role || "terapeuta";
     const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
