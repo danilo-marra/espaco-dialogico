@@ -43,6 +43,8 @@ export default async function handler(request, response) {
       ? "Configuração SMTP nativa válida"
       : "Configuração SMTP incompleta",
     status: isReady ? "OK" : "ERROR",
-    mailpitUrl: `http://${process.env.EMAIL_HTTP_HOST || "localhost"}:${process.env.EMAIL_HTTP_PORT || "8025"}`,
+    ...(isReady && {
+      mailpitUrl: `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}`,
+    }),
   });
 }

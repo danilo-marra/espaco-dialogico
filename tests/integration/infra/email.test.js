@@ -3,11 +3,29 @@
 import fetch from "node-fetch";
 import email from "infra/email.js";
 
-const emailHttpUrl = `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}`;
+const EMAIL_HTTP_HOST = process.env.EMAIL_HTTP_HOST;
+const EMAIL_HTTP_PORT = process.env.EMAIL_HTTP_PORT;
+
+if (!EMAIL_HTTP_HOST || !EMAIL_HTTP_PORT) {
+  throw new Error(
+    `EMAIL_HTTP_HOST and EMAIL_HTTP_PORT must be defined. Got EMAIL_HTTP_HOST="${EMAIL_HTTP_HOST}", EMAIL_HTTP_PORT="${EMAIL_HTTP_PORT}"`,
+  );
+}
+
+const emailHttpUrl = `http://${EMAIL_HTTP_HOST}:${EMAIL_HTTP_PORT}`;
 
 describe("infra/email.js", () => {
   test("send() envia email para Mailpit", async () => {
-    await fetch(`${emailHttpUrl}/api/v1/messages`, { method: "DELETE" });
+    const deleteResponse = await fetch(`${emailHttpUrl}/api/v1/messages`, {
+      method: "DELETE",
+    }).catch((err) => {
+      throw new Error(`Mailpit unavailable at ${emailHttpUrl}: ${err.message}`);
+    });
+    if (!deleteResponse.ok) {
+      throw new Error(
+        `Failed to clear Mailpit messages: ${deleteResponse.status} ${await deleteResponse.text()}`,
+      );
+    }
 
     await email.send({
       from: "EspacoDialogico <contato@espacodialogico.com.br>",

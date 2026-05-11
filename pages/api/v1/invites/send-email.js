@@ -79,9 +79,15 @@ async function handler(request, response) {
     const senderName = inviteData.created_by_username || "Sistema";
 
     const senderAddress =
-      process.env.EMAIL_FROM_ADDRESS ||
-      process.env.EMAIL_SMTP_USER ||
-      "no-reply@espacodialogico.local";
+      process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_SMTP_USER;
+
+    if (!senderAddress) {
+      return response.status(503).json({
+        error: "Configuração de email incompleta",
+        message:
+          "Defina EMAIL_FROM_ADDRESS ou EMAIL_SMTP_USER com um endereço válido",
+      });
+    }
 
     const mailOptions = {
       from: `Espaco Dialogico - Sistema <${senderAddress}>`,
