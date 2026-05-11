@@ -1,5 +1,9 @@
-import { sendInviteEmail } from "../../../../utils/emailService.js";
+import email from "../../../../infra/email";
 import database from "../../../../infra/database";
+import {
+  createInviteEmailTemplate,
+  createInviteEmailText,
+} from "../../../../utils/emailTemplates/inviteTemplate.js";
 import { withAuthMiddleware } from "../../../../utils/authMiddleware.js";
 import { withRolePermission } from "../../../../utils/roleMiddleware.js";
 
@@ -72,25 +76,34 @@ async function handler(request, response) {
         message: "Não é possível enviar email para convite expirado",
       });
     } // Preparar dados para envio
-    const emailData = {
-      email: inviteData.email,
-      code: inviteData.code,
-      role: inviteData.role,
-      expires_at: inviteData.expires_at,
-    };
-
     const senderName = inviteData.created_by_username || "Sistema";
 
-    // Enviar email
-    const emailResult = await sendInviteEmail(emailData, senderName);
+    const senderAddress =
+      process.env.EMAIL_FROM_ADDRESS ||
+      process.env.EMAIL_SMTP_USER ||
+      "no-reply@espacodialogico.local";
 
-    if (!emailResult.success) {
-      return response.status(500).json({
-        error: "Falha no envio do email",
-        message: emailResult.message || "Não foi possível enviar o email",
-        details: emailResult.error,
-      });
-    } // Atualizar registro com informações de envio
+    const mailOptions = {
+      from: `Espaco Dialogico - Sistema <${senderAddress}>`,
+      to: inviteData.email,
+      subject: `Convite para o Espaco Dialogico - ${inviteData.code}`,
+      html: createInviteEmailTemplate(
+        inviteData.code,
+        senderName,
+        inviteData.expires_at,
+        inviteData.role,
+      ),
+      text: createInviteEmailText(
+        inviteData.code,
+        senderName,
+        inviteData.expires_at,
+        inviteData.role,
+      ),
+    };
+
+    await email.send(mailOptions);
+
+    // Atualizar registro com informações de envio
     const updateQuery = {
       text: `
         UPDATE invites 
@@ -108,7 +121,6 @@ async function handler(request, response) {
       data: {
         inviteId: inviteData.id,
         email: inviteData.email,
-        messageId: emailResult.messageId,
         sentAt: new Date().toISOString(),
       },
     };
@@ -117,17 +129,14 @@ async function handler(request, response) {
   } catch (error) {
     console.error("❌ Erro detalhado no envio de email:", error);
     console.error("📋 Stack trace:", error.stack);
-    console.error("🔧 Variáveis de ambiente disponíveis:", {
-      EMAIL_USER: process.env.EMAIL_USER ? "✅ Definida" : "❌ Não definida",
-      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
-        ? "✅ Definida"
-        : "❌ Não definida",
-      NODE_ENV: process.env.NODE_ENV,
-    });
 
-    return response.status(500).json({
+    const isServiceError = error?.name === "ServiceError";
+
+    return response.status(isServiceError ? 503 : 500).json({
       error: "Erro interno do servidor",
-      message: "Ocorreu um erro ao processar a solicitação",
+      message: isServiceError
+        ? "Falha no serviço de email"
+        : "Ocorreu um erro ao processar a solicitação",
       details:
         process.env.NODE_ENV === "development"
           ? {
