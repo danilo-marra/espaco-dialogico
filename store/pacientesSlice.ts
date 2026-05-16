@@ -73,7 +73,13 @@ const preparePacienteData = (data: any) => {
   formattedData.dt_entrada = formatDateToYYYYMMDD(formattedData.dt_entrada);
   console.log("dt_entrada formatado final:", formattedData.dt_entrada);
 
-  // Verifica outros campos obrigatórios e fornece valores padrão
+  // Garante que nf_dt_entrada NUNCA será null
+  formattedData.nf_dt_entrada = formatDateToYYYYMMDD(
+    formattedData.nf_dt_entrada,
+  );
+  console.log("nf_dt_entrada formatado final:", formattedData.nf_dt_entrada);
+
+  // Verifica outros campos obrigatórios
   if (!formattedData.terapeuta_id) {
     console.error("ERRO: terapeuta_id está vazio ou inválido");
     throw new Error("Terapeuta responsável é obrigatório");
@@ -89,19 +95,29 @@ const preparePacienteData = (data: any) => {
     throw new Error("Telefone do responsável é obrigatório");
   }
 
-  if (!formattedData.email_responsavel) {
-    console.error("ERRO: email_responsavel está vazio ou inválido");
-    throw new Error("Email do responsável é obrigatório");
+  if (!formattedData.nf_nome_completo) {
+    console.error("ERRO: nf_nome_completo está vazio ou inválido");
+    throw new Error("Nome completo para nota fiscal é obrigatório");
   }
 
-  if (!formattedData.cpf_responsavel) {
-    console.error("ERRO: cpf_responsavel está vazio ou inválido");
-    throw new Error("CPF do responsável é obrigatório");
+  if (!formattedData.nf_telefone) {
+    console.error("ERRO: nf_telefone está vazio ou inválido");
+    throw new Error("Telefone para nota fiscal é obrigatório");
   }
 
-  if (!formattedData.endereco_responsavel) {
-    console.error("ERRO: endereco_responsavel está vazio ou inválido");
-    throw new Error("Endereço do responsável é obrigatório");
+  if (!formattedData.nf_cpf) {
+    console.error("ERRO: nf_cpf está vazio ou inválido");
+    throw new Error("CPF para nota fiscal é obrigatório");
+  }
+
+  if (!formattedData.nf_email) {
+    console.error("ERRO: nf_email está vazio ou inválido");
+    throw new Error("Email para nota fiscal é obrigatório");
+  }
+
+  if (!formattedData.nf_endereco) {
+    console.error("ERRO: nf_endereco está vazio ou inválido");
+    throw new Error("Endereço para nota fiscal é obrigatório");
   }
 
   // Origem é opcional, mantém valor original ou define como null

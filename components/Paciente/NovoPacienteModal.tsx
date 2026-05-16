@@ -47,6 +47,8 @@ export function NovoPacienteModal({
     handleSubmit,
     reset,
     formState: { isSubmitting, errors },
+    getValues,
+    setValue,
   } = useForm<PacienteFormInputsWithoutFoto>({
     resolver: zodResolver(PacienteFormSchema),
   });
@@ -302,7 +304,6 @@ export function NovoPacienteModal({
                 </p>
               )}
             </div>
-
             <div>
               <label
                 htmlFor="telefone_responsavel"
@@ -328,190 +329,215 @@ export function NovoPacienteModal({
                 </p>
               )}
             </div>
+          </div>
 
+          <h3 className="font-medium text-azul text-xl mt-6">
+            Dados para Nota Fiscal
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label
-                htmlFor="email_responsavel"
+                htmlFor="nf_nome_completo"
                 className="block text-sm font-medium"
               >
-                Email do responsável
-              </label>
-              <input
-                type="email"
-                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="email_responsavel"
-                placeholder="Email do responsável"
-                {...register("email_responsavel")}
-              />
-              {errors.email_responsavel && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.email_responsavel.message}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="cpf_responsavel"
-                className="block text-sm font-medium"
-              >
-                CPF do responsável
+                Nome completo
               </label>
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="cpf_responsavel"
+                id="nf_nome_completo"
+                placeholder="Nome completo para nota fiscal"
+                {...register("nf_nome_completo")}
+              />
+              {errors.nf_nome_completo && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.nf_nome_completo.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor="nf_telefone"
+                className="block text-sm font-medium"
+              >
+                Telefone
+              </label>
+              <input
+                type="text"
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                id="nf_telefone"
+                placeholder="(00) 00000-0000"
+                {...register("nf_telefone", {
+                  onChange: (e) => {
+                    const masked = maskPhone(e.target.value);
+                    e.target.value = masked;
+                  },
+                })}
+              />
+              {errors.nf_telefone && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.nf_telefone.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label htmlFor="nf_cpf" className="block text-sm font-medium">
+                CPF
+              </label>
+              <input
+                type="text"
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                id="nf_cpf"
                 placeholder="000.000.000-00"
-                {...register("cpf_responsavel", {
+                {...register("nf_cpf", {
                   onChange: (e) => {
                     const masked = maskCPF(e.target.value);
                     e.target.value = masked;
                   },
                 })}
               />
-              {errors.cpf_responsavel && (
+              {errors.nf_cpf && (
                 <p className="text-red-500 text-sm mt-1">
-                  {errors.cpf_responsavel.message}
+                  {errors.nf_cpf.message}
                 </p>
               )}
             </div>
-
+            <div>
+              <label htmlFor="nf_email" className="block text-sm font-medium">
+                E-mail
+              </label>
+              <input
+                type="email"
+                className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                id="nf_email"
+                placeholder="E-mail para nota fiscal"
+                {...register("nf_email")}
+              />
+              {errors.nf_email && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.nf_email.message}
+                </p>
+              )}
+            </div>
             <div className="md:col-span-2">
               <label
-                htmlFor="endereco_responsavel"
+                htmlFor="nf_endereco"
                 className="block text-sm font-medium"
               >
-                Endereço do responsável
+                Endereço
               </label>
               <input
                 type="text"
                 className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                id="endereco_responsavel"
-                placeholder="Endereço completo do responsável"
-                {...register("endereco_responsavel")}
+                id="nf_endereco"
+                placeholder="Endereço completo para nota fiscal"
+                {...register("nf_endereco")}
               />
-              {errors.endereco_responsavel && (
+              {errors.nf_endereco && (
                 <p className="text-red-500 text-sm mt-1">
-                  {errors.endereco_responsavel.message}
+                  {errors.nf_endereco.message}
                 </p>
               )}
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="dt_entrada" className="block text-sm font-medium">
-              Data de entrada
-            </label>
-            <Controller
-              control={control}
-              name="dt_entrada"
-              render={({ field }) => (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
-                        id="dt_entrada"
-                        placeholder="Data de entrada (dd/MM/yyyy)"
-                        value={inputDataEntrada}
-                        onChange={(e) => {
-                          // Aplica a máscara de data
-                          const masked = maskDate(e.target.value);
-                          setInputDataEntrada(masked);
-
-                          // Tenta parsear a data
-                          const parsedDate = parse(
-                            masked,
-                            "dd/MM/yyyy",
-                            new Date(),
-                            {
+            <div className="md:col-span-2 flex justify-end">
+              <button
+                type="button"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded"
+                onClick={() => {
+                  // Copia nome e telefone do responsável para os campos de nota fiscal
+                  const values = getValues();
+                  setValue("nf_nome_completo", values.nome_responsavel);
+                  setValue("nf_telefone", values.telefone_responsavel);
+                }}
+              >
+                Repetir os mesmos dados do responsável
+              </button>
+            </div>
+            <div className="md:col-span-2">
+              <label
+                htmlFor="nf_dt_entrada"
+                className="block text-sm font-medium"
+              >
+                Data de entrada
+              </label>
+              <Controller
+                control={control}
+                name="nf_dt_entrada"
+                render={({ field }) => (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 pr-10 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
+                          id="nf_dt_entrada"
+                          placeholder="Data de entrada (dd/MM/yyyy)"
+                          value={inputDataEntrada}
+                          onChange={(e) => {
+                            const masked = maskDate(e.target.value);
+                            setInputDataEntrada(masked);
+                            const parsedDate = parse(
+                              masked,
+                              "dd/MM/yyyy",
+                              new Date(),
+                              { locale: ptBR },
+                            );
+                            if (isValid(parsedDate)) {
+                              field.onChange(parsedDate);
+                            } else {
+                              field.onChange(null);
+                            }
+                          }}
+                          onBlur={() => {
+                            const parsedDate = parse(
+                              inputDataEntrada,
+                              "dd/MM/yyyy",
+                              new Date(),
+                              { locale: ptBR },
+                            );
+                            if (!isValid(parsedDate)) {
+                              setInputDataEntrada("");
+                              field.onChange(null);
+                            }
+                          }}
+                          autoComplete="off"
+                        />
+                        <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none h-5 w-5 text-gray-400" />
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-4 bg-white rounded-md shadow-lg">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => {
+                          if (date && isValid(date)) {
+                            const formattedDate = format(date, "dd/MM/yyyy", {
                               locale: ptBR,
-                            },
-                          );
-                          if (isValid(parsedDate)) {
-                            field.onChange(parsedDate);
+                            });
+                            setInputDataEntrada(formattedDate);
+                            field.onChange(date);
                           } else {
-                            field.onChange(null);
-                          }
-                        }}
-                        onBlur={() => {
-                          // Validação final ao perder o foco
-                          const parsedDate = parse(
-                            inputDataEntrada,
-                            "dd/MM/yyyy",
-                            new Date(),
-                            { locale: ptBR },
-                          );
-                          if (!isValid(parsedDate)) {
                             setInputDataEntrada("");
                             field.onChange(null);
                           }
                         }}
-                        autoComplete="off"
-                      />
-                      <CalendarIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none h-5 w-5 text-gray-400" />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-72 p-4 bg-white rounded-md shadow-lg">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => {
-                        if (date && isValid(date)) {
-                          const formattedDate = format(date, "dd/MM/yyyy", {
-                            locale: ptBR,
-                          });
-                          setInputDataEntrada(formattedDate);
-                          field.onChange(date);
-                        } else {
-                          setInputDataEntrada("");
-                          field.onChange(null);
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
                         }
-                      }}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                      initialFocus
-                      locale={ptBR}
-                      className="rounded-md border"
-                      classNames={{
-                        months: "space-y-4",
-                        month: "space-y-4",
-                        caption:
-                          "flex justify-center pt-1 relative items-center",
-                        caption_label: "text-sm font-medium",
-                        nav: "space-x-1 flex items-center",
-                        nav_button:
-                          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                        nav_button_previous: "absolute left-1",
-                        nav_button_next: "absolute right-1",
-                        table: "w-full border-collapse space-y-1",
-                        head_row: "flex",
-                        head_cell:
-                          "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-                        row: "flex w-full mt-2",
-                        cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                        day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
-                        day_selected:
-                          "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                        day_today: "bg-accent text-accent-foreground",
-                        day_outside: "text-muted-foreground opacity-50",
-                        day_disabled: "text-muted-foreground opacity-50",
-                        day_range_middle:
-                          "aria-selected:bg-accent aria-selected:text-accent-foreground",
-                        day_hidden: "invisible",
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
+                        initialFocus
+                        locale={ptBR}
+                        className="rounded-md border"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              />
+              {errors.nf_dt_entrada && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.nf_dt_entrada.message}
+                </p>
               )}
-            />
-            {errors.dt_entrada && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.dt_entrada.message}
-              </p>
-            )}
+            </div>
           </div>
 
           <div className="mt-6 flex justify-end">

@@ -15,14 +15,17 @@ async function create(pacienteInputValues) {
         terapeuta_id, 
         nome_responsavel, 
         telefone_responsavel, 
-        email_responsavel, 
-        cpf_responsavel, 
-        endereco_responsavel, 
         origem, 
-        dt_entrada
+        dt_entrada,
+        nf_nome_completo,
+        nf_telefone,
+        nf_cpf,
+        nf_email,
+        nf_endereco,
+        nf_dt_entrada
       )
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING
       *
     ;`,
@@ -32,11 +35,14 @@ async function create(pacienteInputValues) {
         pacienteInputValues.terapeuta_id,
         pacienteInputValues.nome_responsavel,
         pacienteInputValues.telefone_responsavel,
-        pacienteInputValues.email_responsavel,
-        pacienteInputValues.cpf_responsavel,
-        pacienteInputValues.endereco_responsavel,
         pacienteInputValues.origem,
         pacienteInputValues.dt_entrada,
+        pacienteInputValues.nf_nome_completo,
+        pacienteInputValues.nf_telefone,
+        pacienteInputValues.nf_cpf,
+        pacienteInputValues.nf_email,
+        pacienteInputValues.nf_endereco,
+        pacienteInputValues.nf_dt_entrada,
       ],
     });
 
@@ -75,11 +81,14 @@ async function getAll() {
       terapeuta_id: row.terapeuta_id,
       nome_responsavel: row.nome_responsavel,
       telefone_responsavel: row.telefone_responsavel,
-      email_responsavel: row.email_responsavel,
-      cpf_responsavel: row.cpf_responsavel,
-      endereco_responsavel: row.endereco_responsavel,
       origem: row.origem,
       dt_entrada: row.dt_entrada,
+      nf_nome_completo: row.nf_nome_completo,
+      nf_telefone: row.nf_telefone,
+      nf_cpf: row.nf_cpf,
+      nf_email: row.nf_email,
+      nf_endereco: row.nf_endereco,
+      nf_dt_entrada: row.nf_dt_entrada,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -139,11 +148,14 @@ async function getById(id) {
     terapeuta_id: row.terapeuta_id,
     nome_responsavel: row.nome_responsavel,
     telefone_responsavel: row.telefone_responsavel,
-    email_responsavel: row.email_responsavel,
-    cpf_responsavel: row.cpf_responsavel,
-    endereco_responsavel: row.endereco_responsavel,
     origem: row.origem,
     dt_entrada: row.dt_entrada,
+    nf_nome_completo: row.nf_nome_completo,
+    nf_telefone: row.nf_telefone,
+    nf_cpf: row.nf_cpf,
+    nf_email: row.nf_email,
+    nf_endereco: row.nf_endereco,
+    nf_dt_entrada: row.nf_dt_entrada,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -187,13 +199,16 @@ async function update(id, pacienteInputValues) {
         terapeuta_id = $3,
         nome_responsavel = $4,
         telefone_responsavel = $5,
-        email_responsavel = $6,
-        cpf_responsavel = $7,
-        endereco_responsavel = $8,
-        origem = $9,
-        dt_entrada = $10,
+        origem = $6,
+        dt_entrada = $7,
+        nf_nome_completo = $8,
+        nf_telefone = $9,
+        nf_cpf = $10,
+        nf_email = $11,
+        nf_endereco = $12,
+        nf_dt_entrada = $13,
         updated_at = timezone('utc', now())
-      WHERE id = $11
+      WHERE id = $14
       RETURNING *
     `,
     values: [
@@ -202,11 +217,14 @@ async function update(id, pacienteInputValues) {
       pacienteInputValues.terapeuta_id,
       pacienteInputValues.nome_responsavel,
       pacienteInputValues.telefone_responsavel,
-      pacienteInputValues.email_responsavel,
-      pacienteInputValues.cpf_responsavel,
-      pacienteInputValues.endereco_responsavel,
       pacienteInputValues.origem,
       pacienteInputValues.dt_entrada,
+      pacienteInputValues.nf_nome_completo,
+      pacienteInputValues.nf_telefone,
+      pacienteInputValues.nf_cpf,
+      pacienteInputValues.nf_email,
+      pacienteInputValues.nf_endereco,
+      pacienteInputValues.nf_dt_entrada,
       id,
     ],
   };
