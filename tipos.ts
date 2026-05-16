@@ -23,6 +23,7 @@ export interface Paciente {
   terapeutaInfo?: Terapeuta;
   nome_responsavel: string;
   telefone_responsavel: string;
+  email_responsavel?: string;
   origem?: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | null;
   dt_entrada: Date | string;
   nf_nome_completo: string;
