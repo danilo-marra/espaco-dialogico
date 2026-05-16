@@ -309,6 +309,12 @@ describe("Role assignment: secretaria", () => {
       `${uniqueSuffix}`.padEnd(11, "0").slice(0, 11),
     );
     formData.append("endereco_responsavel", "Rua Teste API, 456");
+    formData.append("nf_nome_completo", `Nota Fiscal ${uniqueSuffix}`);
+    formData.append("nf_telefone", "11988887777");
+    formData.append("nf_cpf", `${uniqueSuffix}`.padEnd(11, "1").slice(0, 11));
+    formData.append("nf_email", `nf_api_${uniqueSuffix}@example.com`);
+    formData.append("nf_endereco", "Avenida NF API, 789");
+    formData.append("nf_dt_entrada", new Date().toISOString());
     formData.append("dt_nascimento", "2012-05-20");
     formData.append("dt_entrada", new Date().toISOString());
     formData.append("origem", "Indicação");
@@ -930,9 +936,12 @@ async function createPacienteFixture(terapeutaId, label) {
     terapeuta_id: terapeutaId,
     nome_responsavel: `Responsável ${label}`,
     telefone_responsavel: "11988887777",
-    email_responsavel: `responsavel_${sanitized.toLowerCase()}@example.com`,
-    cpf_responsavel: `${digitSuffix}`.padEnd(11, "0").slice(0, 11),
-    endereco_responsavel: "Rua Teste, 123",
+    nf_nome_completo: `Paciente ${label}`,
+    nf_telefone: "11988887777",
+    nf_cpf: `${digitSuffix}`.padEnd(11, "0").slice(0, 11),
+    nf_email: `nf_${sanitized.toLowerCase()}@example.com`,
+    nf_endereco: "Rua Teste, 123",
+    nf_dt_entrada: new Date().toISOString(),
     origem: "Outros",
     dt_entrada: new Date().toISOString(),
   });

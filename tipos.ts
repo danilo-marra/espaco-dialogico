@@ -23,11 +23,15 @@ export interface Paciente {
   terapeutaInfo?: Terapeuta;
   nome_responsavel: string;
   telefone_responsavel: string;
-  email_responsavel: string;
-  cpf_responsavel: string;
-  endereco_responsavel: string;
+  email_responsavel?: string;
   origem?: "Indicação" | "Instagram" | "Busca no Google" | "Outros" | null;
   dt_entrada: Date | string;
+  nf_nome_completo: string;
+  nf_telefone: string;
+  nf_cpf: string;
+  nf_email: string;
+  nf_endereco: string;
+  nf_dt_entrada: Date | string;
   created_at?: string;
   updated_at?: string;
 }

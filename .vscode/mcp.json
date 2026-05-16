@@ -1,11 +1,42 @@
 {
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "github_token",
-      "description": "GitHub Personal Access Token",
-      "password": true
-    }
-  ],
-  "servers": {}
+	"servers": {
+		"vercel": {
+			"type": "http",
+			"url": "https://mcp.vercel.com"
+		},
+		"neondatabase/mcp-server-neon": {
+			"type": "http",
+			"url": "https://mcp.neon.tech/sse",
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.0"
+		},
+		"io.github.github/github-mcp-server": {
+			"type": "stdio",
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"-e",
+				"GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
+				"ghcr.io/github/github-mcp-server:1.0.4"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.4"
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "github_token",
+			"description": "GitHub Personal Access Token",
+			"password": true
+		},
+		{
+			"id": "token",
+			"type": "promptString",
+			"description": "",
+			"password": true
+		}
+	]
 }

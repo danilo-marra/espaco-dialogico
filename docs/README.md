@@ -115,6 +115,13 @@ _Documentação sobre otimizações de performance (arquivo existente)_
 
 ## 📝 Convenções da Documentação
 
+### Política de Migrations (Sem Rollback)
+
+- Toda nova migration em `infra/migrations/` deve usar o formato CommonJS do `node-pg-migrate`.
+- Para criar migration nova, usar sempre o script do projeto: `npm run migrations:create <nome-da-migration>`.
+- Este projeto adota rollback desabilitado: **sempre use `exports.down = false`**.
+- Não implementar função de rollback em migrations (`exports.down = (pgm) => { ... }` é proibido neste repositório).
+
 ### Símbolos Utilizados
 
 - 🚀 **Scripts de Desenvolvimento**

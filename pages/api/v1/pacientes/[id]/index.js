@@ -79,7 +79,6 @@ async function putHandler(request, response) {
         getFormValue(fields.dt_nascimento) !== undefined
           ? getFormValue(fields.dt_nascimento) || null
           : pacienteExists.dt_nascimento,
-      // Use o valor do form apenas se não for falsy (empty string, null, etc)
       terapeuta_id: terapeuta_id || pacienteExists.terapeuta_id,
       nome_responsavel:
         getFormValue(fields.nome_responsavel) ||
@@ -87,19 +86,22 @@ async function putHandler(request, response) {
       telefone_responsavel:
         getFormValue(fields.telefone_responsavel) ||
         pacienteExists.telefone_responsavel,
-      email_responsavel:
-        getFormValue(fields.email_responsavel) ||
-        pacienteExists.email_responsavel,
-      cpf_responsavel:
-        getFormValue(fields.cpf_responsavel) || pacienteExists.cpf_responsavel,
-      endereco_responsavel:
-        getFormValue(fields.endereco_responsavel) ||
-        pacienteExists.endereco_responsavel,
       origem:
         getFormValue(fields.origem) !== undefined
           ? getFormValue(fields.origem) || null
           : pacienteExists.origem,
       dt_entrada: getFormValue(fields.dt_entrada) || pacienteExists.dt_entrada,
+      nf_nome_completo:
+        getFormValue(fields.nf_nome_completo) ||
+        pacienteExists.nf_nome_completo,
+      nf_telefone:
+        getFormValue(fields.nf_telefone) || pacienteExists.nf_telefone,
+      nf_cpf: getFormValue(fields.nf_cpf) || pacienteExists.nf_cpf,
+      nf_email: getFormValue(fields.nf_email) || pacienteExists.nf_email,
+      nf_endereco:
+        getFormValue(fields.nf_endereco) || pacienteExists.nf_endereco,
+      nf_dt_entrada:
+        getFormValue(fields.nf_dt_entrada) || pacienteExists.nf_dt_entrada,
     };
 
     // Upload da foto para o Cloudinary, se existir

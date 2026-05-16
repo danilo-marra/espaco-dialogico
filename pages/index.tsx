@@ -384,7 +384,7 @@ function Home() {
                       href="tel:+5561992968282"
                       className="text-azul hover:underline"
                     >
-                      (61) 99209-5674
+                      (61) 99296-8282
                     </a>
                   </div>
                   <div className="flex items-center">
@@ -447,7 +447,7 @@ function Home() {
                 href="tel:+5561992968282"
                 className="text-white/80 hover:text-white flex items-center justify-center md:justify-start"
               >
-                <Phone size={16} className="mr-2" /> (61) 99209-5674
+                <Phone size={16} className="mr-2" /> (61) 99296-8282
               </a>
               <a
                 href="mailto:contato@espacodialogico.com.br"

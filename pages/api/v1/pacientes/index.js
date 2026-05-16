@@ -74,22 +74,28 @@ async function postHandler(request, response) {
       terapeuta_id: getFormValue(fields.terapeuta_id),
       nome_responsavel: getFormValue(fields.nome_responsavel),
       telefone_responsavel: getFormValue(fields.telefone_responsavel),
-      email_responsavel: getFormValue(fields.email_responsavel),
-      cpf_responsavel: getFormValue(fields.cpf_responsavel),
-      endereco_responsavel: getFormValue(fields.endereco_responsavel),
       origem: getFormValue(fields.origem) || null,
       dt_entrada: getFormValue(fields.dt_entrada),
+      nf_nome_completo: getFormValue(fields.nf_nome_completo),
+      nf_telefone: getFormValue(fields.nf_telefone),
+      nf_cpf: getFormValue(fields.nf_cpf),
+      nf_email: getFormValue(fields.nf_email),
+      nf_endereco: getFormValue(fields.nf_endereco),
+      nf_dt_entrada: getFormValue(fields.nf_dt_entrada),
     };
 
-    // Validação dos campos obrigatórios (removendo dt_nascimento e origem)
+    // Validação dos campos obrigatórios
     const requiredFields = [
       "nome",
       "terapeuta_id",
       "nome_responsavel",
       "telefone_responsavel",
-      "email_responsavel",
-      "cpf_responsavel",
-      "endereco_responsavel",
+      "nf_nome_completo",
+      "nf_telefone",
+      "nf_cpf",
+      "nf_email",
+      "nf_endereco",
+      "nf_dt_entrada",
     ];
 
     for (const field of requiredFields) {
