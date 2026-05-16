@@ -49,7 +49,9 @@ Three roles: `admin`, `secretaria`, `terapeuta` (stored lowercase; aliases like 
 ## Database & migrations
 
 - Migration files live in `infra/migrations/` with naming `<unix-timestamp-ms>_<verb>-<description>.js`.
+- To create a new migration, always use the project script: `npm run migrations:create <nome-da-migration>`.
 - All migrations use `node-pg-migrate` CommonJS format. **`exports.down` is always `false`** — rollback is not implemented.
+- Never write rollback code in migrations (do not implement `exports.down` as a function with `pgm.drop*`, `pgm.add*`, etc.). Always set `exports.down = false`.
 - Field conventions (snake*case): PKs `id uuid DEFAULT gen_random_uuid()`, timestamps `created_at`/`updated_at` as `timestamptz DEFAULT timezone('utc', now())`, date fields prefixed `dt*`(e.g.`dt*nascimento`), nota fiscal fields prefixed `nf*`(e.g.`nf_cpf`).
 - `database.query` opens a fresh `pg.Client` per call. It throws `ServiceError` on DB failure. Models import specific error classes from `infra/errors.js` and throw them directly (not wrapped).
 

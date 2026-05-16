@@ -73,7 +73,34 @@ const preparePacienteData = (data: any) => {
   formattedData.dt_entrada = formatDateToYYYYMMDD(formattedData.dt_entrada);
   console.log("dt_entrada formatado final:", formattedData.dt_entrada);
 
-  // Garante que nf_dt_entrada NUNCA será null
+  if (!formattedData.nf_dt_entrada) {
+    console.error("ERRO: nf_dt_entrada está vazio ou inválido");
+    throw new Error("Data de entrada para nota fiscal é obrigatória");
+  }
+
+  const nfEntradaDateValue = formattedData.nf_dt_entrada;
+  let nfEntradaDateValida = false;
+
+  if (nfEntradaDateValue instanceof Date && isValid(nfEntradaDateValue)) {
+    nfEntradaDateValida = true;
+  } else if (typeof nfEntradaDateValue === "string") {
+    const parsedIsoDate = new Date(nfEntradaDateValue);
+    if (isValid(parsedIsoDate)) {
+      nfEntradaDateValida = true;
+    } else {
+      const parsedBrDate = parse(nfEntradaDateValue, "dd/MM/yyyy", new Date());
+      if (isValid(parsedBrDate)) {
+        nfEntradaDateValida = true;
+      }
+    }
+  }
+
+  if (!nfEntradaDateValida) {
+    console.error("ERRO: nf_dt_entrada está vazio ou inválido");
+    throw new Error("Data de entrada para nota fiscal é inválida");
+  }
+
+  // nf_dt_entrada é obrigatório e deve ser válido antes da formatação
   formattedData.nf_dt_entrada = formatDateToYYYYMMDD(
     formattedData.nf_dt_entrada,
   );

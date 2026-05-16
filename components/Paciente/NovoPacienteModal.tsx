@@ -484,8 +484,14 @@ export function NovoPacienteModal({
                             );
                             if (isValid(parsedDate)) {
                               field.onChange(parsedDate);
+                              setValue("dt_entrada", parsedDate, {
+                                shouldValidate: true,
+                              });
                             } else {
                               field.onChange(null);
+                              setValue("dt_entrada", null, {
+                                shouldValidate: true,
+                              });
                             }
                           }}
                           onBlur={() => {
@@ -498,6 +504,13 @@ export function NovoPacienteModal({
                             if (!isValid(parsedDate)) {
                               setInputDataEntrada("");
                               field.onChange(null);
+                              setValue("dt_entrada", null, {
+                                shouldValidate: true,
+                              });
+                            } else {
+                              setValue("dt_entrada", parsedDate, {
+                                shouldValidate: true,
+                              });
                             }
                           }}
                           autoComplete="off"
@@ -516,9 +529,15 @@ export function NovoPacienteModal({
                             });
                             setInputDataEntrada(formattedDate);
                             field.onChange(date);
+                            setValue("dt_entrada", date, {
+                              shouldValidate: true,
+                            });
                           } else {
                             setInputDataEntrada("");
                             field.onChange(null);
+                            setValue("dt_entrada", null, {
+                              shouldValidate: true,
+                            });
                           }
                         }}
                         disabled={(date) =>
