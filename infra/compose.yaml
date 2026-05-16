@@ -7,3 +7,10 @@ services:
       - ../.env.development
     ports:
       - "5434:5432"
+
+  mailpit:
+    container_name: espaco_dialogico_mailpit
+    image: "axllent/mailpit:latest"
+    ports:
+      - "1025:1025"
+      - "8025:8025"

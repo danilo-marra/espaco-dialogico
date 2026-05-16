@@ -21,6 +21,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +49,12 @@ jobs:
           ADMIN_USERNAME=TestAdmin
           ADMIN_EMAIL=admin@test.com
           ADMIN_PASSWORD=TestPassword123
+          EMAIL_SMTP_HOST=localhost
+          EMAIL_SMTP_PORT=1025
+          EMAIL_SMTP_USER=
+          EMAIL_SMTP_PASSWORD=
+          EMAIL_HTTP_HOST=localhost
+          EMAIL_HTTP_PORT=8025
           EOF
 
       - run: npm ci
@@ -62,6 +73,10 @@ jobs:
           ADMIN_USERNAME: TestAdmin
           ADMIN_EMAIL: admin@test.com
           ADMIN_PASSWORD: TestPassword123
+          EMAIL_SMTP_HOST: localhost
+          EMAIL_SMTP_PORT: 1025
+          EMAIL_HTTP_HOST: localhost
+          EMAIL_HTTP_PORT: 8025
 
       - name: Run tests
         run: npm run test:ci
@@ -77,3 +92,7 @@ jobs:
           ADMIN_USERNAME: TestAdmin
           ADMIN_EMAIL: admin@test.com
           ADMIN_PASSWORD: TestPassword123
+          EMAIL_SMTP_HOST: localhost
+          EMAIL_SMTP_PORT: 1025
+          EMAIL_HTTP_HOST: localhost
+          EMAIL_HTTP_PORT: 8025
