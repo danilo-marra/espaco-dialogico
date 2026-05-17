@@ -149,6 +149,60 @@ expect(new Date(record.nf_dt_entrada).toISOString().split("T")[0]).toBe(
 );
 ```
 
+### Multipart/FormData in integration tests (CRITICAL)
+
+Routes that use `formidable` (e.g. `PUT /api/v1/pacientes/[id]/`) set `bodyParser: false` and require a `Content-Length` header. **node-fetch v2** (used in tests) does NOT add `Content-Length` when you pass a `FormData` stream as body — this causes formidable to hang indefinitely or return 415.
+
+**Always use buffer mode** from the `form-data` npm package:
+
+```js
+import FormData from "form-data";
+
+function buildFormData(fields, token) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) {
+      // IMPORTANT: Date objects from the DB must be serialized with toISOString()
+      // String(dateObj) produces a locale string that PostgreSQL rejects (error 22007)
+      const strValue =
+        value instanceof Date ? value.toISOString() : String(value);
+      formData.append(key, strValue);
+    }
+  }
+  const buffer = formData.getBuffer();
+  const boundary = formData.getBoundary();
+  const headers = {
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": String(buffer.length),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return { body: buffer, headers };
+}
+
+// Usage — spread into fetch options:
+const response = await fetch(url, {
+  method: "PUT",
+  ...buildFormData({ terapeuta_id: terapeutaB.id, nome: "João" }, adminToken),
+});
+```
+
+**DO NOT** pass a `FormData` instance directly as `body`:
+
+```js
+// ❌ WRONG — no Content-Length, formidable hangs
+await fetch(url, { method: "PUT", body: formData, headers: { Authorization: ... } });
+```
+
+**DO NOT** use `String()` to serialize Date values when appending to FormData:
+
+```js
+// ❌ WRONG — produces "Fri Jan 01 2010 00:00:00 GMT-0200 ..." → Postgres error 22007
+formData.append("dt_nascimento", String(paciente.dt_nascimento));
+
+// ✅ CORRECT
+formData.append("dt_nascimento", paciente.dt_nascimento.toISOString());
+```
+
 ### Test file naming & structure
 
 - Integration tests: `tests/integration/api/v1/<resource>/<method>.test.js` (e.g. `put.test.js`)
@@ -175,6 +229,7 @@ See [`docs/README.md`](../docs/README.md) for an index of all design and impleme
 <!-- SPECKIT START -->
 
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+shell commands, and other important information, this block is auto-populated
+by Spec Kit from its generated spec and plan artifacts.
 
 <!-- SPECKIT END -->

@@ -143,6 +143,29 @@ function Get-NextBranchNumber {
     return $maxNum + 1
 }
 
+function Get-Utf8TruncatedString {
+    param(
+        [string]$InputString,
+        [int]$MaxBytes
+    )
+
+    $utf8 = [System.Text.Encoding]::UTF8
+    $builder = [System.Text.StringBuilder]::new()
+    $byteCount = 0
+
+    foreach ($character in $InputString.ToCharArray()) {
+        $characterBytes = $utf8.GetByteCount($character.ToString())
+        if ($byteCount + $characterBytes -gt $MaxBytes) {
+            break
+        }
+
+        [void]$builder.Append($character)
+        $byteCount += $characterBytes
+    }
+
+    return $builder.ToString()
+}
+
 function ConvertTo-CleanBranchName {
     param([string]$Name)
     return $Name.ToLower() -replace '[^a-z0-9]', '-' -replace '-{2,}', '-' -replace '^-', '' -replace '-$', ''
@@ -273,7 +296,23 @@ if ($env:GIT_BRANCH_NAME) {
     } elseif ($branchName -match '^(\d+)-') {
         $featureNum = $matches[1]
     } else {
-        $featureNum = $branchName
+        if ($Timestamp) {
+            $featureNum = Get-Date -Format 'yyyyMMdd-HHmmss'
+        } else {
+            if ($Number -eq 0) {
+                if ($DryRun -and $hasGit) {
+                    $Number = Get-NextBranchNumber -SpecsDir $specsDir -SkipFetch
+                } elseif ($DryRun) {
+                    $Number = (Get-HighestNumberFromSpecs -SpecsDir $specsDir) + 1
+                } elseif ($hasGit) {
+                    $Number = Get-NextBranchNumber -SpecsDir $specsDir
+                } else {
+                    $Number = (Get-HighestNumberFromSpecs -SpecsDir $specsDir) + 1
+                }
+            }
+
+            $featureNum = ('{0:000}' -f $Number)
+        }
     }
 } else {
     if ($ShortName) {
@@ -309,19 +348,20 @@ if ($env:GIT_BRANCH_NAME) {
 }
 
 $maxBranchLength = 244
-if ($branchName.Length -gt $maxBranchLength) {
-    $prefixLength = $featureNum.Length + 1
+$utf8 = [System.Text.Encoding]::UTF8
+if ($utf8.GetByteCount($branchName) -gt $maxBranchLength) {
+    $prefixLength = $utf8.GetByteCount("$featureNum-")
     $maxSuffixLength = $maxBranchLength - $prefixLength
 
-    $truncatedSuffix = $branchSuffix.Substring(0, [Math]::Min($branchSuffix.Length, $maxSuffixLength))
+    $truncatedSuffix = Get-Utf8TruncatedString -InputString $branchSuffix -MaxBytes $maxSuffixLength
     $truncatedSuffix = $truncatedSuffix -replace '-$', ''
 
     $originalBranchName = $branchName
     $branchName = "$featureNum-$truncatedSuffix"
 
     Write-Warning "[specify] Branch name exceeded GitHub's 244-byte limit"
-    Write-Warning "[specify] Original: $originalBranchName ($($originalBranchName.Length) bytes)"
-    Write-Warning "[specify] Truncated to: $branchName ($($branchName.Length) bytes)"
+    Write-Warning "[specify] Original: $originalBranchName ($($utf8.GetByteCount($originalBranchName)) bytes)"
+    Write-Warning "[specify] Truncated to: $branchName ($($utf8.GetByteCount($branchName)) bytes)"
 }
 
 if (-not $DryRun) {

@@ -314,8 +314,27 @@ if [ -n "${GIT_BRANCH_NAME:-}" ]; then
         FEATURE_NUM=$(echo "$BRANCH_NAME" | grep -Eo '^[0-9]+')
         BRANCH_SUFFIX="${BRANCH_NAME#${FEATURE_NUM}-}"
     else
-        FEATURE_NUM="$BRANCH_NAME"
-        BRANCH_SUFFIX="$BRANCH_NAME"
+        if [ "$USE_TIMESTAMP" = true ]; then
+            FEATURE_NUM=$(date +%Y%m%d-%H%M%S)
+        else
+            if [ -n "$BRANCH_NUMBER" ]; then
+                FEATURE_NUM=$(printf "%03d" "$((10#$BRANCH_NUMBER))")
+            else
+                if [ "$DRY_RUN" = true ] && [ "$HAS_GIT" = true ]; then
+                    BRANCH_NUMBER=$(check_existing_branches "$SPECS_DIR" true)
+                elif [ "$DRY_RUN" = true ]; then
+                    HIGHEST=$(get_highest_from_specs "$SPECS_DIR")
+                    BRANCH_NUMBER=$((HIGHEST + 1))
+                elif [ "$HAS_GIT" = true ]; then
+                    BRANCH_NUMBER=$(check_existing_branches "$SPECS_DIR")
+                else
+                    HIGHEST=$(get_highest_from_specs "$SPECS_DIR")
+                    BRANCH_NUMBER=$((HIGHEST + 1))
+                fi
+
+                FEATURE_NUM=$(printf "%03d" "$((10#$BRANCH_NUMBER))")
+            fi
+        fi
     fi
 else
     # Generate branch name
@@ -363,18 +382,20 @@ if [ -n "${GIT_BRANCH_NAME:-}" ] && [ "$BRANCH_BYTE_LEN" -gt $MAX_BRANCH_LENGTH 
     >&2 echo "Error: GIT_BRANCH_NAME must be 244 bytes or fewer in UTF-8. Provided value is ${BRANCH_BYTE_LEN} bytes."
     exit 1
 elif [ "$BRANCH_BYTE_LEN" -gt $MAX_BRANCH_LENGTH ]; then
-    PREFIX_LENGTH=$(( ${#FEATURE_NUM} + 1 ))
+    PREFIX_LENGTH=$(( $(_byte_length "$FEATURE_NUM") + 1 ))
     MAX_SUFFIX_LENGTH=$((MAX_BRANCH_LENGTH - PREFIX_LENGTH))
 
-    TRUNCATED_SUFFIX=$(echo "$BRANCH_SUFFIX" | cut -c1-$MAX_SUFFIX_LENGTH)
+    TRUNCATED_SUFFIX=$(python3 -c 'import sys
+suffix = sys.argv[1].encode("utf-8")[:int(sys.argv[2])]
+sys.stdout.write(suffix.decode("utf-8", "ignore"))' "$BRANCH_SUFFIX" "$MAX_SUFFIX_LENGTH")
     TRUNCATED_SUFFIX=$(echo "$TRUNCATED_SUFFIX" | sed 's/-$//')
 
     ORIGINAL_BRANCH_NAME="$BRANCH_NAME"
     BRANCH_NAME="${FEATURE_NUM}-${TRUNCATED_SUFFIX}"
 
     >&2 echo "[specify] Warning: Branch name exceeded GitHub's 244-byte limit"
-    >&2 echo "[specify] Original: $ORIGINAL_BRANCH_NAME (${#ORIGINAL_BRANCH_NAME} bytes)"
-    >&2 echo "[specify] Truncated to: $BRANCH_NAME (${#BRANCH_NAME} bytes)"
+    >&2 echo "[specify] Original: $ORIGINAL_BRANCH_NAME ($(_byte_length "$ORIGINAL_BRANCH_NAME") bytes)"
+    >&2 echo "[specify] Truncated to: $BRANCH_NAME ($(_byte_length "$BRANCH_NAME") bytes)"
 fi
 
 if [ "$DRY_RUN" != true ]; then

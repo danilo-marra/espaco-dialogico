@@ -8,6 +8,7 @@ import terapeuta from "models/terapeuta.js";
 import paciente from "models/paciente.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
+import FormData from "form-data";
 import {
   ensureServerRunning,
   cleanupServer,
@@ -28,6 +29,27 @@ beforeAll(async () => {
 afterAll(() => {
   cleanupServer(TEST_NAME);
 });
+
+function buildPacienteFormData(fields, token) {
+  const formData = new FormData();
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) {
+      const strValue =
+        value instanceof Date ? value.toISOString() : String(value);
+      formData.append(key, strValue);
+    }
+  }
+
+  const buffer = formData.getBuffer();
+  const boundary = formData.getBoundary();
+  const headers = {
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": String(buffer.length),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return { body: buffer, headers };
+}
 
 describe("PUT /api/v1/pacientes/[id]", () => {
   // ============ SUCESSO: Mudança de Terapeuta ============
@@ -82,25 +104,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteOriginal.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${adminToken}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteOriginal.nome,
-            dt_nascimento: pacienteOriginal.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA AQUI
-            nome_responsavel: pacienteOriginal.nome_responsavel,
-            telefone_responsavel: pacienteOriginal.telefone_responsavel,
-            nf_nome_completo: pacienteOriginal.nf_nome_completo,
-            nf_telefone: pacienteOriginal.nf_telefone,
-            nf_cpf: pacienteOriginal.nf_cpf,
-            nf_email: pacienteOriginal.nf_email,
-            nf_endereco: pacienteOriginal.nf_endereco,
-            nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
-            origem: pacienteOriginal.origem,
-            dt_entrada: pacienteOriginal.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteOriginal.nome,
+              dt_nascimento: pacienteOriginal.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA AQUI
+              nome_responsavel: pacienteOriginal.nome_responsavel,
+              telefone_responsavel: pacienteOriginal.telefone_responsavel,
+              nf_nome_completo: pacienteOriginal.nf_nome_completo,
+              nf_telefone: pacienteOriginal.nf_telefone,
+              nf_cpf: pacienteOriginal.nf_cpf,
+              nf_email: pacienteOriginal.nf_email,
+              nf_endereco: pacienteOriginal.nf_endereco,
+              nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
+              origem: pacienteOriginal.origem,
+              dt_entrada: pacienteOriginal.dt_entrada,
+            },
+            adminToken,
+          ),
         },
       );
 
@@ -206,25 +227,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteOriginal.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteOriginal.nome,
-            dt_nascimento: pacienteOriginal.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA
-            nome_responsavel: pacienteOriginal.nome_responsavel,
-            telefone_responsavel: pacienteOriginal.telefone_responsavel,
-            nf_nome_completo: pacienteOriginal.nf_nome_completo,
-            nf_telefone: pacienteOriginal.nf_telefone,
-            nf_cpf: pacienteOriginal.nf_cpf,
-            nf_email: pacienteOriginal.nf_email,
-            nf_endereco: pacienteOriginal.nf_endereco,
-            nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
-            origem: pacienteOriginal.origem,
-            dt_entrada: pacienteOriginal.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteOriginal.nome,
+              dt_nascimento: pacienteOriginal.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA
+              nome_responsavel: pacienteOriginal.nome_responsavel,
+              telefone_responsavel: pacienteOriginal.telefone_responsavel,
+              nf_nome_completo: pacienteOriginal.nf_nome_completo,
+              nf_telefone: pacienteOriginal.nf_telefone,
+              nf_cpf: pacienteOriginal.nf_cpf,
+              nf_email: pacienteOriginal.nf_email,
+              nf_endereco: pacienteOriginal.nf_endereco,
+              nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
+              origem: pacienteOriginal.origem,
+              dt_entrada: pacienteOriginal.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -317,25 +337,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteOriginal.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteOriginal.nome,
-            dt_nascimento: pacienteOriginal.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA
-            nome_responsavel: pacienteOriginal.nome_responsavel,
-            telefone_responsavel: pacienteOriginal.telefone_responsavel,
-            nf_nome_completo: pacienteOriginal.nf_nome_completo,
-            nf_telefone: pacienteOriginal.nf_telefone,
-            nf_cpf: pacienteOriginal.nf_cpf,
-            nf_email: pacienteOriginal.nf_email,
-            nf_endereco: pacienteOriginal.nf_endereco,
-            nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
-            origem: pacienteOriginal.origem,
-            dt_entrada: pacienteOriginal.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteOriginal.nome,
+              dt_nascimento: pacienteOriginal.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA
+              nome_responsavel: pacienteOriginal.nome_responsavel,
+              telefone_responsavel: pacienteOriginal.telefone_responsavel,
+              nf_nome_completo: pacienteOriginal.nf_nome_completo,
+              nf_telefone: pacienteOriginal.nf_telefone,
+              nf_cpf: pacienteOriginal.nf_cpf,
+              nf_email: pacienteOriginal.nf_email,
+              nf_endereco: pacienteOriginal.nf_endereco,
+              nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
+              origem: pacienteOriginal.origem,
+              dt_entrada: pacienteOriginal.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -391,25 +410,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteVal.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteVal.nome,
-            dt_nascimento: pacienteVal.dt_nascimento,
-            terapeuta_id: "", // VAZIO
-            nome_responsavel: pacienteVal.nome_responsavel,
-            telefone_responsavel: pacienteVal.telefone_responsavel,
-            nf_nome_completo: pacienteVal.nf_nome_completo,
-            nf_telefone: pacienteVal.nf_telefone,
-            nf_cpf: pacienteVal.nf_cpf,
-            nf_email: pacienteVal.nf_email,
-            nf_endereco: pacienteVal.nf_endereco,
-            nf_dt_entrada: pacienteVal.nf_dt_entrada,
-            origem: pacienteVal.origem,
-            dt_entrada: pacienteVal.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteVal.nome,
+              dt_nascimento: pacienteVal.dt_nascimento,
+              terapeuta_id: "", // VAZIO
+              nome_responsavel: pacienteVal.nome_responsavel,
+              telefone_responsavel: pacienteVal.telefone_responsavel,
+              nf_nome_completo: pacienteVal.nf_nome_completo,
+              nf_telefone: pacienteVal.nf_telefone,
+              nf_cpf: pacienteVal.nf_cpf,
+              nf_email: pacienteVal.nf_email,
+              nf_endereco: pacienteVal.nf_endereco,
+              nf_dt_entrada: pacienteVal.nf_dt_entrada,
+              origem: pacienteVal.origem,
+              dt_entrada: pacienteVal.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -426,25 +444,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${fakeId}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: "Algum Nome",
-            dt_nascimento: "2010-01-01",
-            terapeuta_id: fakeId,
-            nome_responsavel: "Responsável",
-            telefone_responsavel: "11988887777",
-            nf_nome_completo: "Nome NF",
-            nf_telefone: "11988887777",
-            nf_cpf: "12345678900",
-            nf_email: "test@test.com",
-            nf_endereco: "Rua Test, 123",
-            nf_dt_entrada: new Date().toISOString(),
-            origem: "Outros",
-            dt_entrada: new Date().toISOString(),
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: "Algum Nome",
+              dt_nascimento: "2010-01-01",
+              terapeuta_id: fakeId,
+              nome_responsavel: "Responsável",
+              telefone_responsavel: "11988887777",
+              nf_nome_completo: "Nome NF",
+              nf_telefone: "11988887777",
+              nf_cpf: "12345678900",
+              nf_email: "test@test.com",
+              nf_endereco: "Rua Test, 123",
+              nf_dt_entrada: new Date().toISOString(),
+              origem: "Outros",
+              dt_entrada: new Date().toISOString(),
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -499,25 +516,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteAdmin.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteAdmin.nome,
-            dt_nascimento: pacienteAdmin.dt_nascimento,
-            terapeuta_id: terapeutaB.id,
-            nome_responsavel: pacienteAdmin.nome_responsavel,
-            telefone_responsavel: pacienteAdmin.telefone_responsavel,
-            nf_nome_completo: pacienteAdmin.nf_nome_completo,
-            nf_telefone: pacienteAdmin.nf_telefone,
-            nf_cpf: pacienteAdmin.nf_cpf,
-            nf_email: pacienteAdmin.nf_email,
-            nf_endereco: pacienteAdmin.nf_endereco,
-            nf_dt_entrada: pacienteAdmin.nf_dt_entrada,
-            origem: pacienteAdmin.origem,
-            dt_entrada: pacienteAdmin.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteAdmin.nome,
+              dt_nascimento: pacienteAdmin.dt_nascimento,
+              terapeuta_id: terapeutaB.id,
+              nome_responsavel: pacienteAdmin.nome_responsavel,
+              telefone_responsavel: pacienteAdmin.telefone_responsavel,
+              nf_nome_completo: pacienteAdmin.nf_nome_completo,
+              nf_telefone: pacienteAdmin.nf_telefone,
+              nf_cpf: pacienteAdmin.nf_cpf,
+              nf_email: pacienteAdmin.nf_email,
+              nf_endereco: pacienteAdmin.nf_endereco,
+              nf_dt_entrada: pacienteAdmin.nf_dt_entrada,
+              origem: pacienteAdmin.origem,
+              dt_entrada: pacienteAdmin.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -574,25 +590,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteSec.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${secretariaToken}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteSec.nome,
-            dt_nascimento: pacienteSec.dt_nascimento,
-            terapeuta_id: terapeutaB.id,
-            nome_responsavel: pacienteSec.nome_responsavel,
-            telefone_responsavel: pacienteSec.telefone_responsavel,
-            nf_nome_completo: pacienteSec.nf_nome_completo,
-            nf_telefone: pacienteSec.nf_telefone,
-            nf_cpf: pacienteSec.nf_cpf,
-            nf_email: pacienteSec.nf_email,
-            nf_endereco: pacienteSec.nf_endereco,
-            nf_dt_entrada: pacienteSec.nf_dt_entrada,
-            origem: pacienteSec.origem,
-            dt_entrada: pacienteSec.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteSec.nome,
+              dt_nascimento: pacienteSec.dt_nascimento,
+              terapeuta_id: terapeutaB.id,
+              nome_responsavel: pacienteSec.nome_responsavel,
+              telefone_responsavel: pacienteSec.telefone_responsavel,
+              nf_nome_completo: pacienteSec.nf_nome_completo,
+              nf_telefone: pacienteSec.nf_telefone,
+              nf_cpf: pacienteSec.nf_cpf,
+              nf_email: pacienteSec.nf_email,
+              nf_endereco: pacienteSec.nf_endereco,
+              nf_dt_entrada: pacienteSec.nf_dt_entrada,
+              origem: pacienteSec.origem,
+              dt_entrada: pacienteSec.dt_entrada,
+            },
+            secretariaToken,
+          ),
         },
       );
 
@@ -650,25 +665,24 @@ describe("PUT /api/v1/pacientes/[id]", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteEdge.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteEdge.nome,
-            dt_nascimento: pacienteEdge.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA
-            nome_responsavel: pacienteEdge.nome_responsavel,
-            telefone_responsavel: pacienteEdge.telefone_responsavel,
-            nf_nome_completo: pacienteEdge.nf_nome_completo,
-            nf_telefone: pacienteEdge.nf_telefone,
-            nf_cpf: pacienteEdge.nf_cpf,
-            nf_email: pacienteEdge.nf_email,
-            nf_endereco: pacienteEdge.nf_endereco,
-            nf_dt_entrada: pacienteEdge.nf_dt_entrada,
-            origem: pacienteEdge.origem,
-            dt_entrada: pacienteEdge.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteEdge.nome,
+              dt_nascimento: pacienteEdge.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA
+              nome_responsavel: pacienteEdge.nome_responsavel,
+              telefone_responsavel: pacienteEdge.telefone_responsavel,
+              nf_nome_completo: pacienteEdge.nf_nome_completo,
+              nf_telefone: pacienteEdge.nf_telefone,
+              nf_cpf: pacienteEdge.nf_cpf,
+              nf_email: pacienteEdge.nf_email,
+              nf_endereco: pacienteEdge.nf_endereco,
+              nf_dt_entrada: pacienteEdge.nf_dt_entrada,
+              origem: pacienteEdge.origem,
+              dt_entrada: pacienteEdge.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 

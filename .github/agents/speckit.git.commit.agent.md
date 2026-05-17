@@ -20,6 +20,8 @@ This command is invoked as a hook after (or before) core commands. It:
 5. Uses the per-command `message` if configured, otherwise a default message
 6. If enabled and there are uncommitted changes, runs `git add .` + `git commit`
 
+> [!CAUTION] > `git add .` stages every tracked change and every untracked file under the repository root. Verify `.gitignore` before enabling auto-commit, or switch the hook to a narrower staging mode if you do not want new files included.
+
 ## Execution
 
 Determine the event name from the hook that triggered this command, then run the script:
@@ -42,6 +44,19 @@ auto_commit:
   after_plan:
     enabled: false
     message: "[Spec Kit] Add implementation plan"
+```
+
+The current hook reads `auto_commit.default` plus event-specific `enabled` and `message` keys. If you extend the hook to support safer staging, prefer `git add -u` for tracked/modified files or explicit path lists instead of `git add .`.
+
+Example of a safer staging policy if you add a staging selector to the hook configuration:
+
+```yaml
+auto_commit:
+  default: false
+  staging: tracked # equivalent to git add -u
+  after_specify:
+    enabled: true
+    message: "[Spec Kit] Add specification"
 ```
 
 ## Graceful Degradation

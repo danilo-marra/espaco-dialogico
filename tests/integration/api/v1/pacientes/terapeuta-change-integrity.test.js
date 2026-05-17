@@ -8,6 +8,7 @@ import paciente from "models/paciente.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
 import database from "infra/database.js";
+import FormData from "form-data";
 import {
   ensureServerRunning,
   cleanupServer,
@@ -28,6 +29,27 @@ beforeAll(async () => {
 afterAll(() => {
   cleanupServer(TEST_NAME);
 });
+
+function buildPacienteFormData(fields, token) {
+  const formData = new FormData();
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) {
+      const strValue =
+        value instanceof Date ? value.toISOString() : String(value);
+      formData.append(key, strValue);
+    }
+  }
+
+  const buffer = formData.getBuffer();
+  const boundary = formData.getBoundary();
+  const headers = {
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": String(buffer.length),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return { body: buffer, headers };
+}
 
 describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
   // ============ CENÁRIO 1: Histórico Completo Preservado ============
@@ -114,25 +136,24 @@ describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteOriginal.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteOriginal.nome,
-            dt_nascimento: pacienteOriginal.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA
-            nome_responsavel: pacienteOriginal.nome_responsavel,
-            telefone_responsavel: pacienteOriginal.telefone_responsavel,
-            nf_nome_completo: pacienteOriginal.nf_nome_completo,
-            nf_telefone: pacienteOriginal.nf_telefone,
-            nf_cpf: pacienteOriginal.nf_cpf,
-            nf_email: pacienteOriginal.nf_email,
-            nf_endereco: pacienteOriginal.nf_endereco,
-            nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
-            origem: pacienteOriginal.origem,
-            dt_entrada: pacienteOriginal.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteOriginal.nome,
+              dt_nascimento: pacienteOriginal.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA
+              nome_responsavel: pacienteOriginal.nome_responsavel,
+              telefone_responsavel: pacienteOriginal.telefone_responsavel,
+              nf_nome_completo: pacienteOriginal.nf_nome_completo,
+              nf_telefone: pacienteOriginal.nf_telefone,
+              nf_cpf: pacienteOriginal.nf_cpf,
+              nf_email: pacienteOriginal.nf_email,
+              nf_endereco: pacienteOriginal.nf_endereco,
+              nf_dt_entrada: pacienteOriginal.nf_dt_entrada,
+              origem: pacienteOriginal.origem,
+              dt_entrada: pacienteOriginal.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -237,25 +258,24 @@ describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteSeq.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteSeq.nome,
-            dt_nascimento: pacienteSeq.dt_nascimento,
-            terapeuta_id: terapeutaB.id,
-            nome_responsavel: pacienteSeq.nome_responsavel,
-            telefone_responsavel: pacienteSeq.telefone_responsavel,
-            nf_nome_completo: pacienteSeq.nf_nome_completo,
-            nf_telefone: pacienteSeq.nf_telefone,
-            nf_cpf: pacienteSeq.nf_cpf,
-            nf_email: pacienteSeq.nf_email,
-            nf_endereco: pacienteSeq.nf_endereco,
-            nf_dt_entrada: pacienteSeq.nf_dt_entrada,
-            origem: pacienteSeq.origem,
-            dt_entrada: pacienteSeq.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteSeq.nome,
+              dt_nascimento: pacienteSeq.dt_nascimento,
+              terapeuta_id: terapeutaB.id,
+              nome_responsavel: pacienteSeq.nome_responsavel,
+              telefone_responsavel: pacienteSeq.telefone_responsavel,
+              nf_nome_completo: pacienteSeq.nf_nome_completo,
+              nf_telefone: pacienteSeq.nf_telefone,
+              nf_cpf: pacienteSeq.nf_cpf,
+              nf_email: pacienteSeq.nf_email,
+              nf_endereco: pacienteSeq.nf_endereco,
+              nf_dt_entrada: pacienteSeq.nf_dt_entrada,
+              origem: pacienteSeq.origem,
+              dt_entrada: pacienteSeq.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
       expect(updateResponse.status).toBe(200);
@@ -279,25 +299,24 @@ describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteSeq.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteSeq.nome,
-            dt_nascimento: pacienteSeq.dt_nascimento,
-            terapeuta_id: terapeutaC.id,
-            nome_responsavel: pacienteSeq.nome_responsavel,
-            telefone_responsavel: pacienteSeq.telefone_responsavel,
-            nf_nome_completo: pacienteSeq.nf_nome_completo,
-            nf_telefone: pacienteSeq.nf_telefone,
-            nf_cpf: pacienteSeq.nf_cpf,
-            nf_email: pacienteSeq.nf_email,
-            nf_endereco: pacienteSeq.nf_endereco,
-            nf_dt_entrada: pacienteSeq.nf_dt_entrada,
-            origem: pacienteSeq.origem,
-            dt_entrada: pacienteSeq.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteSeq.nome,
+              dt_nascimento: pacienteSeq.dt_nascimento,
+              terapeuta_id: terapeutaC.id,
+              nome_responsavel: pacienteSeq.nome_responsavel,
+              telefone_responsavel: pacienteSeq.telefone_responsavel,
+              nf_nome_completo: pacienteSeq.nf_nome_completo,
+              nf_telefone: pacienteSeq.nf_telefone,
+              nf_cpf: pacienteSeq.nf_cpf,
+              nf_email: pacienteSeq.nf_email,
+              nf_endereco: pacienteSeq.nf_endereco,
+              nf_dt_entrada: pacienteSeq.nf_dt_entrada,
+              origem: pacienteSeq.origem,
+              dt_entrada: pacienteSeq.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
       expect(updateResponse.status).toBe(200);
@@ -391,25 +410,24 @@ describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteNF.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteNF.nome,
-            dt_nascimento: pacienteNF.dt_nascimento,
-            terapeuta_id: terapeutaB.id, // MUDANÇA
-            nome_responsavel: pacienteNF.nome_responsavel,
-            telefone_responsavel: pacienteNF.telefone_responsavel,
-            nf_nome_completo: pacienteNF.nf_nome_completo,
-            nf_telefone: pacienteNF.nf_telefone,
-            nf_cpf: pacienteNF.nf_cpf,
-            nf_email: pacienteNF.nf_email,
-            nf_endereco: pacienteNF.nf_endereco,
-            nf_dt_entrada: pacienteNF.nf_dt_entrada,
-            origem: pacienteNF.origem,
-            dt_entrada: pacienteNF.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteNF.nome,
+              dt_nascimento: pacienteNF.dt_nascimento,
+              terapeuta_id: terapeutaB.id, // MUDANÇA
+              nome_responsavel: pacienteNF.nome_responsavel,
+              telefone_responsavel: pacienteNF.telefone_responsavel,
+              nf_nome_completo: pacienteNF.nf_nome_completo,
+              nf_telefone: pacienteNF.nf_telefone,
+              nf_cpf: pacienteNF.nf_cpf,
+              nf_email: pacienteNF.nf_email,
+              nf_endereco: pacienteNF.nf_endereco,
+              nf_dt_entrada: pacienteNF.nf_dt_entrada,
+              origem: pacienteNF.origem,
+              dt_entrada: pacienteNF.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 
@@ -515,25 +533,24 @@ describe("Cenários de Integridade de Dados - Mudança de Terapeuta", () => {
         `http://localhost:${port}/api/v1/pacientes/${pacienteDash.id}`,
         {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authTokens}`,
-          },
-          body: JSON.stringify({
-            nome: pacienteDash.nome,
-            dt_nascimento: pacienteDash.dt_nascimento,
-            terapeuta_id: terapeutaB.id,
-            nome_responsavel: pacienteDash.nome_responsavel,
-            telefone_responsavel: pacienteDash.telefone_responsavel,
-            nf_nome_completo: pacienteDash.nf_nome_completo,
-            nf_telefone: pacienteDash.nf_telefone,
-            nf_cpf: pacienteDash.nf_cpf,
-            nf_email: pacienteDash.nf_email,
-            nf_endereco: pacienteDash.nf_endereco,
-            nf_dt_entrada: pacienteDash.nf_dt_entrada,
-            origem: pacienteDash.origem,
-            dt_entrada: pacienteDash.dt_entrada,
-          }),
+          ...buildPacienteFormData(
+            {
+              nome: pacienteDash.nome,
+              dt_nascimento: pacienteDash.dt_nascimento,
+              terapeuta_id: terapeutaB.id,
+              nome_responsavel: pacienteDash.nome_responsavel,
+              telefone_responsavel: pacienteDash.telefone_responsavel,
+              nf_nome_completo: pacienteDash.nf_nome_completo,
+              nf_telefone: pacienteDash.nf_telefone,
+              nf_cpf: pacienteDash.nf_cpf,
+              nf_email: pacienteDash.nf_email,
+              nf_endereco: pacienteDash.nf_endereco,
+              nf_dt_entrada: pacienteDash.nf_dt_entrada,
+              origem: pacienteDash.origem,
+              dt_entrada: pacienteDash.dt_entrada,
+            },
+            authTokens,
+          ),
         },
       );
 

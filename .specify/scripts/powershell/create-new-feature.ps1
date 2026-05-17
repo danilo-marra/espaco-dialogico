@@ -158,6 +158,29 @@ function Get-NextBranchNumber {
     return $maxNum + 1
 }
 
+function Get-Utf8TruncatedString {
+    param(
+        [string]$InputString,
+        [int]$MaxBytes
+    )
+
+    $utf8 = [System.Text.Encoding]::UTF8
+    $builder = [System.Text.StringBuilder]::new()
+    $byteCount = 0
+
+    foreach ($character in $InputString.ToCharArray()) {
+        $characterBytes = $utf8.GetByteCount($character.ToString())
+        if ($byteCount + $characterBytes -gt $MaxBytes) {
+            break
+        }
+
+        [void]$builder.Append($character)
+        $byteCount += $characterBytes
+    }
+
+    return $builder.ToString()
+}
+
 function ConvertTo-CleanBranchName {
     param([string]$Name)
 
@@ -268,14 +291,15 @@ if ($Timestamp) {
 # GitHub enforces a 244-byte limit on branch names
 # Validate and truncate if necessary
 $maxBranchLength = 244
-if ($branchName.Length -gt $maxBranchLength) {
+$utf8 = [System.Text.Encoding]::UTF8
+if ($utf8.GetByteCount($branchName) -gt $maxBranchLength) {
     # Calculate how much we need to trim from suffix
     # Account for prefix length: timestamp (15) + hyphen (1) = 16, or sequential (3) + hyphen (1) = 4
-    $prefixLength = $featureNum.Length + 1
+    $prefixLength = $utf8.GetByteCount("$featureNum-")
     $maxSuffixLength = $maxBranchLength - $prefixLength
 
     # Truncate suffix
-    $truncatedSuffix = $branchSuffix.Substring(0, [Math]::Min($branchSuffix.Length, $maxSuffixLength))
+    $truncatedSuffix = Get-Utf8TruncatedString -InputString $branchSuffix -MaxBytes $maxSuffixLength
     # Remove trailing hyphen if truncation created one
     $truncatedSuffix = $truncatedSuffix -replace '-$', ''
 
@@ -283,8 +307,8 @@ if ($branchName.Length -gt $maxBranchLength) {
     $branchName = "$featureNum-$truncatedSuffix"
 
     Write-Warning "[specify] Branch name exceeded GitHub's 244-byte limit"
-    Write-Warning "[specify] Original: $originalBranchName ($($originalBranchName.Length) bytes)"
-    Write-Warning "[specify] Truncated to: $branchName ($($branchName.Length) bytes)"
+    Write-Warning "[specify] Original: $originalBranchName ($($utf8.GetByteCount($originalBranchName)) bytes)"
+    Write-Warning "[specify] Truncated to: $branchName ($($utf8.GetByteCount($branchName)) bytes)"
 }
 
 $featureDir = Join-Path $specsDir $branchName

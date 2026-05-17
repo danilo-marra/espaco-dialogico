@@ -61,8 +61,13 @@ You **MUST** consider the user input before proceeding (if not empty).
 git config --get remote.origin.url
 ```
 
-> [!CAUTION]
-> ONLY PROCEED TO NEXT STEPS IF THE REMOTE IS A GITHUB URL
+1. Treat the result as a GitHub remote only when it matches one of these explicit patterns:
+
+- `^https://github\.com/[^/]+/[^/]+(\.git)?$`
+- `^git@github\.com:[^/]+/[^/]+(\.git)?$`
+
+1. If the command fails or returns an empty value, stop with: `Failed to read Git remote: no remote configured`
+1. If the value is present but does not match one of the GitHub patterns above, stop with: `Remote is not a GitHub URL, aborting`
 
 1. For each task in the list, use the GitHub MCP server to create a new issue in the repository that is representative of the Git remote.
 
