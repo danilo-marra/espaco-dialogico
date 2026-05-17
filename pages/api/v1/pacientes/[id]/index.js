@@ -66,7 +66,10 @@ async function putHandler(request, response) {
 
     // Tratar especificamente o campo terapeuta_id para garantir que nunca seja null
     const terapeuta_id = getFormValue(fields.terapeuta_id);
-    if (!terapeuta_id && !pacienteExists.terapeuta_id) {
+    if (
+      terapeuta_id === "" ||
+      (!terapeuta_id && !pacienteExists.terapeuta_id)
+    ) {
       return response
         .status(400)
         .json({ error: "O campo terapeuta_id é obrigatório" });

@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "workflows": {
+    "speckit": {
+      "name": "Espaco Dialogico SDD Cycle",
+      "version": "1.1.0",
+      "description": "Runs specify -> clarify -> plan -> tasks -> implement -> analyze with project-aligned review gates",
+      "source": "bundled",
+      "installed_at": "2026-05-17T14:52:22.153872+00:00",
+      "updated_at": "2026-05-17T15:30:00.000000+00:00"
+    }
+  }
+}

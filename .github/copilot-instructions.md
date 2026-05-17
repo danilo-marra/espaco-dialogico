@@ -66,9 +66,149 @@ Three roles: `admin`, `secretaria`, `terapeuta` (stored lowercase; aliases like 
 
 - `npm run dev` starts Docker Postgres, waits for DB, runs migrations, then starts Next (`infra/compose.yaml` maps 5434→5432).
 - `npm run dev:safe` is the same but launches Next with a manual start script (see `infra/scripts/start-next-dev.js`).
-- Integration tests boot a real Next dev server. Run with `npm run test` (`--runInBand` is required — tests are sequential). Use `npm run test:frontend` for component tests only.
-- Each integration test calls `orchestrator.clearDatabase()` in `beforeAll`. Auth helpers: `ensureDevAdminExists()` and `prepareAuthentication(port)` from `tests/helpers/auth.js`.
+- Before any push, run `npm run test` as the standard validation command.
+- Use `npm run test` as the default command for running the project's tests when a broader test run is needed; keep `npm run test:frontend` for component tests only and `npm run test:single` for a focused case.
+- Integration tests boot a real Next dev server. Run with `npm run test` (`--runInBand` is required — tests are sequential).
 - Env loaded from `.env.test`. Email API routes are excluded from tests (see `jest.config.js`).
+
+## TDD & testing conventions
+
+This project follows TDD. Tests live in `tests/integration/` (API) and `tests/frontend/` (React components).
+
+### beforeAll pattern (integration tests — required order)
+
+```js
+import {
+  ensureServerRunning,
+  cleanupServer,
+  waitForServerReady,
+} from "tests/helpers/serverManager.js";
+import {
+  prepareAuthentication,
+  ensureDevAdminExists,
+  createUserDirectlyAndLogin,
+} from "tests/helpers/auth.js";
+import orchestrator from "tests/orchestrator.js";
+
+const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
+const TEST_NAME = "Descriptive test name";
+
+beforeAll(async () => {
+  await ensureServerRunning(TEST_NAME, port);
+  await orchestrator.waitForAllServices();
+  await waitForServerReady(port);
+  await orchestrator.clearDatabase(); // ← wipes ALL data including admin user
+  await ensureDevAdminExists(); // ← MUST come after clearDatabase()
+});
+
+afterAll(() => {
+  cleanupServer(TEST_NAME);
+});
+```
+
+### Auth helpers (`tests/helpers/auth.js`)
+
+- **`prepareAuthentication(port)`** — logs in as admin, returns a **plain string JWT token** (NOT an object). Use it as: `const token = await prepareAuthentication(port); // Bearer ${token}`
+- **`ensureDevAdminExists()`** — creates the admin user if it doesn't exist. Call this after `clearDatabase()` every time, or all subsequent auth calls will fail with 401.
+- **`createUserDirectlyAndLogin(port, { role })`** — inserts a user directly into the DB (bypasses invite flow) and logs in. Returns a plain string JWT. Use this for non-admin roles (`secretaria`, `terapeuta`) in tests — do not use invite-based flows for role creation in tests.
+
+```js
+// Admin token
+const adminToken = await prepareAuthentication(port);
+
+// Non-admin token (secretaria, terapeuta, etc.)
+const secretariaToken = await createUserDirectlyAndLogin(port, {
+  role: "secretaria",
+});
+
+// HTTP call pattern
+fetch(`http://localhost:${port}/api/v1/...`, {
+  headers: { Authorization: `Bearer ${adminToken}` },
+});
+```
+
+### DB constraints — valid enum values
+
+Always use these exact values or INSERT will throw a `check constraint` violation:
+
+| Column               | Valid values                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `tipo_agendamento`   | `'Sessão'`, `'Orientação Parental'`, `'Visita Escolar'`, `'Supervisão'`, `'Outros'`      |
+| `status_agendamento` | `'Confirmado'`, `'Cancelado'` — **'Remarcado' was removed** by migration `1752061264872` |
+| `local_agendamento`  | `'Sala Azul'`, `'Sala Verde'`, `'Sala 321'`, `'Online'`, `'Externo'`                     |
+
+### Model field conventions (snake_case)
+
+All model methods accept and return **snake_case** field names (e.g. `pagamento_realizado`, `repasse_realizado`, `valor_repasse`). Never pass camelCase to model methods — they are silently ignored.
+
+DB date columns (e.g. `nf_dt_entrada`, `dt_nascimento`) are returned as **JavaScript `Date` objects**, not strings. When asserting dates, compare using:
+
+```js
+expect(new Date(record.nf_dt_entrada).toISOString().split("T")[0]).toBe(
+  "2024-06-15",
+);
+```
+
+### Multipart/FormData in integration tests (CRITICAL)
+
+Routes that use `formidable` (e.g. `PUT /api/v1/pacientes/[id]/`) set `bodyParser: false` and require a `Content-Length` header. **node-fetch v2** (used in tests) does NOT add `Content-Length` when you pass a `FormData` stream as body — this causes formidable to hang indefinitely or return 415.
+
+**Always use buffer mode** from the `form-data` npm package:
+
+```js
+import FormData from "form-data";
+
+function buildFormData(fields, token) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined && value !== null) {
+      // IMPORTANT: Date objects from the DB must be serialized with toISOString()
+      // String(dateObj) produces a locale string that PostgreSQL rejects (error 22007)
+      const strValue =
+        value instanceof Date ? value.toISOString() : String(value);
+      formData.append(key, strValue);
+    }
+  }
+  const buffer = formData.getBuffer();
+  const boundary = formData.getBoundary();
+  const headers = {
+    "Content-Type": `multipart/form-data; boundary=${boundary}`,
+    "Content-Length": String(buffer.length),
+  };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  return { body: buffer, headers };
+}
+
+// Usage — spread into fetch options:
+const response = await fetch(url, {
+  method: "PUT",
+  ...buildFormData({ terapeuta_id: terapeutaB.id, nome: "João" }, adminToken),
+});
+```
+
+**DO NOT** pass a `FormData` instance directly as `body`:
+
+```js
+// ❌ WRONG — no Content-Length, formidable hangs
+await fetch(url, { method: "PUT", body: formData, headers: { Authorization: ... } });
+```
+
+**DO NOT** use `String()` to serialize Date values when appending to FormData:
+
+```js
+// ❌ WRONG — produces "Fri Jan 01 2010 00:00:00 GMT-0200 ..." → Postgres error 22007
+formData.append("dt_nascimento", String(paciente.dt_nascimento));
+
+// ✅ CORRECT
+formData.append("dt_nascimento", paciente.dt_nascimento.toISOString());
+```
+
+### Test file naming & structure
+
+- Integration tests: `tests/integration/api/v1/<resource>/<method>.test.js` (e.g. `put.test.js`)
+- `describe()` per endpoint or scenario group; `test()` per case, in Portuguese: `"Deve retornar 400 quando..."`
+- Each test is self-contained: create all necessary fixtures (terapeutas, pacientes, agendamentos) inside the test or `beforeAll` of the describe block
+- Do not share mutable state between `test()` blocks — use `Date.now()` suffixes on names/emails for uniqueness
 
 ## External dependencies & integrations
 
@@ -85,3 +225,11 @@ Three roles: `admin`, `secretaria`, `terapeuta` (stored lowercase; aliases like 
 ## Reference docs
 
 See [`docs/README.md`](../docs/README.md) for an index of all design and implementation docs.
+
+<!-- SPECKIT START -->
+
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, this block is auto-populated
+by Spec Kit from its generated spec and plan artifacts.
+
+<!-- SPECKIT END -->

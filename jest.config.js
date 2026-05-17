@@ -14,7 +14,7 @@ const createJestConfig = nextJest({
 });
 const jestConfig = createJestConfig({
   moduleDirectories: ["node_modules", "<rootDir>"],
-  testTimeout: 120000, // Increased from 60000 to 120000
+  testTimeout: 60000, // 60s é suficiente; reduz tempo de espera em hangs futuros
   setupFiles: ["<rootDir>/tests/setup.js", "<rootDir>/jest.env.js"],
   globalSetup: "<rootDir>/tests/global-setup.js",
   globalTeardown: "<rootDir>/tests/global-teardown.js",
