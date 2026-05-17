@@ -51,6 +51,45 @@ export async function createInvite(email = null, role = "terapeuta") {
   return result.rows[0]; // Adicione esta linha para retornar o convite criado
 }
 
+// Cria um usuário diretamente no banco e faz login, retornando o token JWT
+export async function createUserDirectlyAndLogin(
+  port,
+  { role = "secretaria" } = {},
+) {
+  const bcryptjs = await import("bcryptjs");
+  const timestamp = Date.now();
+  const email = `test_${role}_${timestamp}@test.com`;
+  const password = `TestPass${timestamp}!`;
+  const username = `test_${role}_${timestamp}`;
+
+  const saltRounds = 10;
+  const hashedPassword = await bcryptjs.hash(password, saltRounds);
+
+  await database.query({
+    text: `INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)`,
+    values: [username, email, hashedPassword, role],
+  });
+
+  const loginResponse = await fetch(
+    `http://localhost:${port}/api/v1/auth/login`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    },
+  );
+
+  if (!loginResponse.ok) {
+    const errorBody = await loginResponse.json();
+    throw new Error(
+      `Falha ao fazer login como ${role}: ${JSON.stringify(errorBody)}`,
+    );
+  }
+
+  const loginData = await loginResponse.json();
+  return loginData.token;
+}
+
 // Função reutilizável para autenticação nos testes
 export async function prepareAuthentication(port) {
   try {
