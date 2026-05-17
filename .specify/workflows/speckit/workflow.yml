@@ -1,0 +1,99 @@
+schema_version: "1.0"
+workflow:
+  id: "speckit"
+  name: "Espaco Dialogico SDD Cycle"
+  version: "1.1.0"
+  author: "GitHub"
+  description: "Runs specify -> clarify -> plan -> tasks -> implement -> analyze with project-aligned review gates"
+
+requires:
+  speckit_version: ">=0.7.2"
+  integrations:
+    any: ["copilot", "claude", "gemini"]
+
+inputs:
+  spec:
+    type: string
+    required: true
+    prompt: "Describe what you want to build"
+  integration:
+    type: string
+    default: "copilot"
+    prompt: "Integration to use (e.g. claude, copilot, gemini)"
+  scope:
+    type: string
+    default: "full"
+    enum: ["full", "api-v1", "frontend-ui", "migrations", "tests-only"]
+
+steps:
+  - id: specify
+    command: speckit.specify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: review-spec
+    type: gate
+    message: "Review spec scope, role permissions (admin/secretaria/terapeuta), and API/model boundaries before planning."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: clarify
+    command: speckit.clarify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: review-clarifications
+    type: gate
+    message: "Confirm clarification outcomes before planning (max unresolved ambiguities: 0)."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: plan
+    command: speckit.plan
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: review-plan
+    type: gate
+    message: "Review technical plan against constitution checks (security/session, migrations, and test strategy)."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: tasks
+    command: speckit.tasks
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: checklist
+    command: speckit.checklist
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "quality and readiness checklist for {{ inputs.scope }}"
+
+  - id: review-tasks
+    type: gate
+    message: "Review tasks for coverage in pages/api/v1, models, tests/integration, tests/frontend, and docs updates as needed."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: implement
+    command: speckit.implement
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+
+  - id: review-implementation
+    type: gate
+    message: "Confirm implementation validation evidence (tests executed, permission checks, and migration safety when applicable)."
+    options: [approve, reject]
+    on_reject: abort
+
+  - id: analyze
+    command: speckit.analyze
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "consistency check across spec, plan, and tasks"
