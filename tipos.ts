@@ -93,6 +93,10 @@ export interface Agendamento {
   periodicidade?: "Não repetir" | "Semanal" | "Quinzenal";
   diasDaSemana?: string[];
   dataFimRecorrencia?: Date | string | null;
+
+  // Campos de auditoria
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Transacao {
