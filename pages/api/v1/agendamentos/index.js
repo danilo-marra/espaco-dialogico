@@ -73,114 +73,108 @@ async function getHandler(req, res) {
 
 // Handler para criar um novo agendamento
 async function postHandler(req, res) {
-  try {
-    // Extrair os dados do corpo da requisição
-    const agendamentoData = req.body;
+  // Extrair os dados do corpo da requisição
+  const agendamentoData = req.body;
 
-    const localAgendamento =
-      typeof agendamentoData.localAgendamento === "string"
-        ? agendamentoData.localAgendamento.trim()
-        : agendamentoData.localAgendamento;
+  const localAgendamento =
+    typeof agendamentoData.localAgendamento === "string"
+      ? agendamentoData.localAgendamento.trim()
+      : agendamentoData.localAgendamento;
 
-    if (localAgendamento && !VALID_LOCAL_AGENDAMENTO.has(localAgendamento)) {
-      return res.status(422).json({
-        error: "Valor inválido",
-        message: "localAgendamento inválido.",
-      });
-    }
+  agendamentoData.localAgendamento = localAgendamento;
 
-    const userRole = req.user.role || "terapeuta";
-    const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
-
-    // Para terapeutas, verificar se estão tentando criar agendamento para seus próprios pacientes
-    if (userRole === "terapeuta") {
-      if (!currentTerapeutaId) {
-        return res.status(403).json({
-          error: "Acesso negado",
-          message:
-            "Terapeuta não tem registro válido no sistema. Entre em contato com a administração.",
-        });
-      }
-
-      // Verificar se o terapeuta tem acesso ao paciente
-      const temAcesso = await terapeutaTemAcessoPaciente(
-        currentTerapeutaId,
-        agendamentoData.paciente_id,
-      );
-
-      if (!temAcesso) {
-        return res.status(403).json({
-          error: "Acesso negado",
-          message:
-            "Você só pode criar agendamentos para seus próprios pacientes",
-        });
-      }
-
-      // Garantir que o terapeuta_id do agendamento seja o do usuário logado
-      agendamentoData.terapeuta_id = currentTerapeutaId;
-    }
-
-    // Verificar se já existe agendamento com mesmas características
-    // Isso evita duplicações por múltiplos envios do formulário
-    const existentes = await agendamento.getFiltered({
-      paciente_id: agendamentoData.paciente_id,
-      terapeuta_id: agendamentoData.terapeuta_id,
-      dataInicio: agendamentoData.dataAgendamento,
-      dataFim: agendamentoData.dataAgendamento,
-      horario: agendamentoData.horarioAgendamento,
+  if (localAgendamento && !VALID_LOCAL_AGENDAMENTO.has(localAgendamento)) {
+    return res.status(422).json({
+      error: "Valor inválido",
+      message: "localAgendamento inválido.",
     });
+  }
 
-    // Se encontrou algum agendamento com os mesmos dados críticos
-    if (
-      existentes &&
-      existentes.some(
-        (a) =>
-          a.horarioAgendamento === agendamentoData.horarioAgendamento &&
-          a.dataAgendamento === agendamentoData.dataAgendamento &&
-          a.paciente_id === agendamentoData.paciente_id &&
-          a.terapeuta_id === agendamentoData.terapeuta_id,
-      )
-    ) {
-      return res.status(409).json({
-        error: "Conflito",
-        message: "Já existe um agendamento com estes mesmos dados",
+  const userRole = req.user.role || "terapeuta";
+  const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
+
+  // Para terapeutas, verificar se estão tentando criar agendamento para seus próprios pacientes
+  if (userRole === "terapeuta") {
+    if (!currentTerapeutaId) {
+      return res.status(403).json({
+        error: "Acesso negado",
+        message:
+          "Terapeuta não tem registro válido no sistema. Entre em contato com a administração.",
       });
     }
 
-    // Criar um novo agendamento
-    const novoAgendamento = await agendamento.create(agendamentoData);
+    // Verificar se o terapeuta tem acesso ao paciente
+    const temAcesso = await terapeutaTemAcessoPaciente(
+      currentTerapeutaId,
+      agendamentoData.paciente_id,
+    );
 
-    // Se o agendamento for marcado como "Sessão Realizada" OU "Falta" E não estiver cancelado, criar a sessão correspondente
-    if (
-      (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
-      novoAgendamento.statusAgendamento !== "Cancelado"
-    ) {
-      try {
-        const sessaoData = {
-          terapeuta_id: novoAgendamento.terapeuta_id,
-          paciente_id: novoAgendamento.paciente_id,
-          tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-            novoAgendamento.tipoAgendamento,
-          ),
-          valorSessao: novoAgendamento.valorAgendamento,
-          statusSessao: "Pagamento Pendente", // Status inicial padrão
-          agendamento_id: novoAgendamento.id,
-        };
-
-        await sessao.create(sessaoData);
-      } catch (error) {
-        console.error("Erro ao criar sessão para o novo agendamento:", error);
-        // Considerar se a falha na criação da sessão deve reverter o agendamento
-      }
+    if (!temAcesso) {
+      return res.status(403).json({
+        error: "Acesso negado",
+        message: "Você só pode criar agendamentos para seus próprios pacientes",
+      });
     }
 
-    res.status(201).json(novoAgendamento);
-  } catch (error) {
-    console.error("Erro ao criar agendamento:", error);
-    res
-      .status(500)
-      .json({ error: "Erro interno do servidor", message: error.message });
+    // Garantir que o terapeuta_id do agendamento seja o do usuário logado
+    agendamentoData.terapeuta_id = currentTerapeutaId;
   }
+
+  // Verificar se já existe agendamento com mesmas características
+  // Isso evita duplicações por múltiplos envios do formulário
+  const existentes = await agendamento.getFiltered({
+    paciente_id: agendamentoData.paciente_id,
+    terapeuta_id: agendamentoData.terapeuta_id,
+    dataInicio: agendamentoData.dataAgendamento,
+    dataFim: agendamentoData.dataAgendamento,
+    horario: agendamentoData.horarioAgendamento,
+  });
+
+  // Se encontrou algum agendamento com os mesmos dados críticos
+  if (
+    existentes &&
+    existentes.some(
+      (a) =>
+        a.horarioAgendamento === agendamentoData.horarioAgendamento &&
+        a.dataAgendamento === agendamentoData.dataAgendamento &&
+        a.paciente_id === agendamentoData.paciente_id &&
+        a.terapeuta_id === agendamentoData.terapeuta_id,
+    )
+  ) {
+    return res.status(409).json({
+      error: "Conflito",
+      message: "Já existe um agendamento com estes mesmos dados",
+    });
+  }
+
+  // Criar um novo agendamento
+  const novoAgendamento = await agendamento.create(agendamentoData);
+
+  // Se o agendamento for marcado como "Sessão Realizada" OU "Falta" E não estiver cancelado, criar a sessão correspondente
+  if (
+    (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
+    novoAgendamento.statusAgendamento !== "Cancelado"
+  ) {
+    try {
+      const sessaoData = {
+        terapeuta_id: novoAgendamento.terapeuta_id,
+        paciente_id: novoAgendamento.paciente_id,
+        tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+          novoAgendamento.tipoAgendamento,
+        ),
+        valorSessao: novoAgendamento.valorAgendamento,
+        statusSessao: "Pagamento Pendente", // Status inicial padrão
+        agendamento_id: novoAgendamento.id,
+      };
+
+      await sessao.create(sessaoData);
+    } catch (error) {
+      console.error("Erro ao criar sessão para o novo agendamento:", error);
+      // Considerar se a falha na criação da sessão deve reverter o agendamento
+    }
+  }
+
+  res.status(201).json(novoAgendamento);
 }
 
 // Funções auxiliares (mover do arquivo /pages/api/v1/sessoes/from-agendamento.js)

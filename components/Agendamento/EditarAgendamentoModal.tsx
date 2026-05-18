@@ -291,7 +291,12 @@ export function EditarAgendamentoModal({
       );
 
       // Carregar o estado de sessaoRealizada
-      setValue("sessaoRealizada", agendamentoToUse.sessaoRealizada);
+      setValue(
+        "sessaoRealizada",
+        (agendamentoToUse as any).sessaoRealizada ??
+          (agendamentoToUse as any).sessao_realizada ??
+          false,
+      );
 
       // Carregar o estado de falta
       setValue("falta", agendamentoToUse.falta || false);
@@ -383,9 +388,9 @@ export function EditarAgendamentoModal({
       const formattedData = {
         ...data,
         dataAgendamento: formatDateForAPI(data.dataAgendamento),
-        sessaoRealizada: data.sessaoRealizada,
-        sessao_realizada: data.sessaoRealizada,
-        falta: data.falta || false,
+        sessaoRealizada: !!data.sessaoRealizada,
+        sessao_realizada: !!data.sessaoRealizada,
+        falta: !!data.falta,
       };
 
       if (isRecurrenceUpdate) {
@@ -442,7 +447,10 @@ export function EditarAgendamentoModal({
       setLoadingMessage("Finalizando...");
 
       // Recarregar dados após salvar
-      dispatch(fetchAgendamentos());
+      await dispatch(fetchAgendamentos()).unwrap();
+
+      // Invalidar também o cache de agendamentos para refletir imediatamente no calendário
+      await mutate("/agendamentos/");
 
       // Invalidar o cache de sessões para forçar a atualização dos dados
       await mutate("/sessoes");

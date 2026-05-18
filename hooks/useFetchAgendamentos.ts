@@ -28,8 +28,11 @@ export const useFetchAgendamentos = () => {
         return a.every(
           (item, index) =>
             item.id === b[index]?.id &&
+            item.updated_at === b[index]?.updated_at &&
             item.statusAgendamento === b[index]?.statusAgendamento &&
-            item.dataAgendamento === b[index]?.dataAgendamento,
+            item.dataAgendamento === b[index]?.dataAgendamento &&
+            item.sessaoRealizada === b[index]?.sessaoRealizada &&
+            item.falta === b[index]?.falta,
         );
       },
     },

@@ -377,9 +377,12 @@ async function getAgendamentoByRecurrenceId(recurrenceId) {
         p.dt_nascimento as paciente_dt_nascimento,
         p.nome_responsavel as paciente_nome_responsavel,
         p.telefone_responsavel as paciente_telefone_responsavel,
-        p.email_responsavel as paciente_email_responsavel,
-        p.cpf_responsavel as paciente_cpf_responsavel,
-        p.endereco_responsavel as paciente_endereco_responsavel,
+        p.nf_nome_completo as paciente_nf_nome_completo,
+        p.nf_telefone as paciente_nf_telefone,
+        p.nf_cpf as paciente_nf_cpf,
+        p.nf_email as paciente_nf_email,
+        p.nf_endereco as paciente_nf_endereco,
+        p.nf_dt_entrada as paciente_nf_dt_entrada,
         p.origem as paciente_origem,
         p.dt_entrada as paciente_dt_entrada
       FROM 
