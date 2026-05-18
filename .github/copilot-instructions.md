@@ -228,8 +228,15 @@ See [`docs/README.md`](../docs/README.md) for an index of all design and impleme
 
 <!-- SPECKIT START -->
 
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, this block is auto-populated
-by Spec Kit from its generated spec and plan artifacts.
+Active Spec Kit plan:
+
+- `specs/001-criacao-edicao-agendamentos/plan.md`
+
+Supporting artifacts:
+
+- `specs/001-criacao-edicao-agendamentos/research.md`
+- `specs/001-criacao-edicao-agendamentos/data-model.md`
+- `specs/001-criacao-edicao-agendamentos/contracts/agendamentos-api.md`
+- `specs/001-criacao-edicao-agendamentos/quickstart.md`
 
 <!-- SPECKIT END -->

@@ -3,6 +3,7 @@ import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 import {
   requireTerapeutaAccess,
   terapeutaTemAcessoAgendamento,
@@ -12,8 +13,16 @@ import {
 // Criar o router
 const router = createRouter();
 
+const VALID_LOCAL_AGENDAMENTO = new Set([
+  "Sala Verde",
+  "Sala Azul",
+  "Sala 321",
+  "Não Precisa de Sala",
+]);
+
 // Aplicar middleware de autenticação para proteger as rotas
 router.use(authMiddleware);
+router.use(requirePermission("agendamentos"));
 router.use(requireTerapeutaAccess());
 
 // Definir os handlers para cada método HTTP
@@ -52,6 +61,18 @@ async function putHandler(req, res) {
 
     // Extrair os dados do corpo da requisição
     const agendamentoData = req.body;
+
+    const localAgendamento =
+      typeof agendamentoData.localAgendamento === "string"
+        ? agendamentoData.localAgendamento.trim()
+        : agendamentoData.localAgendamento;
+
+    if (localAgendamento && !VALID_LOCAL_AGENDAMENTO.has(localAgendamento)) {
+      return res.status(422).json({
+        error: "Valor inválido",
+        message: "localAgendamento inválido.",
+      });
+    }
 
     const userRole = req.user.role || "terapeuta";
     const currentTerapeutaId = req.terapeutaId;

@@ -3,6 +3,7 @@ import controller from "infra/controller.js";
 import agendamento from "models/agendamento.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 import withTimeout from "utils/withTimeout.js";
 
 // Criar o router
@@ -10,6 +11,7 @@ const router = createRouter();
 
 // Aplicar middleware de autenticação para proteger as rotas
 router.use(authMiddleware);
+router.use(requirePermission("agendamentos"));
 
 // Definir os handlers para cada método HTTP
 router.get(getHandler);
@@ -320,13 +322,16 @@ async function putHandler(req, res) {
     const isStaging = process.env.VERCEL_ENV === "preview";
 
     // Verificar se é para atualizar todos os agendamentos da recorrência
-    const updateAllRecurrences = agendamentoData.updateAllRecorrences === true;
+    const updateAllRecurrences =
+      agendamentoData.updateAllRecurrences === true ||
+      agendamentoData.updateAllRecorrences === true;
 
     if (updateAllRecurrences) {
       // Verificar se é para alterar o dia da semana
       const novoDiaSemana = agendamentoData.novoDiaSemana;
 
       // Remover flags que não devem ser persistidas
+      delete agendamentoData.updateAllRecurrences;
       delete agendamentoData.updateAllRecorrences;
       delete agendamentoData.novoDiaSemana;
 
@@ -586,7 +591,7 @@ async function atualizarSessoesDeAgendamentos(
       });
 
       const shouldCreateSession =
-        agendamentoData.sessaoRealizada &&
+        (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
         agendamentoAtualizado.statusAgendamento !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;
@@ -690,7 +695,7 @@ async function atualizarSessoesDeAgendamentosOtimizado(
       });
 
       const shouldCreateSession =
-        agendamentoData.sessaoRealizada &&
+        (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
         agendamentoAtualizado.statusAgendamento !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;

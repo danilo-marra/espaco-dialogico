@@ -1,4 +1,7 @@
 import database from "infra/database.js";
+import userModel from "models/user.js";
+import userSession from "models/userSession.js";
+import { generateToken } from "utils/auth.js";
 
 // Função reutilizável para garantir que o admin de desenvolvimento existe
 export async function ensureDevAdminExists() {
@@ -56,38 +59,28 @@ export async function createUserDirectlyAndLogin(
   port,
   { role = "secretaria" } = {},
 ) {
-  const bcryptjs = await import("bcryptjs");
   const timestamp = Date.now();
   const email = `test_${role}_${timestamp}@test.com`;
   const password = `TestPass${timestamp}!`;
   const username = `test_${role}_${timestamp}`;
 
-  const saltRounds = 10;
-  const hashedPassword = await bcryptjs.hash(password, saltRounds);
-
-  await database.query({
-    text: `INSERT INTO users (username, email, password, role) VALUES ($1, $2, $3, $4)`,
-    values: [username, email, hashedPassword, role],
+  const createdUser = await userModel.create({
+    username,
+    email,
+    password,
+    role,
   });
 
-  const loginResponse = await fetch(
-    `http://localhost:${port}/api/v1/auth/login`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    },
-  );
+  // Replicar a mesma estratégia do endpoint de login para manter compatibilidade.
+  await userSession.deleteAllByUserId(createdUser.id);
+  const newTokenVersion = await userModel.incrementTokenVersion(createdUser.id);
+  const newSession = await userSession.create(createdUser.id);
 
-  if (!loginResponse.ok) {
-    const errorBody = await loginResponse.json();
-    throw new Error(
-      `Falha ao fazer login como ${role}: ${JSON.stringify(errorBody)}`,
-    );
-  }
-
-  const loginData = await loginResponse.json();
-  return loginData.token;
+  return generateToken({
+    sessionId: newSession.token,
+    userId: createdUser.id,
+    tokenVersion: newTokenVersion,
+  });
 }
 
 // Função reutilizável para autenticação nos testes
@@ -98,7 +91,7 @@ export async function prepareAuthentication(port) {
     const adminPassword = process.env.ADMIN_PASSWORD || "AdminDefaultPassword";
 
     const loginResponse = await fetch(
-      `http://localhost:${port}/api/v1/auth/login`,
+      `http://localhost:${port}/api/v1/auth/login/`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
