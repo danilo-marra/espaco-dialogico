@@ -50,7 +50,7 @@ auto_commit:
     message: "[Spec Kit] Add tasks"
   after_implement:
     enabled: true
-    message: "[Spec Kit] Implementation progress"
+    message: "chore: implementation progress"
   after_checklist:
     enabled: false
     message: "[Spec Kit] Add checklist"

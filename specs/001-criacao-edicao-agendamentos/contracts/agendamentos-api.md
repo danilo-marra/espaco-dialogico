@@ -26,6 +26,7 @@ Responses:
 - `201`: agendamento criado
 - `400/422`: erro de validação
 - `401`: não autenticado
+- `403`: autenticado sem permissão/acesso ao recurso
 
 ## PUT /:id/
 
@@ -42,6 +43,7 @@ Campos suportados (subset):
 Responses:
 
 - `200`: agendamento atualizado
+- `401`: não autenticado
 - `403`: autenticado sem acesso ao recurso (quando aplicável)
 - `422`: `localAgendamento` inválido
 - `500`: erro inesperado

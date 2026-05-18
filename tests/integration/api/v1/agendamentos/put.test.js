@@ -43,6 +43,88 @@ function agendamentoPayloadBase({ pacienteId, terapeutaId, data, hora }) {
   };
 }
 
+function buildUniqueSchedule() {
+  const offsetMinutes = Math.floor(Math.random() * 24 * 60);
+  const baseDate = new Date(Date.UTC(2026, 5, 1, 0, 0, 0));
+  baseDate.setUTCMinutes(baseDate.getUTCMinutes() + offsetMinutes);
+
+  return {
+    data: baseDate.toISOString().slice(0, 10),
+    hora: baseDate.toISOString().slice(11, 16),
+  };
+}
+
+async function createAgendamentoFixture({
+  token = adminToken,
+  pacienteId = pacienteSecundarioId,
+  terapeutaId = terapeutaSecundarioId,
+  overrides = {},
+} = {}) {
+  const schedule = buildUniqueSchedule();
+  const data = overrides.dataAgendamento || schedule.data;
+  const hora = overrides.horarioAgendamento || schedule.hora;
+
+  const res = await fetch(BASE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      ...agendamentoPayloadBase({
+        pacienteId,
+        terapeutaId,
+        data,
+        hora,
+      }),
+      ...overrides,
+    }),
+  });
+
+  const body = await res.json();
+  return { res, body };
+}
+
+async function createRecurrenceFixture({
+  token = adminToken,
+  recurrenceId = randomUUID(),
+  pacienteId = pacientePrincipalId,
+  terapeutaId = terapeutaPrincipalId,
+  overrides = {},
+} = {}) {
+  const schedule = buildUniqueSchedule();
+  const data = overrides.agendamentoBase?.dataAgendamento || schedule.data;
+  const hora = overrides.agendamentoBase?.horarioAgendamento || schedule.hora;
+
+  const res = await fetch(`${BASE_URL}recurrences/${recurrenceId}/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      agendamentoBase: {
+        ...agendamentoPayloadBase({
+          pacienteId,
+          terapeutaId,
+          data,
+          hora,
+        }),
+        sessaoRealizada: false,
+        falta: false,
+        ...(overrides.agendamentoBase || {}),
+      },
+      diasDaSemana: ["Segunda-feira"],
+      dataFimRecorrencia: "2026-06-29",
+      periodicidade: "Semanal",
+      ...overrides,
+    }),
+  });
+
+  const body = await res.json();
+  return { res, body, recurrenceId };
+}
+
 beforeAll(async () => {
   await ensureServerRunning(TEST_NAME, port);
   await orchestrator.waitForAllServices();
@@ -122,31 +204,12 @@ afterAll(() => {
 });
 
 describe("Agendamentos - Criação e Edição", () => {
-  let agendamentoId;
-  let recurrenceId;
-
   test("Deve criar agendamento simples", async () => {
-    const res = await fetch(BASE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify(
-        agendamentoPayloadBase({
-          pacienteId: pacienteSecundarioId,
-          terapeutaId: terapeutaSecundarioId,
-          data: "2026-06-01",
-          hora: "14:00",
-        }),
-      ),
-    });
+    const { res, body: agendamento } = await createAgendamentoFixture();
 
-    const agendamento = await res.json();
     expect(res.status).toBe(201);
     expect(agendamento).toHaveProperty("id");
     expect(agendamento.localAgendamento).toBe("Sala Azul");
-    agendamentoId = agendamento.id;
   });
 
   test("Deve retornar 400 ao criar agendamento com data ausente", async () => {
@@ -193,7 +256,9 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve editar agendamento simples", async () => {
-    const res = await fetch(`${BASE_URL}${agendamentoId}/`, {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const res = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -211,7 +276,9 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve persistir alteração de sessaoRealizada e falta no agendamento", async () => {
-    const marcarRes = await fetch(`${BASE_URL}${agendamentoId}/`, {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const marcarRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -228,7 +295,7 @@ describe("Agendamentos - Criação e Edição", () => {
     expect(marcado.sessaoRealizada).toBe(true);
     expect(marcado.falta).toBe(true);
 
-    const desmarcarRes = await fetch(`${BASE_URL}${agendamentoId}/`, {
+    const desmarcarRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -247,7 +314,9 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve negar edição para terapeuta sem acesso ao agendamento", async () => {
-    const res = await fetch(`${BASE_URL}${agendamentoId}/`, {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const res = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -264,7 +333,9 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve retornar 422 em edição com localAgendamento inválido", async () => {
-    const res = await fetch(`${BASE_URL}${agendamentoId}/`, {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const res = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -281,35 +352,12 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve criar agendamentos recorrentes", async () => {
-    recurrenceId = randomUUID();
+    const { res, body, recurrenceId } = await createRecurrenceFixture();
 
-    const res = await fetch(`${BASE_URL}recurrences/${recurrenceId}/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({
-        agendamentoBase: {
-          ...agendamentoPayloadBase({
-            pacienteId: pacientePrincipalId,
-            terapeutaId: terapeutaPrincipalId,
-            data: "2026-06-08",
-            hora: "10:00",
-          }),
-          sessaoRealizada: false,
-          falta: false,
-        },
-        diasDaSemana: ["Segunda-feira"],
-        dataFimRecorrencia: "2026-06-29",
-        periodicidade: "Semanal",
-      }),
-    });
-
-    const body = await res.json();
     expect(res.status).toBe(201);
     expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThan(0);
+    expect(recurrenceId).toBeTruthy();
   });
 
   test("Deve negar criação recorrente sem autenticação", async () => {
@@ -361,6 +409,8 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve editar agendamento recorrente", async () => {
+    const { recurrenceId } = await createRecurrenceFixture();
+
     const res = await fetch(`${BASE_URL}recurrences/${recurrenceId}/`, {
       method: "PUT",
       headers: {
@@ -380,6 +430,8 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve negar edição recorrente sem autenticação", async () => {
+    const { recurrenceId } = await createRecurrenceFixture();
+
     const res = await fetch(`${BASE_URL}recurrences/${recurrenceId}/`, {
       method: "PUT",
       headers: {
@@ -395,6 +447,8 @@ describe("Agendamentos - Criação e Edição", () => {
   });
 
   test("Deve retornar 400 em edição recorrente sem flag updateAllRecorrences", async () => {
+    const { recurrenceId } = await createRecurrenceFixture();
+
     const res = await fetch(`${BASE_URL}recurrences/${recurrenceId}/`, {
       method: "PUT",
       headers: {

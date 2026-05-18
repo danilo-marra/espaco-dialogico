@@ -81,6 +81,8 @@ async function postHandler(req, res) {
       ? agendamentoData.localAgendamento.trim()
       : agendamentoData.localAgendamento;
 
+  agendamentoData.localAgendamento = localAgendamento;
+
   if (localAgendamento && !VALID_LOCAL_AGENDAMENTO.has(localAgendamento)) {
     return res.status(422).json({
       error: "Valor inválido",

@@ -1,6 +1,6 @@
 # Implementation Plan: Criação e edição de agendamentos
 
-**Branch**: `001-fix-bug-formulario-agendamento` | **Date**: 2026-05-18 | **Spec**: `specs/001-criacao-edicao-agendamentos/spec.md`
+**Branch**: `001-criacao-edicao-agendamentos` | **Date**: 2026-05-18 | **Spec**: `specs/001-criacao-edicao-agendamentos/spec.md`
 
 **Input**: Feature specification from `specs/001-criacao-edicao-agendamentos/spec.md`
 
