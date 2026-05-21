@@ -135,16 +135,6 @@ async function putHandler(req, res) {
     // Atualizar apenas este agendamento específico
     const agendamentoAtualizado = await agendamento.update(id, agendamentoData);
 
-    // Suporte a ambos os formatos camelCase e snake_case
-    // Prioriza o valor do banco (snake_case), mas aceita camelCase vindo do frontend
-    const sessaoRealizadaAntes =
-      agendamentoAntes.sessao_realizada !== undefined
-        ? agendamentoAntes.sessao_realizada
-        : agendamentoAntes.sessaoRealizada;
-
-    const faltaAntes =
-      agendamentoAntes.falta !== undefined ? agendamentoAntes.falta : false;
-
     // O model pode retornar camelCase ou snake_case dependendo do mapeamento
     // e o update pode não atualizar ambos, então garantimos aqui
     const sessaoRealizadaDepois =
@@ -157,56 +147,122 @@ async function putHandler(req, res) {
         ? agendamentoAtualizado.falta
         : false;
 
-    // Se `sessaoRealizada` OU `falta` mudou para true E não está cancelado, criar a sessão
-    const deveCriarSessaoAntes = sessaoRealizadaAntes || faltaAntes;
-    const deveCriarSessaoDepois = sessaoRealizadaDepois || faltaDepois;
+    const statusAgendamentoDepois = obterCampo(
+      agendamentoAtualizado,
+      "statusAgendamento",
+      "status_agendamento",
+    );
+    const deveExistirSessaoDepois =
+      (sessaoRealizadaDepois || faltaDepois) &&
+      statusAgendamentoDepois !== "Cancelado";
 
-    if (
-      !deveCriarSessaoAntes &&
-      deveCriarSessaoDepois &&
-      agendamentoAtualizado.statusAgendamento !== "Cancelado"
-    ) {
-      try {
-        const sessaoData = {
-          terapeuta_id: agendamentoAtualizado.terapeuta_id,
-          paciente_id: agendamentoAtualizado.paciente_id,
-          tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-            agendamentoAtualizado.tipoAgendamento,
-          ),
-          valorSessao: agendamentoAtualizado.valorAgendamento,
-          statusSessao: "Pagamento Pendente",
-          agendamento_id: agendamentoAtualizado.id,
-        };
-        await sessao.create(sessaoData);
-      } catch (error) {
-        console.error(
-          "Erro ao criar sessão na atualização do agendamento:",
-          error,
-        );
+    const sessoesAssociadas = await sessao.getFiltered({
+      agendamento_id: id,
+    });
+
+    if (!deveExistirSessaoDepois) {
+      for (const sessaoAssociada of sessoesAssociadas) {
+        await sessao.remove(sessaoAssociada.id);
       }
-    }
-    // Se `sessaoRealizada` E `falta` mudaram para false OU se o status mudou para "Cancelado", remover a sessão associada
-    else if (
-      (deveCriarSessaoAntes && !deveCriarSessaoDepois) ||
-      agendamentoAtualizado.statusAgendamento === "Cancelado"
-    ) {
-      try {
-        const sessoesAssociadas = await sessao.getFiltered({
-          agendamento_id: id,
-        });
-        for (const sessaoAssociada of sessoesAssociadas) {
-          await sessao.remove(sessaoAssociada.id);
-        }
 
-        // Se o agendamento foi cancelado, garantir que sessaoRealizada seja false no banco
-        if (agendamentoAtualizado.statusAgendamento === "Cancelado") {
-          await agendamento.update(id, { sessaoRealizada: false });
+      // Se o agendamento foi cancelado, garantir que sessaoRealizada seja false no banco
+      if (statusAgendamentoDepois === "Cancelado" && sessaoRealizadaDepois) {
+        await agendamento.update(id, { sessaoRealizada: false });
+      }
+    } else if (sessoesAssociadas.length === 0) {
+      const sessaoData = {
+        terapeuta_id: obterCampo(
+          agendamentoAtualizado,
+          "terapeuta_id",
+          "terapeuta_id",
+        ),
+        paciente_id: obterCampo(
+          agendamentoAtualizado,
+          "paciente_id",
+          "paciente_id",
+        ),
+        tipoSessao: mapearTipoAgendamentoParaTipoSessao(
+          obterCampo(
+            agendamentoAtualizado,
+            "tipoAgendamento",
+            "tipo_agendamento",
+          ),
+        ),
+        valorSessao: obterNumeroCampo(
+          agendamentoAtualizado,
+          "valorAgendamento",
+          "valor_agendamento",
+        ),
+        statusSessao: "Pagamento Pendente",
+        agendamento_id: agendamentoAtualizado.id,
+      };
+
+      await sessao.create(sessaoData);
+    } else {
+      const valorAntes = obterNumeroCampo(
+        agendamentoAntes,
+        "valorAgendamento",
+        "valor_agendamento",
+      );
+      const valorDepois = obterNumeroCampo(
+        agendamentoAtualizado,
+        "valorAgendamento",
+        "valor_agendamento",
+      );
+      const tipoAntes = obterCampo(
+        agendamentoAntes,
+        "tipoAgendamento",
+        "tipo_agendamento",
+      );
+      const tipoDepois = obterCampo(
+        agendamentoAtualizado,
+        "tipoAgendamento",
+        "tipo_agendamento",
+      );
+      const terapeutaAntes = obterCampo(
+        agendamentoAntes,
+        "terapeuta_id",
+        "terapeuta_id",
+      );
+      const terapeutaDepois = obterCampo(
+        agendamentoAtualizado,
+        "terapeuta_id",
+        "terapeuta_id",
+      );
+      const pacienteAntes = obterCampo(
+        agendamentoAntes,
+        "paciente_id",
+        "paciente_id",
+      );
+      const pacienteDepois = obterCampo(
+        agendamentoAtualizado,
+        "paciente_id",
+        "paciente_id",
+      );
+
+      const sessaoUpdateData = {};
+
+      if (valorAntes !== valorDepois) {
+        sessaoUpdateData.valorSessao = valorDepois;
+      }
+
+      if (tipoAntes !== tipoDepois) {
+        sessaoUpdateData.tipoSessao =
+          mapearTipoAgendamentoParaTipoSessao(tipoDepois);
+      }
+
+      if (terapeutaAntes !== terapeutaDepois) {
+        sessaoUpdateData.terapeuta_id = terapeutaDepois;
+      }
+
+      if (pacienteAntes !== pacienteDepois) {
+        sessaoUpdateData.paciente_id = pacienteDepois;
+      }
+
+      if (Object.keys(sessaoUpdateData).length > 0) {
+        for (const sessaoAssociada of sessoesAssociadas) {
+          await sessao.update(sessaoAssociada.id, sessaoUpdateData);
         }
-      } catch (error) {
-        console.error(
-          "Erro ao remover sessão na atualização do agendamento:",
-          error,
-        );
       }
     }
 
@@ -294,4 +350,16 @@ function mapearTipoAgendamentoParaTipoSessao(tipoAgendamento) {
     default:
       return "Atendimento";
   }
+}
+
+function obterCampo(obj, campoCamel, campoSnake) {
+  if (!obj) return undefined;
+  if (obj[campoCamel] !== undefined) return obj[campoCamel];
+  return obj[campoSnake];
+}
+
+function obterNumeroCampo(obj, campoCamel, campoSnake) {
+  const valor = obterCampo(obj, campoCamel, campoSnake);
+  if (valor === undefined || valor === null) return valor;
+  return Number(valor);
 }

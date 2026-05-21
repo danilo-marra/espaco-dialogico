@@ -14,6 +14,7 @@ const {
 const orchestrator = require("tests/orchestrator.js").default;
 const terapeutaModel = require("models/terapeuta.js").default;
 const pacienteModel = require("models/paciente.js").default;
+const sessaoModel = require("models/sessao.js").default;
 
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 const TEST_NAME = "Agendamentos - Criação e Edição";
@@ -204,6 +205,10 @@ afterAll(() => {
 });
 
 describe("Agendamentos - Criação e Edição", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test("Deve criar agendamento simples", async () => {
     const { res, body: agendamento } = await createAgendamentoFixture();
 
@@ -311,6 +316,112 @@ describe("Agendamentos - Criação e Edição", () => {
     expect(desmarcarRes.status).toBe(200);
     expect(desmarcado.sessaoRealizada).toBe(false);
     expect(desmarcado.falta).toBe(false);
+  });
+
+  test("Deve sincronizar valor da sessão ao editar apenas valorAgendamento", async () => {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const marcarRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        sessaoRealizada: true,
+      }),
+    });
+
+    expect(marcarRes.status).toBe(200);
+
+    const sessoesAntes = await sessaoModel.getFiltered({
+      agendamento_id: agendamentoBase.id,
+    });
+
+    expect(sessoesAntes.length).toBeGreaterThan(0);
+    expect(sessoesAntes[0].valorSessao).toBe(180);
+
+    const editarValorRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        valorAgendamento: 250,
+      }),
+    });
+
+    expect(editarValorRes.status).toBe(200);
+
+    const sessoesDepois = await sessaoModel.getFiltered({
+      agendamento_id: agendamentoBase.id,
+    });
+
+    expect(sessoesDepois.length).toBeGreaterThan(0);
+    expect(sessoesDepois[0].valorSessao).toBe(250);
+  });
+
+  test("Não deve criar sessão ao editar valor quando sessão não existe", async () => {
+    const { body: agendamentoBase } = await createAgendamentoFixture();
+
+    const sessoesAntes = await sessaoModel.getFiltered({
+      agendamento_id: agendamentoBase.id,
+    });
+    expect(sessoesAntes.length).toBe(0);
+
+    const editarValorRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        valorAgendamento: 275,
+      }),
+    });
+
+    expect(editarValorRes.status).toBe(200);
+
+    const sessoesDepois = await sessaoModel.getFiltered({
+      agendamento_id: agendamentoBase.id,
+    });
+    expect(sessoesDepois.length).toBe(0);
+  });
+
+  test("Deve retornar 500 quando houver erro de persistência ao editar valor", async () => {
+    const { res: createRes, body: agendamentoBase } =
+      await createAgendamentoFixture();
+    expect(createRes.status).toBe(201);
+    expect(agendamentoBase).toHaveProperty("id");
+
+    const marcarRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        sessaoRealizada: true,
+      }),
+    });
+
+    expect(marcarRes.status).toBe(200);
+
+    const editarValorRes = await fetch(`${BASE_URL}${agendamentoBase.id}/`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify({
+        valorAgendamento: "valor-invalido",
+      }),
+    });
+
+    expect(editarValorRes.status).toBe(500);
+    const body = await editarValorRes.json();
+    expect(JSON.stringify(body)).toContain("Erro ao atualizar agendamento");
   });
 
   test("Deve negar edição para terapeuta sem acesso ao agendamento", async () => {
@@ -427,6 +538,72 @@ describe("Agendamentos - Criação e Edição", () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(body.data)).toBe(true);
     expect(body.data.length).toBeGreaterThan(0);
+  });
+
+  test("Deve sincronizar valor das sessões em atualização de recorrência", async () => {
+    const { res, body, recurrenceId } = await createRecurrenceFixture();
+
+    expect(res.status).toBe(201);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+
+    const ativarSessoesRes = await fetch(
+      `${BASE_URL}recurrences/${recurrenceId}/`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          updateAllRecorrences: true,
+          sessaoRealizada: true,
+          valorAgendamento: 190,
+        }),
+      },
+    );
+
+    expect(ativarSessoesRes.status).toBe(200);
+    const ativarSessoesBody = await ativarSessoesRes.json();
+    const agendamentosRecorrentes = ativarSessoesBody.data;
+
+    for (const item of agendamentosRecorrentes) {
+      const sessoes = await sessaoModel.getFiltered({
+        agendamento_id: item.id,
+      });
+      expect(sessoes.length).toBeGreaterThan(0);
+      expect(sessoes[0].valorSessao).toBe(190);
+    }
+
+    const atualizarRes = await fetch(
+      `${BASE_URL}recurrences/${recurrenceId}/`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          updateAllRecorrences: true,
+          valorAgendamento: 325,
+        }),
+      },
+    );
+
+    expect(atualizarRes.status).toBe(200);
+
+    const atualizarBody = await atualizarRes.json();
+    expect(Array.isArray(atualizarBody.data)).toBe(true);
+    expect(atualizarBody.data.length).toBeGreaterThan(0);
+
+    for (const item of atualizarBody.data) {
+      const sessoes = await sessaoModel.getFiltered({
+        agendamento_id: item.id,
+      });
+
+      expect(sessoes.length).toBeGreaterThan(0);
+      expect(sessoes[0].valorSessao).toBe(325);
+    }
   });
 
   test("Deve negar edição recorrente sem autenticação", async () => {
