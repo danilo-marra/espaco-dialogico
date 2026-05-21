@@ -615,6 +615,16 @@ async function atualizarSessoesDeAgendamentos(agendamentosAtualizados) {
           "valorAgendamento",
           "valor_agendamento",
         );
+        const terapeutaAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "terapeuta_id",
+          "terapeutaId",
+        );
+        const pacienteAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "paciente_id",
+          "pacienteId",
+        );
 
         if (tipoAgendamentoAtual !== undefined) {
           sessaoUpdateData.tipoSessao =
@@ -622,6 +632,12 @@ async function atualizarSessoesDeAgendamentos(agendamentosAtualizados) {
         }
         if (valorAgendamentoAtual !== undefined) {
           sessaoUpdateData.valorSessao = valorAgendamentoAtual;
+        }
+        if (terapeutaAtual !== undefined) {
+          sessaoUpdateData.terapeuta_id = terapeutaAtual;
+        }
+        if (pacienteAtual !== undefined) {
+          sessaoUpdateData.paciente_id = pacienteAtual;
         }
 
         if (Object.keys(sessaoUpdateData).length > 0) {
@@ -712,8 +728,49 @@ async function atualizarSessoesDeAgendamentosOtimizado(
         "status_agendamento",
       );
 
+      let sessaoRealizadaEfetiva = sessaoRealizadaAtual;
+      let faltaEfetiva = faltaAtual;
+      let statusEfetivo = statusAtual;
+
+      // No fluxo otimizado, alguns campos podem não vir no retorno.
+      // Quando faltar informação, buscamos o estado persistido para evitar decisões incorretas.
+      if (
+        sessaoRealizadaEfetiva === undefined ||
+        faltaEfetiva === undefined ||
+        statusEfetivo === undefined
+      ) {
+        const agendamentoPersistido = await agendamento.getById(
+          agendamentoAtualizado.id,
+        );
+
+        if (sessaoRealizadaEfetiva === undefined) {
+          sessaoRealizadaEfetiva = obterBooleanAgendamento(
+            agendamentoPersistido,
+            "sessaoRealizada",
+            "sessao_realizada",
+          );
+        }
+
+        if (faltaEfetiva === undefined) {
+          faltaEfetiva = obterBooleanAgendamento(
+            agendamentoPersistido,
+            "falta",
+            "falta",
+          );
+        }
+
+        if (statusEfetivo === undefined) {
+          statusEfetivo = obterCampoAgendamento(
+            agendamentoPersistido,
+            "statusAgendamento",
+            "status_agendamento",
+          );
+        }
+      }
+
       const shouldCreateSession =
-        (sessaoRealizadaAtual || faltaAtual) && statusAtual !== "Cancelado";
+        (sessaoRealizadaEfetiva || faltaEfetiva) &&
+        statusEfetivo !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;
 
@@ -734,6 +791,16 @@ async function atualizarSessoesDeAgendamentosOtimizado(
             "valorAgendamento",
             "valor_agendamento",
           );
+          const terapeutaAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "terapeuta_id",
+            "terapeutaId",
+          );
+          const pacienteAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "paciente_id",
+            "pacienteId",
+          );
 
           if (tipoAgendamentoAtual !== undefined) {
             sessaoUpdateData.tipoSessao =
@@ -741,6 +808,12 @@ async function atualizarSessoesDeAgendamentosOtimizado(
           }
           if (valorAgendamentoAtual !== undefined) {
             sessaoUpdateData.valorSessao = valorAgendamentoAtual;
+          }
+          if (terapeutaAtual !== undefined) {
+            sessaoUpdateData.terapeuta_id = terapeutaAtual;
+          }
+          if (pacienteAtual !== undefined) {
+            sessaoUpdateData.paciente_id = pacienteAtual;
           }
 
           if (Object.keys(sessaoUpdateData).length > 1) {
@@ -888,6 +961,7 @@ function obterNumeroCampoAgendamento(obj, campoA, campoB) {
 
 function obterBooleanAgendamento(obj, campoA, campoB) {
   const valor = obterCampoAgendamento(obj, campoA, campoB);
+  if (valor === undefined || valor === null) return undefined;
   return !!valor;
 }
 

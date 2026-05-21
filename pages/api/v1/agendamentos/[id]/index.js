@@ -168,18 +168,21 @@ async function putHandler(req, res) {
       // Se o agendamento foi cancelado, garantir que sessaoRealizada seja false no banco
       if (statusAgendamentoDepois === "Cancelado" && sessaoRealizadaDepois) {
         await agendamento.update(id, { sessaoRealizada: false });
+        // Mantém a resposta consistente com o estado persistido no banco
+        agendamentoAtualizado.sessaoRealizada = false;
+        agendamentoAtualizado.sessao_realizada = false;
       }
     } else if (sessoesAssociadas.length === 0) {
       const sessaoData = {
         terapeuta_id: obterCampo(
           agendamentoAtualizado,
           "terapeuta_id",
-          "terapeuta_id",
+          "terapeutaId",
         ),
         paciente_id: obterCampo(
           agendamentoAtualizado,
           "paciente_id",
-          "paciente_id",
+          "pacienteId",
         ),
         tipoSessao: mapearTipoAgendamentoParaTipoSessao(
           obterCampo(
@@ -222,22 +225,22 @@ async function putHandler(req, res) {
       const terapeutaAntes = obterCampo(
         agendamentoAntes,
         "terapeuta_id",
-        "terapeuta_id",
+        "terapeutaId",
       );
       const terapeutaDepois = obterCampo(
         agendamentoAtualizado,
         "terapeuta_id",
-        "terapeuta_id",
+        "terapeutaId",
       );
       const pacienteAntes = obterCampo(
         agendamentoAntes,
         "paciente_id",
-        "paciente_id",
+        "pacienteId",
       );
       const pacienteDepois = obterCampo(
         agendamentoAtualizado,
         "paciente_id",
-        "paciente_id",
+        "pacienteId",
       );
 
       const sessaoUpdateData = {};
