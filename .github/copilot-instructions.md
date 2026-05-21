@@ -230,7 +230,7 @@ See [`docs/README.md`](../docs/README.md) for an index of all design and impleme
 
 Active Spec Kit plan:
 
-- `specs/001-criacao-edicao-agendamentos/plan.md`
+- `specs/002-agendamentos-recorrencia-cor/plan.md`
 
 Supporting artifacts:
 

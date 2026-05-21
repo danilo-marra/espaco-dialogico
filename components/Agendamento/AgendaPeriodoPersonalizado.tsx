@@ -5,6 +5,7 @@ import { Agendamento } from "../../tipos";
 import { parseAnyDate } from "../../utils/dateUtils";
 import { BirthdayIndicator } from "components/common/BirthdayIndicator";
 import { isBirthday } from "utils/birthdayUtils";
+import { getAgendamentoCardStatusClass } from "./agendamentoStatusAppearance";
 
 interface AgendaPeriodoPersonalizadoProps {
   daysOfPeriod: Date[];
@@ -77,11 +78,7 @@ export const AgendaPeriodoPersonalizado: React.FC<
                   <div
                     key={agendamento.id}
                     className={`text-sm p-1 space-y-1 rounded cursor-pointer transition-colors duration-200 hover:bg-slate-50 group 
-                  ${
-                    agendamento.statusAgendamento === "Cancelado"
-                      ? "bg-red-100 line-through"
-                      : ""
-                  }`}
+                  ${getAgendamentoCardStatusClass(agendamento)}`}
                     onClick={() => handleEditAgendamento(agendamento)}
                     draggable={true}
                     onDragStart={() => handleDragStart(agendamento)}

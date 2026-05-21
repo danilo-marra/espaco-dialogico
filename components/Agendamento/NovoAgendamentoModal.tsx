@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { addMonths } from "date-fns";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -98,6 +99,48 @@ type NovoAgendamentoModalProps = {
   onClose: () => void;
 };
 
+type RecorrenciaAutoFillInput = {
+  periodicidade: AgendamentoFormInputs["periodicidade"];
+  dataAgendamento: Date | null;
+  dataFimRecorrencia: Date | null;
+  dataFimRecorrenciaFoiEditadaManualmente: boolean;
+};
+
+export function getDataFimRecorrenciaPlusThreeMonths(
+  dataAgendamento: Date | null,
+): Date | null {
+  if (!dataAgendamento) {
+    return null;
+  }
+
+  return addMonths(new Date(dataAgendamento), 3);
+}
+
+export function shouldAutoFillDataFimRecorrencia({
+  periodicidade,
+  dataAgendamento,
+  dataFimRecorrencia,
+  dataFimRecorrenciaFoiEditadaManualmente,
+}: RecorrenciaAutoFillInput): boolean {
+  if (periodicidade === "Não repetir") {
+    return false;
+  }
+
+  if (!dataAgendamento) {
+    return false;
+  }
+
+  if (dataFimRecorrencia) {
+    return false;
+  }
+
+  if (dataFimRecorrenciaFoiEditadaManualmente) {
+    return false;
+  }
+
+  return true;
+}
+
 export function NovoAgendamentoModal({
   initialDate,
   onSuccess,
@@ -108,6 +151,10 @@ export function NovoAgendamentoModal({
   const [loadingMessage, setLoadingMessage] = useState("");
   const [selectedDiasSemana, setSelectedDiasSemana] = useState<DiaSemana[]>([]);
   const [valorInput, setValorInput] = useState<string>("");
+  const [
+    dataFimRecorrenciaFoiEditadaManualmente,
+    setDataFimRecorrenciaFoiEditadaManualmente,
+  ] = useState<boolean>(false);
   const [progressPercentage, setProgressPercentage] = useState<number>(0); // Estado para barra de progresso
   const [showProgress, setShowProgress] = useState<boolean>(false); // Estado para mostrar/ocultar barra de progresso
 
@@ -291,6 +338,40 @@ export function NovoAgendamentoModal({
     }
   }, [selectedStatus, setValue]);
 
+  useEffect(() => {
+    if (selectedPeriodicidade === "Não repetir") {
+      setDataFimRecorrenciaFoiEditadaManualmente(false);
+      return;
+    }
+
+    const shouldAutoFill = shouldAutoFillDataFimRecorrencia({
+      periodicidade: selectedPeriodicidade,
+      dataAgendamento: selectedDataAgendamento,
+      dataFimRecorrencia: selectedDataFimRecorrencia,
+      dataFimRecorrenciaFoiEditadaManualmente,
+    });
+
+    if (!shouldAutoFill) {
+      return;
+    }
+
+    const suggestedEndDate = getDataFimRecorrenciaPlusThreeMonths(
+      selectedDataAgendamento,
+    );
+
+    if (suggestedEndDate) {
+      setValue("dataFimRecorrencia", suggestedEndDate, {
+        shouldValidate: true,
+      });
+    }
+  }, [
+    selectedPeriodicidade,
+    selectedDataAgendamento,
+    selectedDataFimRecorrencia,
+    dataFimRecorrenciaFoiEditadaManualmente,
+    setValue,
+  ]);
+
   // Manipular alterações nos dias da semana selecionados
   const handleDiaSemanaChange = (dia: DiaSemana, checked: boolean) => {
     const currentDias = watch("diasDaSemana") || [];
@@ -304,6 +385,19 @@ export function NovoAgendamentoModal({
       setValue("diasDaSemana", updatedDias);
       setSelectedDiasSemana(updatedDias);
     }
+  };
+
+  const handleSetProximosTresMeses = () => {
+    const suggestedEndDate = getDataFimRecorrenciaPlusThreeMonths(
+      selectedDataAgendamento,
+    );
+
+    if (!suggestedEndDate) {
+      return;
+    }
+
+    setDataFimRecorrenciaFoiEditadaManualmente(false);
+    setValue("dataFimRecorrencia", suggestedEndDate, { shouldValidate: true });
   };
 
   // Handler para envio do formulário
@@ -885,9 +979,20 @@ export function NovoAgendamentoModal({
           {/* Data Fim da Recorrência (apenas se periodicidade for Semanal ou Quinzenal) */}
           {selectedPeriodicidade !== "Não repetir" && (
             <div className="flex flex-col">
-              <label htmlFor="dataFimRecorrencia" className="font-medium mb-1">
-                Data Fim da Recorrência <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="dataFimRecorrencia" className="font-medium">
+                  Data Fim da Recorrência{" "}
+                  <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  className="text-sm text-blue-600 hover:text-blue-700 hover:underline disabled:text-gray-400 disabled:no-underline"
+                  onClick={handleSetProximosTresMeses}
+                  disabled={!selectedDataAgendamento}
+                >
+                  Próximos 3 meses
+                </button>
+              </div>
               <Controller
                 control={control}
                 name="dataFimRecorrencia"
@@ -897,6 +1002,7 @@ export function NovoAgendamentoModal({
                     selected={field.value}
                     onChange={(date: Date | null) => {
                       field.onChange(date);
+                      setDataFimRecorrenciaFoiEditadaManualmente(date !== null);
                     }}
                     dateFormat="dd/MM/yyyy"
                     locale="pt-BR"

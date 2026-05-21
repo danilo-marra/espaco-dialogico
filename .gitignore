@@ -11,3 +11,13 @@ node_modules
 *.tsbuildinfo
 GEMINI.md
 .vscode/
+dist/
+build/
+coverage/
+*.log
+.env*
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.idea/
