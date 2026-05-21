@@ -29,6 +29,9 @@ import { EditarSessaoModal } from "components/Sessoes/EditarSessaoModal";
 import { toast } from "sonner";
 import { SessoesTable } from "components/Sessoes/SessoesTable";
 import api from "utils/api";
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from "store/store";
+import { updatePagamentoSessao } from "store/sessoesSlice";
 
 // Função auxiliar para obter o valor de repasse correto
 function obterValorRepasse(sessao: Sessao): number {
@@ -225,6 +228,7 @@ const calcularRepasse = (
 };
 
 export default function Sessoes() {
+  const dispatch = useDispatch<AppDispatch>();
   // Utilizar hooks do Redux
   const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
   const { terapeutas } = useFetchTerapeutas();
@@ -241,6 +245,9 @@ export default function Sessoes() {
   const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
   const [expandedTherapists, setExpandedTherapists] = useState<string[]>([]);
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
+  const [loadingPagamentoSessaoId, setLoadingPagamentoSessaoId] = useState<
+    string | null
+  >(null);
   const [loadingBulkUpdate, setLoadingBulkUpdate] = useState<string | null>(
     null,
   );
@@ -460,6 +467,46 @@ export default function Sessoes() {
       mutate(); // Reverter em caso de erro
     } finally {
       setLoadingBulkPagamento(null);
+    }
+  };
+
+  const handleUpdatePagamento = async (
+    sessao: Sessao,
+    pagamentoRealizado: boolean,
+  ) => {
+    if (!canEdit || loadingPagamentoSessaoId === sessao.id) {
+      return;
+    }
+
+    const previousSessoes = sessoes;
+    setLoadingPagamentoSessaoId(sessao.id);
+
+    mutate(
+      (currentData) =>
+        currentData?.map((item) =>
+          item.id === sessao.id ? { ...item, pagamentoRealizado } : item,
+        ),
+      false,
+    );
+
+    try {
+      await dispatch(
+        updatePagamentoSessao({ id: sessao.id, pagamentoRealizado }),
+      ).unwrap();
+
+      await mutate();
+      toast.success(
+        `Pagamento da sessão foi ${pagamentoRealizado ? "marcado" : "desmarcado"} com sucesso.`,
+      );
+    } catch (error) {
+      mutate(previousSessoes, false);
+      toast.error(
+        typeof error === "string"
+          ? error
+          : "Erro ao atualizar o status do pagamento.",
+      );
+    } finally {
+      setLoadingPagamentoSessaoId(null);
     }
   };
 
@@ -898,8 +945,10 @@ export default function Sessoes() {
           groupedSessoes={groupedSessoesByTerapeuta}
           canEdit={canEdit}
           handleEditSessao={handleEditSessao}
+          handleUpdatePagamento={handleUpdatePagamento}
           handleBulkUpdateRepasse={handleBulkUpdateRepasse}
           loadingBulkUpdate={loadingBulkUpdate}
+          loadingPagamentoSessaoId={loadingPagamentoSessaoId}
           expandedTherapists={expandedTherapists}
           expandedPatients={expandedPatients}
           toggleAccordion={toggleAccordion}

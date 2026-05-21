@@ -54,12 +54,17 @@ export interface Sessao {
   // Campos específicos da sessão
   valorRepasse?: number;
   repasseRealizado?: boolean;
-  pagamentoRealizado?: boolean;
+  pagamentoRealizado: boolean;
   notaFiscal?: "Não Emitida" | "Emitida" | "Enviada";
 
   // Datas de controle
   created_at?: string;
   updated_at?: string;
+}
+
+export interface SessaoPagamentoStatusUpdate {
+  id: string;
+  pagamentoRealizado: boolean;
 }
 
 export interface Agendamento {

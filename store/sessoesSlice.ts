@@ -68,6 +68,28 @@ export const createSessao = createAsyncThunk<
   }
 });
 
+export const updatePagamentoSessao = createAsyncThunk<
+  Sessao,
+  { id: string; pagamentoRealizado: boolean },
+  { rejectValue: string }
+>(
+  "sessoes/updatePagamentoSessao",
+  async ({ id, pagamentoRealizado }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put<Sessao>(
+        `${API_ENDPOINT}/${id}`,
+        { pagamentoRealizado },
+      );
+      return response.data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        return rejectWithValue(error.response?.data?.error || error.message);
+      }
+      return rejectWithValue("Erro ao atualizar pagamento da sessão");
+    }
+  },
+);
+
 // NOVO: Thunk para deletar uma sessão
 export const deleteSessao = createAsyncThunk<
   string,
@@ -141,6 +163,25 @@ const sessoesSlice = createSlice({
     builder.addCase(updateSessao.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || "Erro ao atualizar sessão";
+    });
+
+    builder.addCase(updatePagamentoSessao.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+    builder.addCase(
+      updatePagamentoSessao.fulfilled,
+      (state, action: PayloadAction<Sessao>) => {
+        state.loading = false;
+        const index = state.data.findIndex((s) => s.id === action.payload.id);
+        if (index !== -1) {
+          state.data[index] = action.payload;
+        }
+      },
+    );
+    builder.addCase(updatePagamentoSessao.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Erro ao atualizar pagamento da sessão";
     });
 
     // NOVO: Create Sessão

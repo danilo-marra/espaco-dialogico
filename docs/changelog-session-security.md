@@ -26,10 +26,10 @@ Para mitigar esse risco, o sistema foi refatorado para utilizar um modelo de ses
 
 - **`utils/authMiddleware.js` (Modificado)**: Este middleware crucial foi atualizado para a nova lógica de validação de sessão. Ele agora:
 
-  1.  Decodifica o JWT para extrair o ID da sessão.
-  2.  Consulta a tabela `user_sessions` para verificar a existência e validade da sessão.
-  3.  Se a sessão for válida, busca os dados completos do usuário no banco de dados e os anexa ao objeto `request`.
-  4.  Retorna um erro de autenticação (`401`) se a sessão for inválida, expirada ou não encontrada.
+  1. Decodifica o JWT para extrair o ID da sessão.
+  2. Consulta a tabela `user_sessions` para verificar a existência e validade da sessão.
+  3. Se a sessão for válida, busca os dados completos do usuário no banco de dados e os anexa ao objeto `request`.
+  4. Retorna um erro de autenticação (`401`) se a sessão for inválida, expirada ou não encontrada.
 
 - **`pages/api/v1/auth/logout.js` (Novo)**: Criado um novo endpoint que permite aos usuários invalidar suas sessões ativas. Ao ser acionado, este endpoint remove a entrada correspondente da tabela `user_sessions`, tornando o JWT associado imediatamente inválido.
 
@@ -50,3 +50,28 @@ Esta atualização melhora significativamente a segurança do sistema ao:
 ## Verificação
 
 Todas as alterações foram validadas através de uma suíte abrangente de testes de integração. Os testes foram atualizados e novos testes foram adicionados para cobrir os fluxos de login, logout e acesso a rotas protegidas com a nova lógica de sessão. Todos os testes foram executados com sucesso, garantindo a funcionalidade e a segurança da aplicação.
+
+## Atualização Sessões: Toggle de Pagamento e Cobertura de Integração (2026-05-21)
+
+### Escopo entregue
+
+- Toggle individual de `pagamentoRealizado` por item na listagem de Sessões.
+- Persistência imediata via `PUT /api/v1/sessoes/[id]` com tratamento explícito de erros.
+- Reforço de autorização na rota por ID com `requirePermission("sessoes")`.
+- Rollback visual no dashboard em falha de persistência e bloqueio de cliques repetidos enquanto o item está pendente.
+
+### Contrato de erro validado
+
+- `403`: usuário sem permissão para recurso `sessoes`.
+- `404`: sessão inexistente (`NotFoundError`).
+- `500`: falha interna de persistência no update de pagamento.
+
+### Cobertura de testes adicionada
+
+- Integração: sucesso, permissão negada, sessão inexistente (`404`), falha interna (`500`) e consistência do dado.
+- Integração: concorrência no mesmo registro com regra `last-write-wins`.
+- Frontend: toggle individual, estado pendente desabilitado, rollback visual e ausência de retry automático.
+
+### Referência
+
+- Evidências de execução e matriz de mensagens finais em `specs/003-add-tests-and-feature-sessions/quickstart.md`.

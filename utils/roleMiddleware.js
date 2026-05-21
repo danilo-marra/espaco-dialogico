@@ -35,6 +35,7 @@ const ROLE_PERMISSIONS = {
     "agendamentos",
     "pacientes", // Adicionado: terapeuta precisa acessar pacientes (será filtrado pelo middleware)
     "terapeutas", // Adicionado: terapeuta precisa acessar sua própria informação
+    "sessoes",
     "perfil",
   ],
   secretaria: [
