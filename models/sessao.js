@@ -1,5 +1,5 @@
 import database from "infra/database.js";
-import { ValidationError, NotFoundError } from "infra/errors.js";
+import { ServiceError, ValidationError, NotFoundError } from "infra/errors.js";
 
 async function create(sessaoData) {
   try {
@@ -337,8 +337,15 @@ async function update(id, sessaoData) {
     return await getById(id);
   } catch (error) {
     console.error("Erro ao atualizar sessão:", error);
-    throw new ValidationError({
-      message: `Erro ao atualizar sessão: ${error.message}`,
+
+    if (error.name === "ValidationError" || error.name === "NotFoundError") {
+      throw error;
+    }
+
+    throw new ServiceError({
+      cause: error,
+      message: "Erro ao atualizar sessão",
+      action: "Tente novamente.",
     });
   }
 }

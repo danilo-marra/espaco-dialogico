@@ -2,31 +2,22 @@ import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
+import { requirePermission } from "utils/roleMiddleware.js";
 
 const router = createRouter();
 
-// Aplicar middleware de autenticação
-router.use(authMiddleware);
-
-router.get(getHandler);
-router.put(putHandler);
-router.delete(deleteHandler);
+router.get(authMiddleware, getHandler);
+router.put(authMiddleware, requirePermission("sessoes"), putHandler);
+router.delete(authMiddleware, requirePermission("sessoes"), deleteHandler);
 
 // Exportar o handler com tratamento de erros
 export default router.handler(controller.errorHandlers);
 
 // Buscar uma sessão específica por ID
 async function getHandler(request, response) {
-  try {
-    const id = request.query.id;
-    const sessaoFound = await sessao.getById(id);
-    return response.status(200).json(sessaoFound);
-  } catch (error) {
-    if (error.name === "NotFoundError") {
-      return response.status(404).json({ error: error.message });
-    }
-    return response.status(500).json({ error: "Erro ao buscar sessão" });
-  }
+  const id = request.query.id;
+  const sessaoFound = await sessao.getById(id);
+  return response.status(200).json(sessaoFound);
 }
 
 // Atualizar uma sessão
@@ -42,7 +33,6 @@ async function putHandler(request, response) {
       notaFiscal,
     } = request.body;
 
-    // Validar tipo de sessão se fornecido
     if (tipoSessao) {
       const tiposSessaoValidos = [
         "Anamnese",
@@ -50,16 +40,15 @@ async function putHandler(request, response) {
         "Avaliação",
         "Visitar Escolar",
       ];
+
       if (!tiposSessaoValidos.includes(tipoSessao)) {
-        return response.status(400).json({
-          error: "Tipo de sessão inválido",
-        });
+        return response.status(400).json({ error: "Tipo de sessão inválido" });
       }
     }
 
-    // Validar valor da sessão se fornecido
     if (notaFiscal) {
       const notasFiscaisValidas = ["Não Emitida", "Emitida", "Enviada"];
+
       if (!notasFiscaisValidas.includes(notaFiscal)) {
         return response.status(400).json({
           error: "Status de nota fiscal inválido",
@@ -67,7 +56,6 @@ async function putHandler(request, response) {
       }
     }
 
-    // Usar o método update do modelo
     const updatedSessao = await sessao.update(id, {
       tipoSessao,
       valorSessao,
@@ -79,36 +67,21 @@ async function putHandler(request, response) {
 
     return response.status(200).json(updatedSessao);
   } catch (error) {
-    console.error("Erro ao atualizar sessão:", error);
-
-    if (error.name === "NotFoundError") {
-      return response.status(404).json({ error: error.message });
+    if (error?.name === "ServiceError") {
+      return response.status(500).json({
+        error: "Erro interno ao atualizar sessão",
+      });
     }
 
-    if (error.name === "ValidationError") {
-      return response.status(400).json({ error: error.message });
-    }
-
-    return response.status(500).json({ error: "Erro ao atualizar sessão" });
+    throw error;
   }
 }
 
 // Excluir uma sessão
 async function deleteHandler(request, response) {
-  try {
-    const id = request.query.id;
+  const id = request.query.id;
 
-    // Usar o método remove do modelo
-    await sessao.remove(id);
+  await sessao.remove(id);
 
-    return response.status(204).send();
-  } catch (error) {
-    console.error("Erro ao excluir sessão:", error);
-
-    if (error.name === "NotFoundError") {
-      return response.status(404).json({ error: error.message });
-    }
-
-    return response.status(500).json({ error: "Erro ao excluir sessão" });
-  }
+  return response.status(204).send();
 }

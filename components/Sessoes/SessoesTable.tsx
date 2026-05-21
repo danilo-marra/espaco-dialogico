@@ -81,6 +81,10 @@ interface SessoesTableProps {
   groupedSessoes: Record<string, Sessao[]>;
   canEdit: boolean;
   handleEditSessao: (_sessao: Sessao) => void;
+  handleUpdatePagamento: (
+    _sessao: Sessao,
+    _pagamentoRealizado: boolean,
+  ) => void;
   handleBulkUpdateRepasse: (
     _sessoes: Sessao[],
     _repasseRealizado: boolean,
@@ -97,6 +101,7 @@ interface SessoesTableProps {
     _groupName: string,
   ) => void;
   loadingBulkPagamento: string | null;
+  loadingPagamentoSessaoId: string | null;
   expandedPatients: string[];
 }
 
@@ -104,12 +109,14 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
   groupedSessoes,
   canEdit,
   handleEditSessao,
+  handleUpdatePagamento,
   handleBulkUpdateRepasse,
   loadingBulkUpdate,
   expandedTherapists,
   toggleAccordion,
   handleBulkUpdatePagamento,
   loadingBulkPagamento,
+  loadingPagamentoSessaoId,
   expandedPatients,
 }) => {
   // Função para agrupar sessões por terapeuta e depois por paciente
@@ -363,7 +370,38 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                     {sessao.notaFiscal}
                                   </span>
                                 </div>
-                                <div>
+                                <div className="flex flex-col items-end gap-1.5">
+                                  {canEdit && (
+                                    <div
+                                      className="flex items-center justify-end gap-2"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={!!sessao.pagamentoRealizado}
+                                        disabled={
+                                          loadingPagamentoSessaoId === sessao.id
+                                        }
+                                        onChange={(e) =>
+                                          handleUpdatePagamento(
+                                            sessao,
+                                            e.target.checked,
+                                          )
+                                        }
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                        aria-label={`Marcar pagamento da sessão de ${sessao.pacienteInfo?.nome || "paciente"}`}
+                                        title={
+                                          sessao.pagamentoRealizado
+                                            ? "Desmarcar pagamento"
+                                            : "Marcar pagamento"
+                                        }
+                                      />
+                                      <span className="text-xs font-medium text-gray-500">
+                                        Atualizar pagamento
+                                      </span>
+                                    </div>
+                                  )}
                                   <span
                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPagamentoStatusColor(
                                       sessao.pagamentoRealizado,
