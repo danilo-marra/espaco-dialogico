@@ -9,6 +9,7 @@ import {
   createTerapeutaFixture,
   setupSessaoIntegrationTest,
 } from "tests/integration/api/v1/sessoes/fixtures.js";
+import database from "infra/database.js";
 
 const port = process.env.PORT || process.env.NEXT_PUBLIC_PORT || 3000;
 const TEST_NAME = "PUT session payment errors";
@@ -75,21 +76,67 @@ describe("PUT /api/v1/sessoes/[id] - erros", () => {
     expect(errorBody.name).toBe("NotFoundError");
   });
 
-  test("deve retornar 500 para erro interno de persistencia", async () => {
+  test("deve retornar 500 para falha interna de persistencia", async () => {
     const adminToken = await prepareAuthentication(port);
+    const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-    const updateResponse = await fetch(
-      `http://localhost:${port}/api/v1/sessoes/id-invalido`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({ pagamentoRealizado: true }),
-      },
+    const terapeutaFixture = await createTerapeutaFixture(`PE-${uniqueSuffix}`);
+    const pacienteFixture = await createPacienteFixture(
+      terapeutaFixture.id,
+      `PE-${uniqueSuffix}`,
     );
+    const sessaoExistente = await createSessaoFixture({
+      terapeutaId: terapeutaFixture.id,
+      pacienteId: pacienteFixture.id,
+    });
 
-    expect(updateResponse.status).toBe(500);
+    const functionName = `force_sessao_update_error_${uniqueSuffix}`;
+    const triggerName = `force_sessao_update_error_trigger_${uniqueSuffix}`;
+
+    await database.query({
+      text: `
+        CREATE OR REPLACE FUNCTION ${functionName}()
+        RETURNS trigger AS $$
+        BEGIN
+          RAISE EXCEPTION 'forced persistence failure';
+        END;
+        $$ LANGUAGE plpgsql;
+      `,
+    });
+
+    await database.query({
+      text: `
+        CREATE TRIGGER ${triggerName}
+        BEFORE UPDATE ON sessoes
+        FOR EACH ROW
+        WHEN (NEW.id = '${sessaoExistente.id}')
+        EXECUTE FUNCTION ${functionName}();
+      `,
+    });
+
+    try {
+      const updateResponse = await fetch(
+        `http://localhost:${port}/api/v1/sessoes/${sessaoExistente.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${adminToken}`,
+          },
+          body: JSON.stringify({ pagamentoRealizado: true }),
+        },
+      );
+
+      expect(updateResponse.status).toBe(500);
+      const errorBody = await updateResponse.json();
+      expect(errorBody.error).toBe("Erro interno ao atualizar sessão");
+    } finally {
+      await database.query({
+        text: `DROP TRIGGER IF EXISTS ${triggerName} ON sessoes;`,
+      });
+      await database.query({
+        text: `DROP FUNCTION IF EXISTS ${functionName}();`,
+      });
+    }
   });
 });

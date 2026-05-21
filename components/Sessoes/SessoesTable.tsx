@@ -390,7 +390,7 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                         }
                                         onClick={(e) => e.stopPropagation()}
                                         className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:cursor-not-allowed disabled:opacity-50"
-                                        aria-label={`Marcar pagamento da sessão de ${sessao.pacienteInfo?.nome || "paciente"}`}
+                                        aria-label={`${sessao.pagamentoRealizado ? "Desmarcar" : "Marcar"} pagamento da sessão de ${sessao.pacienteInfo?.nome || "paciente"}`}
                                         title={
                                           sessao.pagamentoRealizado
                                             ? "Desmarcar pagamento"

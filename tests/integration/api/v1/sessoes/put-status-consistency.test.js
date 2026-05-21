@@ -113,11 +113,10 @@ describe("PUT /api/v1/sessoes/[id] - consistencia", () => {
     const bodyA = await responseA.json();
     const bodyB = await responseB.json();
 
-    const latestBody =
-      new Date(bodyA.updated_at).getTime() >=
-      new Date(bodyB.updated_at).getTime()
-        ? bodyA
-        : bodyB;
+    const updatedAtA = new Date(bodyA.updated_at).getTime();
+    const updatedAtB = new Date(bodyB.updated_at).getTime();
+
+    const latestBody = updatedAtA >= updatedAtB ? bodyA : bodyB;
 
     const getResponse = await fetch(
       `http://localhost:${port}/api/v1/sessoes/${sessaoExistente.id}`,
@@ -129,8 +128,13 @@ describe("PUT /api/v1/sessoes/[id] - consistencia", () => {
 
     expect(getResponse.status).toBe(200);
     const persistedSessao = await getResponse.json();
-    expect(persistedSessao.pagamentoRealizado).toBe(
-      latestBody.pagamentoRealizado,
+    const expectedPagamentoValues =
+      updatedAtA === updatedAtB
+        ? [bodyA.pagamentoRealizado, bodyB.pagamentoRealizado]
+        : [latestBody.pagamentoRealizado];
+
+    expect(expectedPagamentoValues).toContain(
+      persistedSessao.pagamentoRealizado,
     );
   });
 });

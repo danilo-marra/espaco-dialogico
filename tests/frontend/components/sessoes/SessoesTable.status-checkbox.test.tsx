@@ -102,6 +102,43 @@ describe("SessoesTable status checkbox", () => {
     );
   });
 
+  test("deve usar aria-label de desmarcar quando pagamento ja estiver realizado", async () => {
+    const user = userEvent.setup();
+    const handleUpdatePagamento = jest.fn();
+
+    render(
+      <SessoesTable
+        groupedSessoes={{
+          "terapeuta-1": [createSessao({ pagamentoRealizado: true })],
+        }}
+        canEdit={true}
+        handleEditSessao={jest.fn()}
+        handleUpdatePagamento={handleUpdatePagamento}
+        handleBulkUpdateRepasse={jest.fn()}
+        loadingBulkUpdate={null}
+        expandedTherapists={["terapeuta-1"]}
+        toggleAccordion={jest.fn()}
+        handleBulkUpdatePagamento={jest.fn()}
+        loadingBulkPagamento={null}
+        loadingPagamentoSessaoId={null}
+        expandedPatients={["terapeuta-1-paciente-1"]}
+      />,
+    );
+
+    const checkbox = screen.getByLabelText(
+      /Desmarcar pagamento da sessão de Paciente Teste/i,
+    );
+
+    expect(checkbox).toBeChecked();
+
+    await user.click(checkbox);
+
+    expect(handleUpdatePagamento).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "sessao-1" }),
+      false,
+    );
+  });
+
   test("deve desabilitar o checkbox enquanto a sessão estiver em processamento", async () => {
     const user = userEvent.setup();
     const handleUpdatePagamento = jest.fn();

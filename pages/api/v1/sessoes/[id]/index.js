@@ -1,12 +1,22 @@
 import { createRouter } from "next-connect";
 import controller from "infra/controller.js";
 import sessao from "models/sessao.js";
+import terapeuta from "models/terapeuta.js";
 import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
+import {
+  requireTerapeutaAccess,
+  terapeutaTemAcessoPaciente,
+} from "utils/terapeutaMiddleware.js";
 
 const router = createRouter();
 
-router.get(authMiddleware, getHandler);
+router.get(
+  authMiddleware,
+  requirePermission("sessoes"),
+  requireTerapeutaAccess(),
+  getHandler,
+);
 router.put(authMiddleware, requirePermission("sessoes"), putHandler);
 router.delete(authMiddleware, requirePermission("sessoes"), deleteHandler);
 
@@ -17,6 +27,13 @@ export default router.handler(controller.errorHandlers);
 async function getHandler(request, response) {
   const id = request.query.id;
   const sessaoFound = await sessao.getById(id);
+
+  const hasAccess = await therapistHasSessionAccess(request, sessaoFound);
+
+  if (!hasAccess) {
+    return response.status(403).json({ error: "Acesso negado" });
+  }
+
   return response.status(200).json(sessaoFound);
 }
 
@@ -24,6 +41,7 @@ async function getHandler(request, response) {
 async function putHandler(request, response) {
   try {
     const id = request.query.id;
+    const sessaoFound = await sessao.getById(id);
     const {
       tipoSessao,
       valorSessao,
@@ -32,6 +50,12 @@ async function putHandler(request, response) {
       pagamentoRealizado,
       notaFiscal,
     } = request.body;
+
+    const hasAccess = await therapistHasSessionAccess(request, sessaoFound);
+
+    if (!hasAccess) {
+      return response.status(403).json({ error: "Acesso negado" });
+    }
 
     if (tipoSessao) {
       const tiposSessaoValidos = [
@@ -80,8 +104,34 @@ async function putHandler(request, response) {
 // Excluir uma sessão
 async function deleteHandler(request, response) {
   const id = request.query.id;
+  const sessaoFound = await sessao.getById(id);
+
+  const hasAccess = await therapistHasSessionAccess(request, sessaoFound);
+
+  if (!hasAccess) {
+    return response.status(403).json({ error: "Acesso negado" });
+  }
 
   await sessao.remove(id);
 
   return response.status(204).send();
+}
+
+async function therapistHasSessionAccess(request, sessaoFound) {
+  if (request.user?.role !== "terapeuta") {
+    return true;
+  }
+
+  const terapeutaFound =
+    request.terapeutaId || (await terapeuta.getByUserId(request.user.id));
+  const terapeutaId =
+    typeof terapeutaFound === "string" ? terapeutaFound : terapeutaFound?.id;
+
+  const acessoPorSessao =
+    terapeutaId && sessaoFound.terapeuta_id === terapeutaId;
+  const acessoPorPaciente = terapeutaId
+    ? await terapeutaTemAcessoPaciente(terapeutaId, sessaoFound.paciente_id)
+    : false;
+
+  return acessoPorSessao || acessoPorPaciente;
 }
