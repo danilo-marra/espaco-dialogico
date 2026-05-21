@@ -374,22 +374,16 @@ async function putHandler(req, res) {
       const sessaoStartTime = Date.now();
 
       let sessoesAtualizadas;
-      try {
-        if (isProduction || isStaging) {
-          sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
-            atualizados,
-            agendamentoData,
-          );
-        } else {
-          sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
-            atualizados,
-            agendamentoData,
-          );
-        }
-      } catch (error) {
-        console.error("Erro ao atualizar sessões:", error);
-        // Não falhar a atualização se houver erro nas sessões
-        sessoesAtualizadas = 0;
+      if (isProduction || isStaging) {
+        sessoesAtualizadas = await atualizarSessoesDeAgendamentosOtimizado(
+          atualizados,
+          agendamentoData,
+        );
+      } else {
+        sessoesAtualizadas = await atualizarSessoesDeAgendamentos(
+          atualizados,
+          agendamentoData,
+        );
       }
 
       const endTime = Date.now();
@@ -577,99 +571,124 @@ const timeoutMs = isStaging ? 30000 : isProduction ? 45000 : 55000;
 export default withTimeout(router.handler(controller.errorHandlers), timeoutMs);
 
 // Função auxiliar para atualizar sessões associadas aos agendamentos
-async function atualizarSessoesDeAgendamentos(
-  agendamentosAtualizados,
-  agendamentoData,
-) {
+async function atualizarSessoesDeAgendamentos(agendamentosAtualizados) {
   console.log("🔄 Atualizando sessões dos agendamentos recorrentes...");
   let sessoesProcessadas = 0;
 
-  try {
-    for (const agendamentoAtualizado of agendamentosAtualizados) {
-      const sessaoExistente = await sessao.getFiltered({
-        agendamento_id: agendamentoAtualizado.id,
-      });
+  for (const agendamentoAtualizado of agendamentosAtualizados) {
+    const sessaoExistente = await sessao.getFiltered({
+      agendamento_id: agendamentoAtualizado.id,
+    });
 
-      const shouldCreateSession =
-        (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
-        agendamentoAtualizado.statusAgendamento !== "Cancelado";
-      const sessionAlreadyExists =
-        sessaoExistente && sessaoExistente.length > 0;
+    const sessaoRealizadaAtual = obterBooleanAgendamento(
+      agendamentoAtualizado,
+      "sessaoRealizada",
+      "sessao_realizada",
+    );
+    const faltaAtual = obterBooleanAgendamento(
+      agendamentoAtualizado,
+      "falta",
+      "falta",
+    );
+    const statusAtual = obterCampoAgendamento(
+      agendamentoAtualizado,
+      "statusAgendamento",
+      "status_agendamento",
+    );
 
-      if (shouldCreateSession) {
-        if (sessionAlreadyExists) {
-          // Atualizar sessão existente
-          const sessaoAssociada = sessaoExistente[0];
-          const sessaoUpdateData = {};
+    const shouldCreateSession =
+      (sessaoRealizadaAtual || faltaAtual) && statusAtual !== "Cancelado";
+    const sessionAlreadyExists = sessaoExistente && sessaoExistente.length > 0;
 
-          if (agendamentoData.tipoAgendamento) {
-            sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
-              agendamentoData.tipoAgendamento,
-            );
-          }
-          if (agendamentoData.valorAgendamento !== undefined) {
-            sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
-          }
-          if (agendamentoData.statusAgendamento) {
-            sessaoUpdateData.statusSessao =
-              mapearStatusAgendamentoParaStatusSessao(
-                agendamentoData.statusAgendamento,
-              );
-          }
+    if (shouldCreateSession) {
+      if (sessionAlreadyExists) {
+        const sessaoAssociada = sessaoExistente[0];
+        const sessaoUpdateData = {};
 
-          if (Object.keys(sessaoUpdateData).length > 0) {
-            await sessao.update(sessaoAssociada.id, sessaoUpdateData);
-            sessoesProcessadas++;
-          }
-        } else {
-          // Criar nova sessão
-          const newSessaoData = {
-            terapeuta_id: agendamentoAtualizado.terapeuta_id,
-            paciente_id: agendamentoAtualizado.paciente_id,
-            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-              agendamentoData.tipoAgendamento,
-            ),
-            valorSessao: agendamentoData.valorAgendamento,
-            statusSessao: mapearStatusAgendamentoParaStatusSessao(
-              agendamentoData.statusAgendamento,
-            ),
-            agendamento_id: agendamentoAtualizado.id,
-          };
-          await sessao.create(newSessaoData);
+        const tipoAgendamentoAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "tipoAgendamento",
+          "tipo_agendamento",
+        );
+        const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+          agendamentoAtualizado,
+          "valorAgendamento",
+          "valor_agendamento",
+        );
+        const terapeutaAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "terapeuta_id",
+          "terapeutaId",
+        );
+        const pacienteAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "paciente_id",
+          "pacienteId",
+        );
+
+        if (tipoAgendamentoAtual !== undefined) {
+          sessaoUpdateData.tipoSessao =
+            mapearTipoAgendamentoParaTipoSessao(tipoAgendamentoAtual);
+        }
+        if (valorAgendamentoAtual !== undefined) {
+          sessaoUpdateData.valorSessao = valorAgendamentoAtual;
+        }
+        if (terapeutaAtual !== undefined) {
+          sessaoUpdateData.terapeuta_id = terapeutaAtual;
+        }
+        if (pacienteAtual !== undefined) {
+          sessaoUpdateData.paciente_id = pacienteAtual;
+        }
+
+        if (Object.keys(sessaoUpdateData).length > 0) {
+          await sessao.update(sessaoAssociada.id, sessaoUpdateData);
           sessoesProcessadas++;
         }
       } else {
-        // sessaoRealizada é false OU agendamento foi cancelado, então deletar sessão se existir
-        if (sessionAlreadyExists) {
-          await sessao.remove(sessaoExistente[0].id);
-          sessoesProcessadas++;
-        }
-      }
+        const tipoAgendamentoAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "tipoAgendamento",
+          "tipo_agendamento",
+        );
+        const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+          agendamentoAtualizado,
+          "valorAgendamento",
+          "valor_agendamento",
+        );
+        const statusAgendamentoAtual = obterCampoAgendamento(
+          agendamentoAtualizado,
+          "statusAgendamento",
+          "status_agendamento",
+        );
 
-      // Lógica adicional: Se o agendamento foi cancelado, sempre remover a sessão (mesmo que sessaoRealizada seja true)
-      if (
-        agendamentoAtualizado.statusAgendamento === "Cancelado" &&
-        sessionAlreadyExists &&
-        shouldCreateSession
-      ) {
-        try {
-          await sessao.remove(sessaoExistente[0].id);
-          console.log(
-            `Sessão removida para agendamento cancelado: ${agendamentoAtualizado.id}`,
-          );
-        } catch (error) {
-          console.error(
-            `Erro ao remover sessão do agendamento cancelado ${agendamentoAtualizado.id}:`,
-            error,
-          );
-        }
+        const newSessaoData = {
+          terapeuta_id: obterCampoAgendamento(
+            agendamentoAtualizado,
+            "terapeuta_id",
+            "terapeutaId",
+          ),
+          paciente_id: obterCampoAgendamento(
+            agendamentoAtualizado,
+            "paciente_id",
+            "pacienteId",
+          ),
+          tipoSessao: mapearTipoAgendamentoParaTipoSessao(tipoAgendamentoAtual),
+          valorSessao: valorAgendamentoAtual,
+          statusSessao: mapearStatusAgendamentoParaStatusSessao(
+            statusAgendamentoAtual,
+          ),
+          agendamento_id: agendamentoAtualizado.id,
+        };
+        await sessao.create(newSessaoData);
+        sessoesProcessadas++;
       }
+    } else if (sessionAlreadyExists) {
+      await sessao.remove(sessaoExistente[0].id);
+      sessoesProcessadas++;
     }
-
-    console.log(`✅ ${sessoesProcessadas} sessões processadas com sucesso`);
-  } catch (error) {
-    console.error("⚠️ Erro ao processar algumas sessões:", error.message);
   }
+
+  console.log(`✅ ${sessoesProcessadas} sessões processadas com sucesso`);
 
   return sessoesProcessadas;
 }
@@ -677,7 +696,6 @@ async function atualizarSessoesDeAgendamentos(
 // Função auxiliar para atualizar sessões associadas aos agendamentos (método otimizado)
 async function atualizarSessoesDeAgendamentosOtimizado(
   agendamentosAtualizados,
-  agendamentoData,
 ) {
   console.log(
     "🔄 Atualizando sessões dos agendamentos recorrentes (otimizado)...",
@@ -694,70 +712,152 @@ async function atualizarSessoesDeAgendamentosOtimizado(
         agendamento_id: agendamentoAtualizado.id,
       });
 
+      const sessaoRealizadaAtual = obterBooleanAgendamento(
+        agendamentoAtualizado,
+        "sessaoRealizada",
+        "sessao_realizada",
+      );
+      const faltaAtual = obterBooleanAgendamento(
+        agendamentoAtualizado,
+        "falta",
+        "falta",
+      );
+      const statusAtual = obterCampoAgendamento(
+        agendamentoAtualizado,
+        "statusAgendamento",
+        "status_agendamento",
+      );
+
+      let sessaoRealizadaEfetiva = sessaoRealizadaAtual;
+      let faltaEfetiva = faltaAtual;
+      let statusEfetivo = statusAtual;
+
+      // No fluxo otimizado, alguns campos podem não vir no retorno.
+      // Quando faltar informação, buscamos o estado persistido para evitar decisões incorretas.
+      if (
+        sessaoRealizadaEfetiva === undefined ||
+        faltaEfetiva === undefined ||
+        statusEfetivo === undefined
+      ) {
+        const agendamentoPersistido = await agendamento.getById(
+          agendamentoAtualizado.id,
+        );
+
+        if (sessaoRealizadaEfetiva === undefined) {
+          sessaoRealizadaEfetiva = obterBooleanAgendamento(
+            agendamentoPersistido,
+            "sessaoRealizada",
+            "sessao_realizada",
+          );
+        }
+
+        if (faltaEfetiva === undefined) {
+          faltaEfetiva = obterBooleanAgendamento(
+            agendamentoPersistido,
+            "falta",
+            "falta",
+          );
+        }
+
+        if (statusEfetivo === undefined) {
+          statusEfetivo = obterCampoAgendamento(
+            agendamentoPersistido,
+            "statusAgendamento",
+            "status_agendamento",
+          );
+        }
+      }
+
       const shouldCreateSession =
-        (agendamentoData.sessaoRealizada || agendamentoData.falta) &&
-        agendamentoAtualizado.statusAgendamento !== "Cancelado";
+        (sessaoRealizadaEfetiva || faltaEfetiva) &&
+        statusEfetivo !== "Cancelado";
       const sessionAlreadyExists =
         sessaoExistente && sessaoExistente.length > 0;
 
       if (shouldCreateSession) {
         if (sessionAlreadyExists) {
-          // Atualizar sessão existente
           const sessaoAssociada = sessaoExistente[0];
           const sessaoUpdateData = {
             id: sessaoAssociada.id,
           };
 
-          if (agendamentoData.tipoAgendamento) {
-            sessaoUpdateData.tipoSessao = mapearTipoAgendamentoParaTipoSessao(
-              agendamentoData.tipoAgendamento,
-            );
+          const tipoAgendamentoAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "tipoAgendamento",
+            "tipo_agendamento",
+          );
+          const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+            agendamentoAtualizado,
+            "valorAgendamento",
+            "valor_agendamento",
+          );
+          const terapeutaAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "terapeuta_id",
+            "terapeutaId",
+          );
+          const pacienteAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "paciente_id",
+            "pacienteId",
+          );
+
+          if (tipoAgendamentoAtual !== undefined) {
+            sessaoUpdateData.tipoSessao =
+              mapearTipoAgendamentoParaTipoSessao(tipoAgendamentoAtual);
           }
-          if (agendamentoData.valorAgendamento !== undefined) {
-            sessaoUpdateData.valorSessao = agendamentoData.valorAgendamento;
+          if (valorAgendamentoAtual !== undefined) {
+            sessaoUpdateData.valorSessao = valorAgendamentoAtual;
           }
-          if (agendamentoData.statusAgendamento) {
-            sessaoUpdateData.statusSessao =
-              mapearStatusAgendamentoParaStatusSessao(
-                agendamentoData.statusAgendamento,
-              );
+          if (terapeutaAtual !== undefined) {
+            sessaoUpdateData.terapeuta_id = terapeutaAtual;
+          }
+          if (pacienteAtual !== undefined) {
+            sessaoUpdateData.paciente_id = pacienteAtual;
           }
 
           if (Object.keys(sessaoUpdateData).length > 1) {
             sessoesParaAtualizar.push(sessaoUpdateData);
           }
         } else {
-          // Criar nova sessão
+          const tipoAgendamentoAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "tipoAgendamento",
+            "tipo_agendamento",
+          );
+          const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+            agendamentoAtualizado,
+            "valorAgendamento",
+            "valor_agendamento",
+          );
+          const statusAgendamentoAtual = obterCampoAgendamento(
+            agendamentoAtualizado,
+            "statusAgendamento",
+            "status_agendamento",
+          );
+
           sessoesParaCriar.push({
-            terapeuta_id: agendamentoAtualizado.terapeuta_id,
-            paciente_id: agendamentoAtualizado.paciente_id,
-            tipoSessao: mapearTipoAgendamentoParaTipoSessao(
-              agendamentoData.tipoAgendamento,
+            terapeuta_id: obterCampoAgendamento(
+              agendamentoAtualizado,
+              "terapeuta_id",
+              "terapeutaId",
             ),
-            valorSessao: agendamentoData.valorAgendamento,
+            paciente_id: obterCampoAgendamento(
+              agendamentoAtualizado,
+              "paciente_id",
+              "pacienteId",
+            ),
+            tipoSessao:
+              mapearTipoAgendamentoParaTipoSessao(tipoAgendamentoAtual),
+            valorSessao: valorAgendamentoAtual,
             statusSessao: mapearStatusAgendamentoParaStatusSessao(
-              agendamentoData.statusAgendamento,
+              statusAgendamentoAtual,
             ),
             agendamento_id: agendamentoAtualizado.id,
           });
         }
-      } else {
-        // sessaoRealizada é false OU agendamento foi cancelado, então deletar sessão se existir
-        if (sessionAlreadyExists) {
-          sessoesParaDeletar.push(sessaoExistente[0].id);
-        }
-      }
-
-      // Lógica adicional: Se o agendamento foi cancelado, sempre remover a sessão
-      if (
-        agendamentoAtualizado.statusAgendamento === "Cancelado" &&
-        sessionAlreadyExists &&
-        shouldCreateSession
-      ) {
-        // Se a sessão não foi adicionada para deletar ainda, adicionar
-        if (!sessoesParaDeletar.includes(sessaoExistente[0].id)) {
-          sessoesParaDeletar.push(sessaoExistente[0].id);
-        }
+      } else if (sessionAlreadyExists) {
+        sessoesParaDeletar.push(sessaoExistente[0].id);
       }
     }
 
@@ -837,10 +937,32 @@ async function atualizarSessoesDeAgendamentosOtimizado(
 
     console.log(`✅ ${sessoesProcessadas} sessões processadas com sucesso`);
   } catch (error) {
-    console.error("⚠️ Erro ao processar algumas sessões:", error.message);
+    console.error(
+      "⚠️ Erro ao processar sessões em recorrência:",
+      error.message,
+    );
+    throw error;
   }
 
   return sessoesProcessadas;
+}
+
+function obterCampoAgendamento(obj, campoA, campoB) {
+  if (!obj) return undefined;
+  if (obj[campoA] !== undefined) return obj[campoA];
+  return obj[campoB];
+}
+
+function obterNumeroCampoAgendamento(obj, campoA, campoB) {
+  const valor = obterCampoAgendamento(obj, campoA, campoB);
+  if (valor === undefined || valor === null) return valor;
+  return Number(valor);
+}
+
+function obterBooleanAgendamento(obj, campoA, campoB) {
+  const valor = obterCampoAgendamento(obj, campoA, campoB);
+  if (valor === undefined || valor === null) return undefined;
+  return !!valor;
 }
 
 // Função otimizada para atualizar agendamentos recorrentes (sem alterar dia da semana)
