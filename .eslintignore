@@ -1,2 +1,8 @@
 src/components/
 tests/frontend/**/*.test.js
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.min.js
