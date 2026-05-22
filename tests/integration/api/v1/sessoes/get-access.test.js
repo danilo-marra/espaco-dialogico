@@ -109,7 +109,6 @@ beforeAll(async () => {
     valorSessao: 150,
     pagamento_realizado: false,
     repasse_realizado: false,
-    nota_fiscal: "Não Emitida",
   });
 
   sessaoId = sessao.id;
@@ -134,6 +133,8 @@ describe("GET /api/v1/sessoes/[id] - autorização", () => {
     expect(body).toHaveProperty("id", sessaoId);
     expect(body).toHaveProperty("terapeuta_id");
     expect(body).toHaveProperty("paciente_id");
+    expect(body).toHaveProperty("notaFiscal", "Não Emitida");
+    expect(body).toHaveProperty("pagamentoRealizado", false);
   });
 
   test("deve retornar 200 para terapeuta dono da sessão", async () => {
