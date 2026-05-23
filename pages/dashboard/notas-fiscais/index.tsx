@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Pagination from "components/Pagination";
 import {
   format,
@@ -29,9 +29,11 @@ import { mutate } from "swr";
 import type { Sessao } from "tipos";
 import { getNotaFiscalStatusColor } from "utils/statusColors";
 import React from "react";
+import { useRouter } from "next/router";
 
 // Opções de status das notas fiscais
 const STATUS_NOTA_FISCAL = ["Não Emitida", "Emitida", "Enviada"];
+const STATUS_NOTA_FISCAL_FILTRO = ["Todos", "Pendente", ...STATUS_NOTA_FISCAL];
 
 // Função para filtrar sessões com pagamento realizado
 const filterSessoesComPagamento = (sessoes: Sessao[]): Sessao[] => {
@@ -54,6 +56,7 @@ const filterSessoesComPagamento = (sessoes: Sessao[]): Sessao[] => {
 };
 
 const NotasFiscais = () => {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const {
     sessoes,
@@ -71,6 +74,25 @@ const NotasFiscais = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const itemsPerPage = 5; // Reduzido para 5 pacientes por página devido ao novo layout
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const { status, periodo } = router.query;
+
+    if (typeof status === "string") {
+      if (status === "Pendente") {
+        setFiltroStatus("Pendente");
+      } else if (status === "Todos" || STATUS_NOTA_FISCAL.includes(status)) {
+        setFiltroStatus(status);
+      }
+    }
+
+    if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
+      const [ano, mes] = periodo.split("-").map(Number);
+      setCurrentDate(new Date(ano, mes - 1, 1));
+    }
+  }, [router.isReady, router.query]);
 
   // Filtrar sessões com pagamento realizado
   const sessoesComPagamento = useMemo(() => {
@@ -99,7 +121,9 @@ const NotasFiscais = () => {
     }
 
     // Filtrar por status da nota fiscal
-    if (filtroStatus !== "Todos") {
+    if (filtroStatus === "Pendente") {
+      filtered = filtered.filter((sessao) => sessao.notaFiscal !== "Enviada");
+    } else if (filtroStatus !== "Todos") {
       filtered = filtered.filter(
         (sessao) => sessao.notaFiscal === filtroStatus,
       );
@@ -414,7 +438,7 @@ const NotasFiscais = () => {
               className="shadow-rosa/50 focus:shadow-rosa block w-full h-[40px] rounded-md px-4 text-[15px] leading-none shadow-[0_0_0_1px] outline-none focus:shadow-[0_0_0_2px]"
             >
               <option value="Todos">Todos os Status</option>
-              {STATUS_NOTA_FISCAL.map((status) => (
+              {STATUS_NOTA_FISCAL_FILTRO.map((status) => (
                 <option key={status} value={status}>
                   {status}
                 </option>

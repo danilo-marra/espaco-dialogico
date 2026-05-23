@@ -1,17 +1,23 @@
 import Head from "next/head";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import useAuth from "../../hooks/useAuth";
 import { usePermissions } from "../../hooks/usePermissions";
 import { OptimizedDashboardCharts } from "../../components/Dashboard/OptimizedDashboardCharts";
 import { DashboardSummary } from "../../components/Dashboard/DashboardSummary";
 import { DashboardAlerts } from "../../components/Dashboard/DashboardAlerts";
+import { DashboardPendencias } from "../../components/Dashboard/DashboardPendencias";
+import { DashboardPeriodSelector } from "../../components/Dashboard/DashboardPeriodSelector";
 import PermissionGuard from "../../components/PermissionGuard";
 
 export default function Dashboard() {
   const { loading } = useAuth();
   const { userRole, isLoading } = usePermissions();
   const router = useRouter();
+  const [selectedPeriod, setSelectedPeriod] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   // Redirecionar usuários comuns para a agenda
   useEffect(() => {
@@ -42,14 +48,27 @@ export default function Dashboard() {
         <title>Dashboard - Espaço Dialógico</title>
       </Head>
       <div className="p-6">
-        {/* Seção de gráficos e estatísticas - apenas para admins - PRIMEIRO ITEM */}
-        <PermissionGuard resource="usuarios">
+        <div className="mb-6 flex justify-end">
+          <DashboardPeriodSelector
+            selectedPeriod={selectedPeriod}
+            onChangePeriod={setSelectedPeriod}
+          />
+        </div>
+
+        <PermissionGuard resource="sessoes">
           <div className="mb-8">
-            <OptimizedDashboardCharts />
+            <DashboardPendencias selectedPeriod={selectedPeriod} />
           </div>
         </PermissionGuard>
 
-        {/* Seção de resumo executivo - apenas para admins */}
+        {/* Seção de gráficos e estatísticas - apenas para admins */}
+        <PermissionGuard resource="usuarios">
+          <div className="mb-8">
+            <OptimizedDashboardCharts selectedPeriod={selectedPeriod} />
+          </div>
+        </PermissionGuard>
+
+        {/* Seção de resumo executivo */}
         <PermissionGuard resource="transacoes">
           <div className="mb-8">
             <DashboardSummary />

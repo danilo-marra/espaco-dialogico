@@ -106,18 +106,14 @@ function OptimizedStatCard({
   );
 }
 
+interface OptimizedDashboardChartsProps {
+  selectedPeriod: string;
+}
+
 // Componente principal do dashboard otimizado
-export function OptimizedDashboardCharts() {
-  // Função para obter o período atual
-  const getCurrentPeriod = () => {
-    const agora = new Date();
-    const ano = agora.getFullYear();
-    const mes = agora.getMonth() + 1;
-    return `${ano}-${String(mes).padStart(2, "0")}`;
-  };
-
-  const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod);
-
+export function OptimizedDashboardCharts({
+  selectedPeriod,
+}: OptimizedDashboardChartsProps) {
   // Usar hooks otimizados
   const {
     data: financeiroData,
@@ -160,21 +156,6 @@ export function OptimizedDashboardCharts() {
     } finally {
       setIsRefreshing(false);
     }
-  };
-
-  // Navegação de períodos
-  const handlePeriodChange = (direction) => {
-    const [ano, mes] = selectedPeriod.split("-");
-    const data = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-
-    if (direction === "prev") {
-      data.setMonth(data.getMonth() - 1);
-    } else {
-      data.setMonth(data.getMonth() + 1);
-    }
-
-    const novoPeriodo = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
-    setSelectedPeriod(novoPeriodo);
   };
 
   // Preparar dados para os gráficos
@@ -220,45 +201,25 @@ export function OptimizedDashboardCharts() {
           <h2 className="text-2xl font-bold mb-6 text-azul">
             Dashboard Financeiro
           </h2>
-          <p className="text-gray-600">Visão geral do desempenho financeiro</p>
+          <p className="text-gray-600">
+            Visão geral do desempenho financeiro de{" "}
+            {format(parseAPIDate(`${selectedPeriod}-01`), "MMMM yyyy", {
+              locale: ptBR,
+            })}
+          </p>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Navegação de período */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePeriodChange("prev")}
-              className="p-2 rounded-md border hover:bg-gray-50"
-              disabled={isRefreshing}
-            >
-              ←
-            </button>
-            <span className="text-sm font-medium min-w-[100px] text-center">
-              {format(parseAPIDate(`${selectedPeriod}-01`), "MMMM yyyy", {
-                locale: ptBR,
-              })}
-            </span>
-            <button
-              onClick={() => handlePeriodChange("next")}
-              className="p-2 rounded-md border hover:bg-gray-50"
-              disabled={isRefreshing}
-            >
-              →
-            </button>
-          </div>
-
-          {/* Botão de refresh */}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            <span>Atualizar</span>
-          </button>
-        </div>
+        {/* Botão de refresh */}
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+          />
+          <span>Atualizar</span>
+        </button>
       </div>
 
       {/* Indicadores de performance e estado */}

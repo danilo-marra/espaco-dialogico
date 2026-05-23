@@ -18,7 +18,8 @@ import {
 } from "@phosphor-icons/react";
 import Head from "next/head";
 import Image from "next/image";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTransacoes } from "hooks/useFetchTransacoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
@@ -167,6 +168,7 @@ const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
 };
 
 export default function Transacoes() {
+  const router = useRouter();
   const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNovaTransacao, setShowNovaTransacao] = useState(false);
@@ -179,6 +181,25 @@ export default function Transacoes() {
   const [selectedTipo, setSelectedTipo] = useState("Todos");
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [searchPaciente, setSearchPaciente] = useState("");
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const { tipo, periodo, paciente } = router.query;
+
+    if (typeof tipo === "string" && TIPOS_TRANSACAO.includes(tipo)) {
+      setSelectedTipo(tipo);
+    }
+
+    if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
+      const [ano, mes] = periodo.split("-").map(Number);
+      setCurrentDate(new Date(ano, mes - 1, 1));
+    }
+
+    if (typeof paciente === "string" && paciente.trim()) {
+      setSearchPaciente(paciente.trim());
+    }
+  }, [router.isReady, router.query]);
 
   // Buscar dados das sessões para calcular lucros e repasses
   const {

@@ -20,7 +20,8 @@ import { AgendaMensal } from "components/Agendamento/AgendaMensal";
 import { AgendaPorTerapeuta } from "components/Agendamento/AgendaPorTerapeuta";
 import { AgendaPeriodoPersonalizado } from "components/Agendamento/AgendaPeriodoPersonalizado";
 import Head from "next/head";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import { Agendamento, Terapeuta } from "tipos";
 import {
   format,
@@ -57,6 +58,7 @@ type ViewMode = "semanal" | "mensal" | "terapeuta";
 type PeriodMode = "semana" | "mes" | "personalizado";
 
 export default function Agenda() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>("mensal");
   const [periodMode, setPeriodMode] = useState<PeriodMode>("mes");
@@ -106,6 +108,17 @@ export default function Agenda() {
   const { agendamentos, isLoading, isError, mutate, updateAgendamento } =
     useFetchAgendamentos();
   const { terapeutas } = useFetchTerapeutas();
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const { periodo } = router.query;
+    if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
+      const [ano, mes] = periodo.split("-").map(Number);
+      setSelectedDate(new Date(ano, mes - 1, 1));
+      setPeriodMode("mes");
+    }
+  }, [router.isReady, router.query]);
 
   // Obter o início da semana da data selecionada
   const startOfSelectedWeek = startOfWeek(selectedDate, { weekStartsOn: 0 });
