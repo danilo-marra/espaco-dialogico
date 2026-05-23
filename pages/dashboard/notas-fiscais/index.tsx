@@ -33,7 +33,7 @@ import { useRouter } from "next/router";
 
 // Opções de status das notas fiscais
 const STATUS_NOTA_FISCAL = ["Não Emitida", "Emitida", "Enviada"];
-const STATUS_NOTA_FISCAL_FILTRO = ["Todos", "Pendente", ...STATUS_NOTA_FISCAL];
+const STATUS_NOTA_FISCAL_FILTRO = ["Pendente", ...STATUS_NOTA_FISCAL];
 
 // Função para filtrar sessões com pagamento realizado
 const filterSessoesComPagamento = (sessoes: Sessao[]): Sessao[] => {

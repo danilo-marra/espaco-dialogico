@@ -56,6 +56,18 @@ describe("GET /api/v1/dashboard/pendencias", () => {
     expect(response.status).toBe(400);
   });
 
+  test("deve retornar 400 para mês fora do intervalo válido", async () => {
+    const token = await prepareAuthentication(port);
+    const response = await fetch(
+      `http://localhost:${port}/api/v1/dashboard/pendencias?periodo=2026-13`,
+      {
+        headers: { Authorization: "Bearer " + token },
+      },
+    );
+
+    expect(response.status).toBe(400);
+  });
+
   test("usuário não autenticado deve receber 401", async () => {
     const response = await fetch(
       `http://localhost:${port}/api/v1/dashboard/pendencias`,

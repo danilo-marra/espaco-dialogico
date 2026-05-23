@@ -95,5 +95,9 @@ describe("DashboardPendencias", () => {
       "href",
       "/dashboard/sessoes?status=Pagamento%20Pendente&periodo=2026-05",
     );
+    expect(links[2]).toHaveAttribute(
+      "href",
+      "/dashboard/agenda?periodo=2026-05",
+    );
   });
 });

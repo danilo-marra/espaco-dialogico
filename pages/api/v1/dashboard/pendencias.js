@@ -17,7 +17,7 @@ async function getHandler(request, response) {
 
   response.setHeader(
     "Cache-Control",
-    "public, max-age=120, stale-while-revalidate=30",
+    "private, max-age=120, stale-while-revalidate=30",
   );
   response.setHeader("X-Content-Type-Options", "nosniff");
 

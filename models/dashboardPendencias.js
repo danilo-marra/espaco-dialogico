@@ -11,10 +11,25 @@ function normalizePeriodo(periodo) {
     return getCurrentPeriod();
   }
 
+  if (typeof periodo !== "string") {
+    throw new ValidationError({
+      message: "Formato de período inválido. Use YYYY-MM",
+      action: "Informe o período no formato YYYY-MM.",
+    });
+  }
+
   if (!/^\d{4}-\d{2}$/.test(periodo)) {
     throw new ValidationError({
       message: "Formato de período inválido. Use YYYY-MM",
       action: "Informe o período no formato YYYY-MM.",
+    });
+  }
+
+  const [, mes] = periodo.split("-").map(Number);
+  if (!Number.isInteger(mes) || mes < 1 || mes > 12) {
+    throw new ValidationError({
+      message: "Mês inválido no período informado. Use valores entre 01 e 12.",
+      action: "Informe o período no formato YYYY-MM com mês válido.",
     });
   }
 
@@ -80,7 +95,26 @@ async function obterPendencias(periodoParam) {
         t.id AS terapeuta_id,
         t.nome AS terapeuta_nome,
         COUNT(*)::int AS total_sessoes,
-        COALESCE(SUM(COALESCE(s.valor_repasse, 0)), 0)::numeric AS total_repasse
+        COALESCE(
+          SUM(
+            COALESCE(
+              s.valor_repasse,
+              CASE
+                WHEN t.dt_entrada IS NOT NULL AND s.valor_sessao IS NOT NULL THEN
+                  s.valor_sessao * (
+                    CASE
+                      WHEN EXTRACT(YEAR FROM AGE(now(), t.dt_entrada)) * 12 +
+                           EXTRACT(MONTH FROM AGE(now(), t.dt_entrada)) < 12
+                      THEN 0.45
+                      ELSE 0.5
+                    END
+                  )
+                ELSE 0
+              END
+            )
+          ),
+          0
+        )::numeric AS total_repasse
       FROM sessoes s
       INNER JOIN agendamentos a ON a.id = s.agendamento_id
       LEFT JOIN terapeutas t ON t.id = s.terapeuta_id

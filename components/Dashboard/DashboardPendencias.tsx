@@ -72,7 +72,7 @@ export function DashboardPendencias({
           icon: CalendarClock,
           color: "text-purple-700",
           bgColor: "bg-purple-50 border-purple-200",
-          href: `/dashboard/agenda?pendencia=marcacao&periodo=${selectedPeriod}`,
+          href: `/dashboard/agenda?periodo=${selectedPeriod}`,
           items: data.marcacoesPendentes.map((item) => ({
             id: item.id,
             nome: item.nome,
