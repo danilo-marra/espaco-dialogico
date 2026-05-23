@@ -14,8 +14,9 @@ import {
   ArrowsIn,
 } from "@phosphor-icons/react";
 import Head from "next/head";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Sessao } from "tipos";
+import { useRouter } from "next/router";
 
 import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
@@ -228,6 +229,7 @@ const calcularRepasse = (
 };
 
 export default function Sessoes() {
+  const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   // Utilizar hooks do Redux
   const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
@@ -254,6 +256,31 @@ export default function Sessoes() {
   const [loadingBulkPagamento, setLoadingBulkPagamento] = useState<
     string | null
   >(null);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const { status, repasse, periodo, paciente } = router.query;
+
+    if (typeof status === "string" && STATUS_SESSOES.includes(status)) {
+      setSelectedStatus(status);
+    }
+
+    if (typeof repasse === "string" && STATUS_REPASSE.includes(repasse)) {
+      setSelectedRepasse(repasse);
+    }
+
+    if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
+      const [ano, mes] = periodo.split("-").map(Number);
+      if (Number.isInteger(mes) && mes >= 1 && mes <= 12) {
+        setCurrentDate(new Date(ano, mes - 1, 1));
+      }
+    }
+
+    if (typeof paciente === "string" && paciente.trim()) {
+      setSearchPaciente(paciente.trim());
+    }
+  }, [router.isReady, router.query]);
 
   const toggleAccordion = (type: "terapeuta" | "paciente", id: string) => {
     if (type === "terapeuta") {

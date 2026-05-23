@@ -128,3 +128,26 @@ export interface ResumoFinanceiro {
   saldoFinal: number;
   quantidadeSessoes: number;
 }
+
+export interface DashboardPendenciaItem {
+  id: string;
+  nome: string;
+  terapeutaNome?: string;
+  totalSessoes?: number;
+  totalRepasse?: number;
+  dataReferencia?: string | null;
+}
+
+export interface DashboardPendenciasResponse {
+  periodo: string;
+  resumo: {
+    pacientesACobrar: number;
+    notasFiscaisPendentes: number;
+    marcacoesPendentes: number;
+    repassesPendentes: number;
+  };
+  pacientesACobrar: DashboardPendenciaItem[];
+  notasFiscaisPendentes: DashboardPendenciaItem[];
+  marcacoesPendentes: DashboardPendenciaItem[];
+  repassesPendentes: DashboardPendenciaItem[];
+}
