@@ -1,4 +1,5 @@
 import database from "infra/database.js";
+import { ValidationError } from "infra/errors.js";
 
 function getCurrentPeriod() {
   const now = new Date();
@@ -11,7 +12,10 @@ function normalizePeriodo(periodo) {
   }
 
   if (!/^\d{4}-\d{2}$/.test(periodo)) {
-    throw new Error("Formato de período inválido. Use YYYY-MM");
+    throw new ValidationError({
+      message: "Formato de período inválido. Use YYYY-MM",
+      action: "Informe o período no formato YYYY-MM.",
+    });
   }
 
   return periodo;
@@ -63,7 +67,7 @@ async function obterPendencias(periodoParam) {
       LEFT JOIN terapeutas t ON t.id = s.terapeuta_id
       WHERE a.data_agendamento BETWEEN $1 AND $2
         AND s.pagamento_realizado = true
-        AND s.nota_fiscal <> 'Enviada'
+        AND s.nota_fiscal != 'Enviada'
       GROUP BY p.id, p.nome
       ORDER BY MIN(a.data_agendamento) ASC, p.nome ASC
     `,

@@ -193,7 +193,9 @@ export default function Transacoes() {
 
     if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
       const [ano, mes] = periodo.split("-").map(Number);
-      setCurrentDate(new Date(ano, mes - 1, 1));
+      if (Number.isInteger(mes) && mes >= 1 && mes <= 12) {
+        setCurrentDate(new Date(ano, mes - 1, 1));
+      }
     }
 
     if (typeof paciente === "string" && paciente.trim()) {

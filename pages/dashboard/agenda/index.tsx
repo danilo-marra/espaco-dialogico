@@ -115,8 +115,10 @@ export default function Agenda() {
     const { periodo } = router.query;
     if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
       const [ano, mes] = periodo.split("-").map(Number);
-      setSelectedDate(new Date(ano, mes - 1, 1));
-      setPeriodMode("mes");
+      if (Number.isInteger(mes) && mes >= 1 && mes <= 12) {
+        setSelectedDate(new Date(ano, mes - 1, 1));
+        setPeriodMode("mes");
+      }
     }
   }, [router.isReady, router.query]);
 
