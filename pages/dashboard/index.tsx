@@ -48,7 +48,7 @@ export default function Dashboard() {
         <title>Dashboard - Espaço Dialógico</title>
       </Head>
       <div className="p-6">
-        <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex justify-center">
           <DashboardPeriodSelector
             selectedPeriod={selectedPeriod}
             onChangePeriod={setSelectedPeriod}

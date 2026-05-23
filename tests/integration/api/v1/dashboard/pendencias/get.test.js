@@ -1,58 +1,32 @@
 import orchestrator from "tests/orchestrator.js";
-import database from "infra/database.js";
+import {
+  ensureServerRunning,
+  cleanupServer,
+  waitForServerReady,
+} from "tests/helpers/serverManager.js";
+import {
+  prepareAuthentication,
+  ensureDevAdminExists,
+} from "tests/helpers/auth.js";
 
 const port = process.env.PORT || 3000;
-
-async function createAndLoginAdmin() {
-  const email = "admin.pendencias@example.com";
-  const password = "Password@123";
-
-  const inviteCode =
-    `T-F-A-${Math.random().toString(36).substring(2, 8)}`.toUpperCase();
-  await database.query({
-    text: "INSERT INTO invites (code, role, expires_at) VALUES ($1, 'admin', NOW() + INTERVAL '7 day')",
-    values: [inviteCode],
-  });
-
-  const userResponse = await fetch(`http://localhost:${port}/api/v1/users`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      username: "admin_pendencias",
-      email,
-      password,
-      inviteCode,
-    }),
-  });
-
-  if (userResponse.status !== 201) {
-    const errorBody = await userResponse.json();
-    throw new Error(
-      `Falha ao criar usuário admin para teste de pendências: ${JSON.stringify(errorBody)}`,
-    );
-  }
-
-  const loginResponse = await fetch(
-    `http://localhost:${port}/api/v1/auth/login`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    },
-  );
-
-  const { token } = await loginResponse.json();
-  return token;
-}
+const TEST_NAME = "GET /api/v1/dashboard/pendencias";
 
 beforeAll(async () => {
+  await ensureServerRunning(TEST_NAME, port);
   await orchestrator.waitForAllServices();
+  await waitForServerReady(port);
   await orchestrator.clearDatabase();
+  await ensureDevAdminExists();
+});
+
+afterAll(() => {
+  cleanupServer(TEST_NAME);
 });
 
 describe("GET /api/v1/dashboard/pendencias", () => {
   test("usuário admin deve conseguir acessar as pendências do período", async () => {
-    const token = await createAndLoginAdmin();
+    const token = await prepareAuthentication(port);
     const response = await fetch(
       `http://localhost:${port}/api/v1/dashboard/pendencias?periodo=2026-05`,
       {
@@ -71,7 +45,7 @@ describe("GET /api/v1/dashboard/pendencias", () => {
   });
 
   test("deve retornar 400 para período inválido", async () => {
-    const token = await createAndLoginAdmin();
+    const token = await prepareAuthentication(port);
     const response = await fetch(
       `http://localhost:${port}/api/v1/dashboard/pendencias?periodo=2026/05`,
       {
