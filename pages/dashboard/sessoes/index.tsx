@@ -22,7 +22,7 @@ import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addMonths } from "date-fns";
+import { endOfMonth, format, addMonths, startOfMonth } from "date-fns";
 import { parseAnyDate } from "utils/dateUtils";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
@@ -231,10 +231,6 @@ const calcularRepasse = (
 export default function Sessoes() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  // Utilizar hooks do Redux
-  const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
-  const { terapeutas } = useFetchTerapeutas();
-  const { canEdit } = useAuth();
 
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
@@ -256,6 +252,38 @@ export default function Sessoes() {
   const [loadingBulkPagamento, setLoadingBulkPagamento] = useState<
     string | null
   >(null);
+
+  const sessoesPeriodoBusca = useMemo(
+    () => ({
+      dataInicio: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+      dataFim: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+    }),
+    [currentDate],
+  );
+  const pagamentoRealizadoBusca =
+    selectedStatus === "Pagamento Realizado"
+      ? true
+      : selectedStatus === "Pagamento Pendente"
+        ? false
+        : undefined;
+  const repasseRealizadoBusca =
+    selectedRepasse === "Repasse Realizado"
+      ? true
+      : selectedRepasse === "Repasse Pendente"
+        ? false
+        : undefined;
+
+  // Utilizar hooks do Redux
+  const { sessoes, isLoading, isError, mutate } = useFetchSessoes({
+    ...sessoesPeriodoBusca,
+    terapeuta_id: selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+    tipo_sessao: selectedTipo !== "Todos" ? selectedTipo : undefined,
+    pagamento_realizado: pagamentoRealizadoBusca,
+    repasse_realizado: repasseRealizadoBusca,
+    limit: 1000,
+  });
+  const { terapeutas } = useFetchTerapeutas();
+  const { canEdit } = useAuth();
 
   useEffect(() => {
     if (!router.isReady) return;

@@ -25,7 +25,7 @@ import { useFetchTransacoes } from "hooks/useFetchTransacoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addMonths } from "date-fns";
+import { endOfMonth, format, addMonths, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { parseAnyDate, isValidDate } from "utils/dateUtils";
@@ -209,7 +209,12 @@ export default function Transacoes() {
     isLoading: isLoadingSessoes,
     isError: isErrorSessoes,
     mutate: mutateSessoes,
-  } = useFetchSessoes();
+  } = useFetchSessoes({
+    dataInicio: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+    dataFim: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+    terapeuta_id: selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+    limit: 1000,
+  });
 
   // Buscar todas as transações manuais do backend (sem filtros na API)
   const {

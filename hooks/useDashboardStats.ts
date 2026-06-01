@@ -59,17 +59,17 @@ export function useDashboardStats(): {
     pacientes,
     isLoading: loadingPacientes,
     isError: errorPacientes,
-  } = useFetchPacientes();
+  } = useFetchPacientes({ limit: 1000 });
   const {
     agendamentos,
     isLoading: loadingAgendamentos,
     isError: errorAgendamentos,
-  } = useFetchAgendamentos();
+  } = useFetchAgendamentos({ limit: 1000 });
   const {
     sessoes,
     isLoading: loadingSessoes,
     isError: errorSessoes,
-  } = useFetchSessoes();
+  } = useFetchSessoes({ limit: 1000 });
   const {
     transacoes,
     isLoading: loadingTransacoes,

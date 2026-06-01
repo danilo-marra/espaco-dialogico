@@ -156,9 +156,11 @@ async function getFiltered(filters) {
     }
 
     if (filters.dataInicio && filters.dataFim) {
-      conditions.push(
-        `s.data_sessao BETWEEN $${paramCounter} AND $${paramCounter + 1}`,
-      );
+      conditions.push(`(
+        (a.data_agendamento >= $${paramCounter} AND a.data_agendamento <= $${paramCounter + 1})
+        OR
+        (a.data_agendamento IS NULL AND s.created_at >= $${paramCounter} AND s.created_at <= $${paramCounter + 1})
+      )`);
       values.push(filters.dataInicio, filters.dataFim);
       paramCounter += 2;
     }

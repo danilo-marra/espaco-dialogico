@@ -115,7 +115,7 @@ export function EditarAgendamentoModal({
     isLoading: terapeutaDataLoading,
   } = useTerapeutaData();
 
-  const { pacientes: allPacientes } = useFetchPacientes();
+  const { pacientes: allPacientes } = useFetchPacientes({ limit: 500 });
   const { terapeutas } = useFetchTerapeutas();
 
   // Determinar quais pacientes mostrar baseado no role

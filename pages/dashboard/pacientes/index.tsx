@@ -54,11 +54,15 @@ const filterPacientes = (
 };
 
 export default function Pacientes() {
-  const { pacientes, isLoading, isError, mutate } = useFetchPacientes();
   const { terapeutas } = useFetchTerapeutas();
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [searchQuery, setSearchQuery] = useState("");
+  const { pacientes, isLoading, isError, mutate } = useFetchPacientes({
+    terapeuta_id: selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+    search: searchQuery.trim() || undefined,
+    limit: 500,
+  });
   const [editingPaciente, setEditingPaciente] = useState<Paciente | null>(null);
   const [deletingPaciente, setDeletingPaciente] = useState<Paciente | null>(
     null,

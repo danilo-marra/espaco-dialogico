@@ -164,7 +164,7 @@ export function NovoAgendamentoModal({
   } = useTerapeutaData();
 
   // Para admin/secretaria, usar dados completos
-  const { pacientes: allPacientes } = useFetchPacientes();
+  const { pacientes: allPacientes } = useFetchPacientes({ limit: 500 });
   const { terapeutas } = useFetchTerapeutas();
 
   // Determinar quais dados usar baseado no role
