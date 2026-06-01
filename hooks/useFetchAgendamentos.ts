@@ -81,6 +81,7 @@ export const useFetchAgendamentos = (filters: AgendamentoFilters = {}) => {
         item.id === response.data.id ? response.data : item,
       );
     }, false);
+    await mutate();
     return response.data;
   };
 

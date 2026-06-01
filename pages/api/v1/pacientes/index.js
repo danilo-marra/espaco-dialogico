@@ -44,7 +44,15 @@ async function getAllHandler(request, response) {
     let pacientes;
 
     // Se for terapeuta, buscar apenas seus pacientes
-    if (userRole === "terapeuta" && terapeutaId) {
+    if (userRole === "terapeuta") {
+      if (!terapeutaId) {
+        return response.status(403).json({
+          error: "Acesso negado",
+          message:
+            "Terapeuta não tem registro válido no sistema. Entre em contato com a administração.",
+        });
+      }
+
       pacientes = await paciente.getFiltered({
         terapeuta_id: terapeutaId,
         search,

@@ -9,7 +9,11 @@ function parsePositiveInteger(value) {
     return undefined;
   }
 
-  const parsed = Number.parseInt(value, 10);
+  if (typeof value === "string" && !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
 }
 

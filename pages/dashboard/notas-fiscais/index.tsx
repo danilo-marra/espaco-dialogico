@@ -250,6 +250,7 @@ const NotasFiscais = () => {
           item.id === sessaoAtualizada.id ? sessaoAtualizada : item,
         );
       }, false);
+      await mutateSessoes();
 
       toast.success(
         `Nota fiscal da sessão de ${sessao.pacienteInfo?.nome} atualizada para "${novoStatus}".`,
@@ -318,6 +319,7 @@ const NotasFiscais = () => {
           (item) => sessoesAtualizadasPorId.get(item.id) ?? item,
         );
       }, false);
+      await mutateSessoes();
 
       toast.success(
         `Status da nota fiscal de todas as sessões de ${pacienteNome} atualizado para "${novoStatus}".`,

@@ -170,26 +170,19 @@ const filterSessoesByMonth = (
   }
 
   return sessoes.filter((sessao) => {
-    // Verifica se a data do agendamento está dentro do mês selecionado
-    if (sessao.agendamentoInfo?.dataAgendamento) {
-      try {
-        const data = parseAnyDate(sessao.agendamentoInfo.dataAgendamento);
-        if (!isNaN(data.getTime())) {
-          // Usar uma comparação mais robusta que considera apenas ano e mês
-          const anoMesSessao = format(data, "yyyy-MM");
-          const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+    const rawDate =
+      sessao.agendamentoInfo?.dataAgendamento ?? sessao.created_at;
+    if (!rawDate) return false;
 
-          if (anoMesSessao === anoMesSelecionado) {
-            return true;
-          }
-        }
-      } catch (error) {
-        console.warn(
-          "Erro ao processar data da sessão:",
-          sessao.agendamentoInfo.dataAgendamento,
-          error,
-        );
+    try {
+      const data = parseAnyDate(rawDate);
+      if (!isNaN(data.getTime())) {
+        const anoMesSessao = format(data, "yyyy-MM");
+        const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+        return anoMesSessao === anoMesSelecionado;
       }
+    } catch (error) {
+      console.warn("Erro ao processar data da sessão:", rawDate, error);
     }
 
     return false;

@@ -119,19 +119,19 @@ async function getFiltered(filters = {}) {
       LEFT JOIN terapeutas t ON p.terapeuta_id = t.id
       ${whereClause}
       ORDER BY p.nome
-      ${filters.limit ? `LIMIT $${paramCounter}` : ""}
+      ${filters.limit !== undefined ? `LIMIT $${paramCounter}` : ""}
       ${
-        filters.offset
-          ? `OFFSET $${filters.limit ? paramCounter + 1 : paramCounter}`
+        filters.offset !== undefined
+          ? `OFFSET $${filters.limit !== undefined ? paramCounter + 1 : paramCounter}`
           : ""
       }
     `,
     values:
-      filters.limit || filters.offset
+      filters.limit !== undefined || filters.offset !== undefined
         ? [
             ...values,
-            ...(filters.limit ? [filters.limit] : []),
-            ...(filters.offset ? [filters.offset] : []),
+            ...(filters.limit !== undefined ? [filters.limit] : []),
+            ...(filters.offset !== undefined ? [filters.offset] : []),
           ]
         : values,
   });

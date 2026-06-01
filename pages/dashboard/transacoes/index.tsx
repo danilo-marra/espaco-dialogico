@@ -141,26 +141,22 @@ const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
   }
 
   return sessoes.filter((sessao) => {
-    // Usar a data do agendamento associado
-    const dataAgendamento = sessao.agendamentoInfo?.dataAgendamento;
+    const rawDate =
+      sessao.agendamentoInfo?.dataAgendamento ?? sessao.created_at;
 
-    if (!dataAgendamento) {
+    if (!rawDate) {
       return false;
     }
 
     try {
-      const data = parseAnyDate(dataAgendamento);
+      const data = parseAnyDate(rawDate);
       if (isValidDate(data)) {
         const anoMesSessao = format(data, "yyyy-MM");
         const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
         return anoMesSessao === anoMesSelecionado;
       }
     } catch (error) {
-      console.warn(
-        "Erro ao processar data do agendamento:",
-        dataAgendamento,
-        error,
-      );
+      console.warn("Erro ao processar data da sessão:", rawDate, error);
     }
 
     return false;

@@ -3,6 +3,10 @@ import controller from "infra/controller.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
+import {
+  requireTerapeutaAccess,
+  terapeutaTemAcessoPaciente,
+} from "utils/terapeutaMiddleware.js";
 import { parsePagination, setPaginationHeaders } from "utils/pagination.js";
 
 // Criar o router
@@ -10,6 +14,7 @@ const router = createRouter();
 
 // Aplicar middleware de autenticação e autorização para proteger as rotas
 router.use(authMiddleware).use(requirePermission("sessoes"));
+router.use(requireTerapeutaAccess());
 
 // Definir os handlers para cada método HTTP
 router.get(getHandler);
@@ -37,8 +42,38 @@ async function getHandler(request, response) {
       maxLimit: 1000,
     });
 
+    const userRole = request.user?.role || "terapeuta";
+    const currentTerapeutaId = request.terapeutaId;
+
+    if (userRole === "terapeuta") {
+      if (!currentTerapeutaId) {
+        return response.status(403).json({
+          error: "Acesso negado",
+          message:
+            "Terapeuta não tem registro válido no sistema. Entre em contato com a administração.",
+        });
+      }
+
+      if (paciente_id) {
+        const temAcesso = await terapeutaTemAcessoPaciente(
+          currentTerapeutaId,
+          paciente_id,
+        );
+        if (!temAcesso) {
+          return response.status(403).json({
+            error: "Acesso negado",
+            message:
+              "Você só pode visualizar sessões dos seus próprios pacientes",
+          });
+        }
+      }
+    }
+
+    const resolvedTerapeutaId =
+      userRole === "terapeuta" ? currentTerapeutaId : terapeuta_id;
+
     const sessoes = await sessao.getFiltered({
-      terapeuta_id,
+      terapeuta_id: resolvedTerapeutaId,
       paciente_id,
       tipo_sessao,
       pagamento_realizado: parseBooleanQuery(pagamento_realizado),
