@@ -2,7 +2,7 @@ const { Pool } = require("pg");
 const dotenv = require("dotenv");
 const path = require("path");
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 async function testDatabaseConnection() {
   console.log("🔍 Testando conexão com o banco de dados...");
@@ -99,7 +99,9 @@ async function testDatabaseConnection() {
     } else if (error.message.includes("password authentication failed")) {
       console.log("💡 Falha na autenticação. Verifique:");
       console.log("   1. Se POSTGRES_USER e POSTGRES_PASSWORD estão corretos");
-      console.log("   2. Se as variáveis estão no arquivo .env.development");
+      console.log(
+        "   2. Se as variáveis estão no arquivo .env.development.local",
+      );
     }
 
     process.exit(1);

@@ -10,8 +10,8 @@ const fs = require("fs");
 const path = require("path");
 const dotenv = require("dotenv");
 
-// Carrega variáveis de ambiente do arquivo .env.development
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+// Carrega variáveis de ambiente do arquivo .env.development.local
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 console.log("\n🌱 Iniciando a execução de todos os scripts de seed...\n");
 
