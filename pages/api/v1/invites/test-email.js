@@ -1,4 +1,5 @@
 import { verifyToken } from "../../../../utils/auth.js";
+import email from "../../../../infra/email";
 
 export default async function handler(request, response) {
   // Verificar método
@@ -33,7 +34,17 @@ export default async function handler(request, response) {
     });
   }
 
+  const provider = email.getEmailProvider();
+
   const environmentInfo = {
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || "auto",
+    ACTIVE_PROVIDER: provider,
+    RESEND_API_KEY: process.env.RESEND_API_KEY
+      ? "✅ Definida"
+      : "❌ Não definida",
+    EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS
+      ? "✅ Definida"
+      : "⚠️ Recomendada",
     EMAIL_SMTP_HOST: process.env.EMAIL_SMTP_HOST
       ? "✅ Definida"
       : "❌ Não definida",
@@ -55,20 +66,31 @@ export default async function handler(request, response) {
     NODE_ENV: process.env.NODE_ENV,
   };
 
-  const isReady =
-    !!process.env.EMAIL_SMTP_HOST &&
-    !!process.env.EMAIL_SMTP_PORT &&
-    !!process.env.EMAIL_HTTP_HOST &&
-    !!process.env.EMAIL_HTTP_PORT;
+  const smtpReady =
+    !!process.env.EMAIL_SMTP_HOST && !!process.env.EMAIL_SMTP_PORT;
+
+  const resendReady = !!process.env.RESEND_API_KEY;
+
+  const isReady = provider === "resend" ? resendReady : smtpReady;
+
+  const providerMessage =
+    provider === "resend"
+      ? "Configuração Resend válida"
+      : "Configuração SMTP nativa válida";
+
+  const fallbackMessage =
+    provider === "resend"
+      ? "Configuração Resend incompleta"
+      : "Configuração SMTP incompleta";
 
   return response.status(isReady ? 200 : 500).json({
     success: isReady,
-    message: isReady
-      ? "Configuração SMTP nativa completa"
-      : "Configuração SMTP incompleta",
+    message: isReady ? providerMessage : fallbackMessage,
+    provider,
     environmentInfo,
-    ...(process.env.EMAIL_HTTP_HOST && {
-      mailpitUrl: `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT || "8025"}`,
-    }),
+    ...(provider === "smtp" &&
+      process.env.EMAIL_HTTP_HOST && {
+        mailpitUrl: `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT || "8025"}`,
+      }),
   });
 }

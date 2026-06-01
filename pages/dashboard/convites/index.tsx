@@ -103,10 +103,12 @@ export default function ConvitesPage() {
           await sendInviteEmail(newInvite.id, email);
           // Apenas um toast quando o email é enviado com sucesso
           toast.success(`Convite criado e enviado para ${email}!`);
-        } catch (emailError) {
-          toast.success("Convite criado com sucesso!");
+        } catch (_emailError) {
           toast.warning(
-            "Email não pôde ser enviado automaticamente. Use o botão de envelope na tabela.",
+            "Convite criado, mas o email não pôde ser enviado automaticamente.",
+            {
+              description: "Use o botão de envelope na tabela para reenviar.",
+            },
           );
         }
       } else {
