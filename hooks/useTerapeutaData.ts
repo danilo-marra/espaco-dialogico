@@ -40,7 +40,7 @@ export function useTerapeutaData() {
     data: pacientesData,
     error: pacientesError,
     mutate: mutatePacientes,
-  } = useSWR(shouldFetch ? "/api/v1/pacientes" : null, fetcher);
+  } = useSWR(shouldFetch ? "/api/v1/pacientes?limit=500" : null, fetcher);
 
   // Encontrar o terapeuta atual baseado no usuário logado
   // Tentar ambas as formas de comparação (string e UUID direto)

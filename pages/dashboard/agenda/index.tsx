@@ -104,9 +104,54 @@ export default function Agenda() {
   const { isFirstAccess, terapeutaProfile, dismissFirstAccess } =
     useFirstAccessTerapeuta();
 
+  const agendamentosPeriodoBusca = useMemo(() => {
+    if (periodMode === "semana") {
+      return {
+        dataInicio: formatDateForAPI(
+          startOfWeek(selectedDate, { weekStartsOn: 0 }),
+        ),
+        dataFim: formatDateForAPI(endOfWeek(selectedDate, { weekStartsOn: 0 })),
+      };
+    }
+
+    if (
+      periodMode === "personalizado" &&
+      customPeriodStart &&
+      customPeriodEnd
+    ) {
+      return {
+        dataInicio: formatDateForAPI(customPeriodStart),
+        dataFim: formatDateForAPI(customPeriodEnd),
+      };
+    }
+
+    return {
+      dataInicio: formatDateForAPI(
+        startOfWeek(startOfMonth(selectedDate), { weekStartsOn: 0 }),
+      ),
+      dataFim: formatDateForAPI(
+        endOfWeek(endOfMonth(selectedDate), { weekStartsOn: 0 }),
+      ),
+    };
+  }, [selectedDate, periodMode, customPeriodStart, customPeriodEnd]);
+
+  const agendamentoStatusBusca =
+    selectedStatus.confirmado !== selectedStatus.cancelado
+      ? selectedStatus.confirmado
+        ? "Confirmado"
+        : "Cancelado"
+      : undefined;
+
   // Fetch data
   const { agendamentos, isLoading, isError, mutate, updateAgendamento } =
-    useFetchAgendamentos();
+    useFetchAgendamentos({
+      ...agendamentosPeriodoBusca,
+      terapeuta_id:
+        selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+      status: agendamentoStatusBusca,
+      limit: 1000,
+      refreshInterval: 120000,
+    });
   const { terapeutas } = useFetchTerapeutas();
 
   useEffect(() => {

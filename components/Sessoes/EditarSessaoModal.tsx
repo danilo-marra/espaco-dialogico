@@ -35,7 +35,7 @@ export function EditarSessaoModal({
 }: EditarSessaoModalProps) {
   const dispatch = useDispatch<AppDispatch>();
   const { terapeutas } = useFetchTerapeutas();
-  const { pacientes } = useFetchPacientes();
+  const { pacientes } = useFetchPacientes({ limit: 500 });
 
   const [sessionDateDisplay, setSessionDateDisplay] = useState<string>("");
   const [valorInput, setValorInput] = useState<string>("");

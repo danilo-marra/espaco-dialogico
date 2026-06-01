@@ -2,21 +2,41 @@ import useSWR from "swr";
 import type { Paciente } from "tipos";
 import axiosInstance from "utils/api";
 
+type PacienteFilters = {
+  terapeuta_id?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  refreshInterval?: number;
+};
+
 const fetcher = async (url: string): Promise<Paciente[]> => {
   const response = await axiosInstance.get<Paciente[]>(url);
   return response.data;
 };
 
-export const useFetchPacientes = () => {
+function buildPacientesKey(filters: PacienteFilters = {}) {
+  const params = new URLSearchParams();
+
+  params.set("limit", String(filters.limit ?? 200));
+  params.set("offset", String(filters.offset ?? 0));
+
+  if (filters.terapeuta_id) params.set("terapeuta_id", filters.terapeuta_id);
+  if (filters.search) params.set("search", filters.search);
+
+  return `/pacientes/?${params.toString()}`;
+}
+
+export const useFetchPacientes = (filters: PacienteFilters = {}) => {
   const { data, error, isLoading, mutate } = useSWR<Paciente[]>(
-    "/pacientes/",
+    buildPacientesKey(filters),
     fetcher,
     {
       revalidateOnFocus: false,
       revalidateIfStale: true,
       revalidateOnMount: true,
-      dedupingInterval: 25000, // 25 segundos - pacientes têm atualizações moderadas
-      refreshInterval: 180000, // 3 minutos - dados de pacientes são mais dinâmicos
+      dedupingInterval: 60000,
+      refreshInterval: filters.refreshInterval ?? 0,
       keepPreviousData: true,
       errorRetryCount: 3,
       errorRetryInterval: 2000,

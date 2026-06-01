@@ -25,7 +25,7 @@ import { useFetchTransacoes } from "hooks/useFetchTransacoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addMonths } from "date-fns";
+import { endOfMonth, format, addMonths, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
 import { parseAnyDate, isValidDate } from "utils/dateUtils";
@@ -141,26 +141,22 @@ const filterSessoesByMonth = (sessoes: any[], selectedMonth: Date): any[] => {
   }
 
   return sessoes.filter((sessao) => {
-    // Usar a data do agendamento associado
-    const dataAgendamento = sessao.agendamentoInfo?.dataAgendamento;
+    const rawDate =
+      sessao.agendamentoInfo?.dataAgendamento ?? sessao.created_at;
 
-    if (!dataAgendamento) {
+    if (!rawDate) {
       return false;
     }
 
     try {
-      const data = parseAnyDate(dataAgendamento);
+      const data = parseAnyDate(rawDate);
       if (isValidDate(data)) {
         const anoMesSessao = format(data, "yyyy-MM");
         const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
         return anoMesSessao === anoMesSelecionado;
       }
     } catch (error) {
-      console.warn(
-        "Erro ao processar data do agendamento:",
-        dataAgendamento,
-        error,
-      );
+      console.warn("Erro ao processar data da sessão:", rawDate, error);
     }
 
     return false;
@@ -209,7 +205,12 @@ export default function Transacoes() {
     isLoading: isLoadingSessoes,
     isError: isErrorSessoes,
     mutate: mutateSessoes,
-  } = useFetchSessoes();
+  } = useFetchSessoes({
+    dataInicio: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+    dataFim: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+    terapeuta_id: selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+    limit: 1000,
+  });
 
   // Buscar todas as transações manuais do backend (sem filtros na API)
   const {

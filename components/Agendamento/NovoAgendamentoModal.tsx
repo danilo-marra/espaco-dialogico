@@ -163,13 +163,6 @@ export function NovoAgendamentoModal({
     isLoading: terapeutaDataLoading,
   } = useTerapeutaData();
 
-  // Para admin/secretaria, usar dados completos
-  const { pacientes: allPacientes } = useFetchPacientes();
-  const { terapeutas } = useFetchTerapeutas();
-
-  // Determinar quais dados usar baseado no role
-  const pacientes = isTerapeuta ? terapeutaPacientes : allPacientes;
-
   // Configuração do formulário com zod e react-hook-form
   const {
     register,
@@ -201,15 +194,25 @@ export function NovoAgendamentoModal({
     },
   });
 
+  // Selecionar paciente e terapeuta
+  const selectedTerapeutaId = watch("terapeuta_id");
+
+  // Para admin/secretaria, usar dados completos escopo pelo terapeuta selecionado
+  const { pacientes: allPacientes } = useFetchPacientes({
+    limit: 500,
+    terapeuta_id: selectedTerapeutaId || undefined,
+  });
+  const { terapeutas } = useFetchTerapeutas();
+
+  // Determinar quais dados usar baseado no role
+  const pacientes = isTerapeuta ? terapeutaPacientes : allPacientes;
+
   // Efeito para definir o terapeuta automaticamente se for usuário terapeuta
   useEffect(() => {
     if (isTerapeuta && currentTerapeuta?.id) {
       setValue("terapeuta_id", currentTerapeuta.id);
     }
   }, [isTerapeuta, currentTerapeuta, setValue]);
-
-  // Selecionar paciente e terapeuta
-  const selectedTerapeutaId = watch("terapeuta_id");
   const selectedModalidade = watch("modalidadeAgendamento");
   const selectedPeriodicidade = watch("periodicidade");
   const selectedDataAgendamento = watch("dataAgendamento");

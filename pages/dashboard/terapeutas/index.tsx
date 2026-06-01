@@ -59,7 +59,7 @@ export default function Terapeutas() {
   );
   const [isNewTerapeutaOpen, setIsNewTerapeutaOpen] = useState(false);
 
-  const { pacientes } = useFetchPacientes();
+  const { pacientes } = useFetchPacientes({ limit: 500 });
   const handleEditTerapeuta = (terapeuta: Terapeuta) => {
     setEditingTerapeuta(terapeuta);
   };

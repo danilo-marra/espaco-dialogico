@@ -104,6 +104,29 @@ beforeAll(async () => {
       `Falha no setup do teste GET: status=${createResponse.status} body=${createBody}`,
     );
   }
+
+  const secondCreateResponse = await fetch(BASE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify(
+      agendamentoPayloadBase({
+        pacienteId,
+        terapeutaId,
+        data: "2026-08-02",
+        hora: "10:00",
+      }),
+    ),
+  });
+
+  if (secondCreateResponse.status !== 201) {
+    const createBody = await secondCreateResponse.text();
+    throw new Error(
+      `Falha no setup do segundo agendamento GET: status=${secondCreateResponse.status} body=${createBody}`,
+    );
+  }
 });
 
 afterAll(() => {
@@ -150,6 +173,24 @@ describe("GET /api/v1/agendamentos/ - cenário padrão", () => {
     });
 
     expect(response.status).toBe(401);
+  });
+
+  test("Deve respeitar limit e offset na listagem", async () => {
+    const response = await fetch(`${BASE_URL}?limit=1&offset=1`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-pagination-limit")).toBe("1");
+    expect(response.headers.get("x-pagination-offset")).toBe("1");
+    expect(response.headers.get("x-pagination-returned")).toBe("1");
+
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(1);
   });
 
   // eslint-disable-next-line jest/no-disabled-tests, jest/expect-expect

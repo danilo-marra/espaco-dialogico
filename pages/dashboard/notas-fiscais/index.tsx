@@ -25,7 +25,6 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "store/store";
 import { updateSessao } from "store/sessoesSlice";
 import { toast } from "sonner";
-import { mutate } from "swr";
 import type { Sessao } from "tipos";
 import { getNotaFiscalStatusColor } from "utils/statusColors";
 import React from "react";
@@ -58,20 +57,31 @@ const filterSessoesComPagamento = (sessoes: Sessao[]): Sessao[] => {
 const NotasFiscais = () => {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const {
-    sessoes,
-    isLoading,
-    isError,
-    mutate: mutateSessoes,
-  } = useFetchSessoes();
-  const { terapeutas } = useFetchTerapeutas();
-  const { canEdit } = useAuth();
 
   const [filtroTerapeuta, setFiltroTerapeuta] = useState("Todos");
   const [filtroStatus, setFiltroStatus] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [loadingUpdate, setLoadingUpdate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const {
+    sessoes,
+    isLoading,
+    isError,
+    mutate: mutateSessoes,
+  } = useFetchSessoes({
+    dataInicio: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+    dataFim: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+    pagamento_realizado: true,
+    terapeuta_id: filtroTerapeuta !== "Todos" ? filtroTerapeuta : undefined,
+    nota_fiscal:
+      filtroStatus !== "Todos" && filtroStatus !== "Pendente"
+        ? filtroStatus
+        : undefined,
+    limit: 1000,
+  });
+  const { terapeutas } = useFetchTerapeutas();
+  const { canEdit } = useAuth();
 
   const itemsPerPage = 5; // Reduzido para 5 pacientes por página devido ao novo layout
 
@@ -225,7 +235,7 @@ const NotasFiscais = () => {
     setLoadingUpdate(sessao.id);
 
     try {
-      await dispatch(
+      const sessaoAtualizada = await dispatch(
         updateSessao({
           id: sessao.id,
           sessao: {
@@ -234,9 +244,13 @@ const NotasFiscais = () => {
         }),
       ).unwrap();
 
-      // Revalidar dados
-      await mutate("/sessoes");
-      mutateSessoes();
+      mutateSessoes((currentData) => {
+        if (!currentData) return currentData;
+        return currentData.map((item) =>
+          item.id === sessaoAtualizada.id ? sessaoAtualizada : item,
+        );
+      }, false);
+      await mutateSessoes();
 
       toast.success(
         `Nota fiscal da sessão de ${sessao.pacienteInfo?.nome} atualizada para "${novoStatus}".`,
@@ -282,8 +296,7 @@ const NotasFiscais = () => {
     setLoadingUpdate(`bulk-${pacienteKey}`);
 
     try {
-      // Atualizar todas as sessões em paralelo
-      await Promise.all(
+      const sessoesAtualizadas = await Promise.all(
         sessoes.map((sessao) =>
           dispatch(
             updateSessao({
@@ -296,9 +309,17 @@ const NotasFiscais = () => {
         ),
       );
 
-      // Revalidar dados
-      await mutate("/sessoes");
-      mutateSessoes();
+      const sessoesAtualizadasPorId = new Map(
+        sessoesAtualizadas.map((sessao) => [sessao.id, sessao]),
+      );
+
+      mutateSessoes((currentData) => {
+        if (!currentData) return currentData;
+        return currentData.map(
+          (item) => sessoesAtualizadasPorId.get(item.id) ?? item,
+        );
+      }, false);
+      await mutateSessoes();
 
       toast.success(
         `Status da nota fiscal de todas as sessões de ${pacienteNome} atualizado para "${novoStatus}".`,

@@ -156,9 +156,11 @@ async function getFiltered(filters) {
     }
 
     if (filters.dataInicio && filters.dataFim) {
-      conditions.push(
-        `s.data_sessao BETWEEN $${paramCounter} AND $${paramCounter + 1}`,
-      );
+      conditions.push(`(
+        (a.data_agendamento >= $${paramCounter} AND a.data_agendamento <= $${paramCounter + 1})
+        OR
+        (a.data_agendamento IS NULL AND s.created_at::date >= $${paramCounter} AND s.created_at::date <= $${paramCounter + 1})
+      )`);
       values.push(filters.dataInicio, filters.dataFim);
       paramCounter += 2;
     }
@@ -210,15 +212,15 @@ async function getFiltered(filters) {
     ${whereClause}
     ORDER BY
       COALESCE(a.data_agendamento, s.created_at) DESC
-    ${filters.limit ? `LIMIT $${paramCounter}` : ""}
-    ${filters.offset ? `OFFSET $${filters.limit ? paramCounter + 1 : paramCounter}` : ""}
+    ${filters.limit !== undefined ? `LIMIT $${paramCounter}` : ""}
+    ${filters.offset !== undefined ? `OFFSET $${filters.limit !== undefined ? paramCounter + 1 : paramCounter}` : ""}
   `,
       values:
-        filters.limit || filters.offset
+        filters.limit !== undefined || filters.offset !== undefined
           ? [
               ...values,
-              ...(filters.limit ? [filters.limit] : []),
-              ...(filters.offset ? [filters.offset] : []),
+              ...(filters.limit !== undefined ? [filters.limit] : []),
+              ...(filters.offset !== undefined ? [filters.offset] : []),
             ]
           : values,
     });

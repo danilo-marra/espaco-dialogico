@@ -22,7 +22,7 @@ import { useFetchSessoes } from "hooks/useFetchSessoes";
 import { useFetchTerapeutas } from "hooks/useFetchTerapeutas";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, addMonths } from "date-fns";
+import { endOfMonth, format, addMonths, startOfMonth } from "date-fns";
 import { parseAnyDate } from "utils/dateUtils";
 import { ptBR } from "date-fns/locale";
 import useAuth from "hooks/useAuth";
@@ -170,26 +170,19 @@ const filterSessoesByMonth = (
   }
 
   return sessoes.filter((sessao) => {
-    // Verifica se a data do agendamento está dentro do mês selecionado
-    if (sessao.agendamentoInfo?.dataAgendamento) {
-      try {
-        const data = parseAnyDate(sessao.agendamentoInfo.dataAgendamento);
-        if (!isNaN(data.getTime())) {
-          // Usar uma comparação mais robusta que considera apenas ano e mês
-          const anoMesSessao = format(data, "yyyy-MM");
-          const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+    const rawDate =
+      sessao.agendamentoInfo?.dataAgendamento ?? sessao.created_at;
+    if (!rawDate) return false;
 
-          if (anoMesSessao === anoMesSelecionado) {
-            return true;
-          }
-        }
-      } catch (error) {
-        console.warn(
-          "Erro ao processar data da sessão:",
-          sessao.agendamentoInfo.dataAgendamento,
-          error,
-        );
+    try {
+      const data = parseAnyDate(rawDate);
+      if (!isNaN(data.getTime())) {
+        const anoMesSessao = format(data, "yyyy-MM");
+        const anoMesSelecionado = format(selectedMonth, "yyyy-MM");
+        return anoMesSessao === anoMesSelecionado;
       }
+    } catch (error) {
+      console.warn("Erro ao processar data da sessão:", rawDate, error);
     }
 
     return false;
@@ -231,10 +224,6 @@ const calcularRepasse = (
 export default function Sessoes() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  // Utilizar hooks do Redux
-  const { sessoes, isLoading, isError, mutate } = useFetchSessoes();
-  const { terapeutas } = useFetchTerapeutas();
-  const { canEdit } = useAuth();
 
   const [selectedTerapeuta, setSelectedTerapeuta] = useState("Todos");
   const [selectedStatus, setSelectedStatus] = useState("Todos");
@@ -256,6 +245,38 @@ export default function Sessoes() {
   const [loadingBulkPagamento, setLoadingBulkPagamento] = useState<
     string | null
   >(null);
+
+  const sessoesPeriodoBusca = useMemo(
+    () => ({
+      dataInicio: format(startOfMonth(currentDate), "yyyy-MM-dd"),
+      dataFim: format(endOfMonth(currentDate), "yyyy-MM-dd"),
+    }),
+    [currentDate],
+  );
+  const pagamentoRealizadoBusca =
+    selectedStatus === "Pagamento Realizado"
+      ? true
+      : selectedStatus === "Pagamento Pendente"
+        ? false
+        : undefined;
+  const repasseRealizadoBusca =
+    selectedRepasse === "Repasse Realizado"
+      ? true
+      : selectedRepasse === "Repasse Pendente"
+        ? false
+        : undefined;
+
+  // Utilizar hooks do Redux
+  const { sessoes, isLoading, isError, mutate } = useFetchSessoes({
+    ...sessoesPeriodoBusca,
+    terapeuta_id: selectedTerapeuta !== "Todos" ? selectedTerapeuta : undefined,
+    tipo_sessao: selectedTipo !== "Todos" ? selectedTipo : undefined,
+    pagamento_realizado: pagamentoRealizadoBusca,
+    repasse_realizado: repasseRealizadoBusca,
+    limit: 1000,
+  });
+  const { terapeutas } = useFetchTerapeutas();
+  const { canEdit } = useAuth();
 
   useEffect(() => {
     if (!router.isReady) return;

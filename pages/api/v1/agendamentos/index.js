@@ -9,6 +9,7 @@ import {
   applyTerapeutaFilters,
   terapeutaTemAcessoPaciente,
 } from "utils/terapeutaMiddleware.js";
+import { parsePagination, setPaginationHeaders } from "utils/pagination.js";
 
 // Criar o router
 const router = createRouter();
@@ -35,6 +36,10 @@ async function getHandler(req, res) {
     // Verificar se há filtros na query string
     const { terapeuta_id, paciente_id, status, dataInicio, dataFim } =
       req.query;
+    const pagination = parsePagination(req.query, {
+      defaultLimit: 500,
+      maxLimit: 1000,
+    });
 
     const userRole = req.user.role || "terapeuta";
     const currentTerapeutaId = req.terapeutaId; // Definido pelo middleware terapeutaMiddleware
@@ -46,21 +51,19 @@ async function getHandler(req, res) {
       status,
       dataInicio,
       dataFim,
+      ...pagination,
     });
 
-    let agendamentos;
-
-    // Se existirem filtros, usar getFiltered, caso contrário, usar getAll
-    if (Object.keys(filters).some((key) => filters[key])) {
-      agendamentos = await agendamento.getFiltered(filters);
-    } else {
-      agendamentos = await agendamento.getAll();
-    }
+    const agendamentos = await agendamento.getFiltered(filters);
 
     // REMOVIDO: Filtro que limitava terapeutas a ver apenas seus agendamentos
     // Agora terapeutas podem ver todos os agendamentos, mas só editar os próprios
 
     // Retornar a resposta com status 200 (OK)
+    setPaginationHeaders(res, {
+      ...pagination,
+      count: agendamentos.length,
+    });
     res.status(200).json(agendamentos);
   } catch (error) {
     console.error("Erro ao buscar agendamentos:", error);
