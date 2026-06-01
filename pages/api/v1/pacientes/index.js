@@ -5,6 +5,7 @@ import { formidable } from "formidable";
 import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 import { requireTerapeutaAccess } from "utils/terapeutaMiddleware.js";
+import { parsePagination, setPaginationHeaders } from "utils/pagination.js";
 
 // Configuração para desativar o bodyParser padrão do Next.js para uploads
 export const config = {
@@ -33,17 +34,35 @@ async function getAllHandler(request, response) {
     // Verificar se é um terapeuta e filtrar adequadamente
     const userRole = request.user?.role;
     const terapeutaId = request.terapeutaId; // Vem do middleware terapeutaMiddleware
+    const pagination = parsePagination(request.query, {
+      defaultLimit: 200,
+      maxLimit: 500,
+    });
+    const search = request.query.search || request.query.q;
+    const requestedTerapeutaId = request.query.terapeuta_id;
 
     let pacientes;
 
     // Se for terapeuta, buscar apenas seus pacientes
     if (userRole === "terapeuta" && terapeutaId) {
-      pacientes = await paciente.getByTerapeutaId(terapeutaId);
+      pacientes = await paciente.getFiltered({
+        terapeuta_id: terapeutaId,
+        search,
+        ...pagination,
+      });
     } else {
       // Admin e secretaria veem todos os pacientes
-      pacientes = await paciente.getAll();
+      pacientes = await paciente.getFiltered({
+        terapeuta_id: requestedTerapeutaId,
+        search,
+        ...pagination,
+      });
     }
 
+    setPaginationHeaders(response, {
+      ...pagination,
+      count: pacientes.length,
+    });
     return response.status(200).json(pacientes);
   } catch (error) {
     console.error("Erro ao buscar pacientes:", error);

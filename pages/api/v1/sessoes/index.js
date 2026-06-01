@@ -3,6 +3,7 @@ import controller from "infra/controller.js";
 import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
+import { parsePagination, setPaginationHeaders } from "utils/pagination.js";
 
 // Criar o router
 const router = createRouter();
@@ -20,21 +21,62 @@ export default router.handler(controller.errorHandlers);
 // Handler para listar todas as sessões
 async function getHandler(request, response) {
   try {
-    // Opção para filtrar por terapeuta, paciente, ou status
-    const { terapeuta_id, paciente_id, status } = request.query;
+    const {
+      terapeuta_id,
+      paciente_id,
+      tipo_sessao,
+      pagamento_realizado,
+      nota_fiscal,
+      repasse_realizado,
+      dataInicio,
+      dataFim,
+      agendamento_id,
+    } = request.query;
+    const pagination = parsePagination(request.query, {
+      defaultLimit: 500,
+      maxLimit: 1000,
+    });
 
-    let sessoes;
-    if (terapeuta_id || paciente_id || status) {
-      sessoes = await sessao.getFiltered({ terapeuta_id, paciente_id, status });
-    } else {
-      sessoes = await sessao.getAll();
-    }
+    const sessoes = await sessao.getFiltered({
+      terapeuta_id,
+      paciente_id,
+      tipo_sessao,
+      pagamento_realizado: parseBooleanQuery(pagamento_realizado),
+      nota_fiscal,
+      repasse_realizado: parseBooleanQuery(repasse_realizado),
+      dataInicio,
+      dataFim,
+      agendamento_id,
+      ...pagination,
+    });
 
+    setPaginationHeaders(response, {
+      ...pagination,
+      count: sessoes.length,
+    });
     return response.status(200).json(sessoes);
   } catch (error) {
     console.error("Erro ao buscar sessões:", error);
     return response.status(500).json({ error: "Erro ao buscar sessões" });
   }
+}
+
+function parseBooleanQuery(value) {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = Array.isArray(value) ? value[0] : value;
+
+  if (normalized === "true") {
+    return true;
+  }
+
+  if (normalized === "false") {
+    return false;
+  }
+
+  return undefined;
 }
 
 // Handler para criar uma nova sessão

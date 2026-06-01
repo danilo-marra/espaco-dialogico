@@ -305,8 +305,21 @@ async function getFiltered(filters) {
       ${whereClause}
       ORDER BY
         a.data_agendamento DESC, a.horario_agendamento ASC
+      ${filters.limit ? `LIMIT $${paramCounter}` : ""}
+      ${
+        filters.offset
+          ? `OFFSET $${filters.limit ? paramCounter + 1 : paramCounter}`
+          : ""
+      }
     `,
-    values: values,
+    values:
+      filters.limit || filters.offset
+        ? [
+            ...values,
+            ...(filters.limit ? [filters.limit] : []),
+            ...(filters.offset ? [filters.offset] : []),
+          ]
+        : values,
   });
 
   return result.rows.map(formatAgendamentoResult);

@@ -119,6 +119,24 @@ afterAll(() => {
 });
 
 describe("GET /api/v1/sessoes/[id] - autorização", () => {
+  test("deve respeitar paginação na listagem", async () => {
+    const response = await fetch(`${BASE_URL}?limit=1`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${adminToken}`,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("x-pagination-limit")).toBe("1");
+    expect(response.headers.get("x-pagination-offset")).toBe("0");
+    expect(response.headers.get("x-pagination-returned")).toBe("1");
+
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(1);
+  });
+
   test("deve retornar 200 para admin", async () => {
     const response = await fetch(`${BASE_URL}/${sessaoId}`, {
       method: "GET",
