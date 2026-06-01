@@ -13,6 +13,15 @@ module.exports = async () => {
     /* ignore */
   }
 
+  try {
+    const database = require("../infra/database.js");
+    if (database && typeof database.shutdown === "function") {
+      await database.shutdown();
+    }
+  } catch (_) {
+    /* ignore */
+  }
+
   const markerPath = ".next-test-pid";
   if (fs.existsSync(markerPath)) {
     const pid = Number(fs.readFileSync(markerPath, "utf8"));

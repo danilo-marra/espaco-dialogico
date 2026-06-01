@@ -706,11 +706,31 @@ async function atualizarSessoesDeAgendamentosOtimizado(
     const sessoesParaCriar = [];
     const sessoesParaAtualizar = [];
     const sessoesParaDeletar = [];
+    const agendamentoIds = agendamentosAtualizados.map(({ id }) => id);
+    const [sessoesExistentes, agendamentosPersistidos] = await Promise.all([
+      sessao.getByAgendamentoIds(agendamentoIds),
+      agendamento.getByIds(agendamentoIds),
+    ]);
+    const sessoesPorAgendamentoId = new Map(
+      sessoesExistentes.map((sessaoExistente) => [
+        sessaoExistente.agendamento_id,
+        sessaoExistente,
+      ]),
+    );
+    const agendamentosPersistidosPorId = new Map(
+      agendamentosPersistidos.map((agendamentoPersistido) => [
+        agendamentoPersistido.id,
+        agendamentoPersistido,
+      ]),
+    );
 
     for (const agendamentoAtualizado of agendamentosAtualizados) {
-      const sessaoExistente = await sessao.getFiltered({
-        agendamento_id: agendamentoAtualizado.id,
-      });
+      const agendamentoPersistido = agendamentosPersistidosPorId.get(
+        agendamentoAtualizado.id,
+      );
+      const sessaoExistente = sessoesPorAgendamentoId.get(
+        agendamentoAtualizado.id,
+      );
 
       const sessaoRealizadaAtual = obterBooleanAgendamento(
         agendamentoAtualizado,
@@ -732,72 +752,62 @@ async function atualizarSessoesDeAgendamentosOtimizado(
       let faltaEfetiva = faltaAtual;
       let statusEfetivo = statusAtual;
 
-      // No fluxo otimizado, alguns campos podem não vir no retorno.
-      // Quando faltar informação, buscamos o estado persistido para evitar decisões incorretas.
-      if (
-        sessaoRealizadaEfetiva === undefined ||
-        faltaEfetiva === undefined ||
-        statusEfetivo === undefined
-      ) {
-        const agendamentoPersistido = await agendamento.getById(
-          agendamentoAtualizado.id,
+      if (sessaoRealizadaEfetiva === undefined) {
+        sessaoRealizadaEfetiva = obterBooleanAgendamento(
+          agendamentoPersistido,
+          "sessaoRealizada",
+          "sessao_realizada",
         );
+      }
 
-        if (sessaoRealizadaEfetiva === undefined) {
-          sessaoRealizadaEfetiva = obterBooleanAgendamento(
-            agendamentoPersistido,
-            "sessaoRealizada",
-            "sessao_realizada",
-          );
-        }
+      if (faltaEfetiva === undefined) {
+        faltaEfetiva = obterBooleanAgendamento(
+          agendamentoPersistido,
+          "falta",
+          "falta",
+        );
+      }
 
-        if (faltaEfetiva === undefined) {
-          faltaEfetiva = obterBooleanAgendamento(
-            agendamentoPersistido,
-            "falta",
-            "falta",
-          );
-        }
-
-        if (statusEfetivo === undefined) {
-          statusEfetivo = obterCampoAgendamento(
-            agendamentoPersistido,
-            "statusAgendamento",
-            "status_agendamento",
-          );
-        }
+      if (statusEfetivo === undefined) {
+        statusEfetivo = obterCampoAgendamento(
+          agendamentoPersistido,
+          "statusAgendamento",
+          "status_agendamento",
+        );
       }
 
       const shouldCreateSession =
         (sessaoRealizadaEfetiva || faltaEfetiva) &&
         statusEfetivo !== "Cancelado";
-      const sessionAlreadyExists =
-        sessaoExistente && sessaoExistente.length > 0;
+      const sessionAlreadyExists = !!sessaoExistente;
 
       if (shouldCreateSession) {
         if (sessionAlreadyExists) {
-          const sessaoAssociada = sessaoExistente[0];
           const sessaoUpdateData = {
-            id: sessaoAssociada.id,
+            id: sessaoExistente.id,
           };
 
-          const tipoAgendamentoAtual = obterCampoAgendamento(
+          const tipoAgendamentoAtual = obterCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "tipoAgendamento",
             "tipo_agendamento",
           );
-          const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+          const valorAgendamentoAtual = obterNumeroCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "valorAgendamento",
             "valor_agendamento",
           );
-          const terapeutaAtual = obterCampoAgendamento(
+          const terapeutaAtual = obterCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "terapeuta_id",
             "terapeutaId",
           );
-          const pacienteAtual = obterCampoAgendamento(
+          const pacienteAtual = obterCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "paciente_id",
             "pacienteId",
           );
@@ -820,30 +830,35 @@ async function atualizarSessoesDeAgendamentosOtimizado(
             sessoesParaAtualizar.push(sessaoUpdateData);
           }
         } else {
-          const tipoAgendamentoAtual = obterCampoAgendamento(
+          const tipoAgendamentoAtual = obterCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "tipoAgendamento",
             "tipo_agendamento",
           );
-          const valorAgendamentoAtual = obterNumeroCampoAgendamento(
+          const valorAgendamentoAtual = obterNumeroCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "valorAgendamento",
             "valor_agendamento",
           );
-          const statusAgendamentoAtual = obterCampoAgendamento(
+          const statusAgendamentoAtual = obterCampoComFallback(
             agendamentoAtualizado,
+            agendamentoPersistido,
             "statusAgendamento",
             "status_agendamento",
           );
 
           sessoesParaCriar.push({
-            terapeuta_id: obterCampoAgendamento(
+            terapeuta_id: obterCampoComFallback(
               agendamentoAtualizado,
+              agendamentoPersistido,
               "terapeuta_id",
               "terapeutaId",
             ),
-            paciente_id: obterCampoAgendamento(
+            paciente_id: obterCampoComFallback(
               agendamentoAtualizado,
+              agendamentoPersistido,
               "paciente_id",
               "pacienteId",
             ),
@@ -857,7 +872,7 @@ async function atualizarSessoesDeAgendamentosOtimizado(
           });
         }
       } else if (sessionAlreadyExists) {
-        sessoesParaDeletar.push(sessaoExistente[0].id);
+        sessoesParaDeletar.push(sessaoExistente.id);
       }
     }
 
@@ -915,7 +930,7 @@ async function atualizarSessoesDeAgendamentosOtimizado(
         `🚀 BATCH: Deletando ${sessoesParaDeletar.length} sessões...`,
       );
       try {
-        sessoesProcessadas += await sessao.removeBatch(sessoesParaDeletar);
+        sessoesProcessadas += await sessao.removeBatchByIds(sessoesParaDeletar);
       } catch (batchError) {
         console.warn(
           "⚠️ Erro na exclusão em lote de sessões, tentando individual:",
@@ -959,6 +974,18 @@ function obterNumeroCampoAgendamento(obj, campoA, campoB) {
   return Number(valor);
 }
 
+function obterCampoComFallback(primary, fallback, campoA, campoB) {
+  const valor = obterCampoAgendamento(primary, campoA, campoB);
+  if (valor !== undefined && valor !== null) return valor;
+  return obterCampoAgendamento(fallback, campoA, campoB);
+}
+
+function obterNumeroCampoComFallback(primary, fallback, campoA, campoB) {
+  const valor = obterCampoComFallback(primary, fallback, campoA, campoB);
+  if (valor === undefined || valor === null) return valor;
+  return Number(valor);
+}
+
 function obterBooleanAgendamento(obj, campoA, campoB) {
   const valor = obterCampoAgendamento(obj, campoA, campoB);
   if (valor === undefined || valor === null) return undefined;
@@ -982,8 +1009,6 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
   }
 
   try {
-    await database.query({ text: "BEGIN" });
-
     // Preparar campos para atualização
     const fieldsToUpdate = [];
     const values = [recurrenceId];
@@ -1056,22 +1081,21 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
 
     if (fieldsToUpdate.length === 0) {
       console.log("⚠️ Nenhum campo para atualizar");
-      await database.query({ text: "COMMIT" });
       return [];
     }
 
     // Atualização em uma única query
-    const result = await database.query({
-      text: `
-        UPDATE agendamentos
-        SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
-        WHERE recurrence_id = $1
-        RETURNING *
-      `,
-      values: values,
+    const result = await database.transaction((client) => {
+      return client.query({
+        text: `
+          UPDATE agendamentos
+          SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
+          WHERE recurrence_id = $1
+          RETURNING *
+        `,
+        values: values,
+      });
     });
-
-    await database.query({ text: "COMMIT" });
 
     console.log(
       `✅ BATCH: ${result.rows.length} agendamentos atualizados com sucesso`,
@@ -1093,7 +1117,6 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
       observacoesAgendamento: row.observacoes_agendamento,
     }));
   } catch (error) {
-    await database.query({ text: "ROLLBACK" });
     console.error("❌ BATCH: Erro ao atualizar agendamentos:", error);
     throw error;
   }
@@ -1111,99 +1134,99 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
   console.log("🚀 BATCH: Atualizando agendamentos com novo dia da semana...");
 
   try {
-    await database.query({ text: "BEGIN" });
+    const result = await database.transaction(async (client) => {
+      // Primeiro, buscar todos os agendamentos da recorrência
+      const agendamentosResult = await client.query({
+        text: "SELECT * FROM agendamentos WHERE recurrence_id = $1 ORDER BY data_agendamento",
+        values: [recurrenceId],
+      });
 
-    // Primeiro, buscar todos os agendamentos da recorrência
-    const agendamentosResult = await database.query({
-      text: "SELECT * FROM agendamentos WHERE recurrence_id = $1 ORDER BY data_agendamento",
-      values: [recurrenceId],
+      if (agendamentosResult.rows.length === 0) {
+        throw new Error("Nenhum agendamento encontrado com este recurrence_id");
+      }
+
+      // Preparar dados para atualização em lote
+      const updateCases = [];
+      const updateValues = [];
+      const agendamentoIds = [];
+      let paramCounter = 1;
+
+      agendamentosResult.rows.forEach((agendamento) => {
+        // Calcular nova data baseada no novo dia da semana
+        const dataAtual = new Date(agendamento.data_agendamento);
+        const diaSemanaAtual = dataAtual.getDay();
+        const diferenca = novoDiaSemana - diaSemanaAtual;
+
+        const novaData = new Date(dataAtual);
+        novaData.setDate(dataAtual.getDate() + diferenca);
+        const novaDataFormatada = format(novaData, "yyyy-MM-dd");
+
+        // Adicionar CASE para cada campo a ser atualizado
+        updateCases.push(
+          `WHEN id = $${paramCounter} THEN $${paramCounter + 1}`,
+        );
+        updateValues.push(agendamento.id, novaDataFormatada);
+        agendamentoIds.push(agendamento.id);
+        paramCounter += 2;
+      });
+
+      // Adicionar outros campos se necessário
+      const otherFields = [];
+      if (agendamentoData.horarioAgendamento) {
+        otherFields.push(`horario_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.horarioAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.localAgendamento) {
+        otherFields.push(`local_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.localAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.modalidadeAgendamento) {
+        otherFields.push(`modalidade_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.modalidadeAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.tipoAgendamento) {
+        otherFields.push(`tipo_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.tipoAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.valorAgendamento) {
+        otherFields.push(`valor_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.valorAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.statusAgendamento) {
+        otherFields.push(`status_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.statusAgendamento);
+        paramCounter++;
+      }
+      if (agendamentoData.observacoesAgendamento) {
+        otherFields.push(`observacoes_agendamento = $${paramCounter}`);
+        updateValues.push(agendamentoData.observacoesAgendamento);
+        paramCounter++;
+      }
+
+      // Construir query com CASE WHEN para atualização em lote
+      const otherFieldsSQL =
+        otherFields.length > 0 ? `, ${otherFields.join(", ")}` : "";
+      const placeholdersList = agendamentoIds
+        .map((_, index) => `$${(index + 1) * 2 - 1}`)
+        .join(", ");
+
+      return client.query({
+        text: `
+          UPDATE agendamentos
+          SET data_agendamento = CASE ${updateCases.join(" ")} END,
+              updated_at = NOW()
+              ${otherFieldsSQL}
+          WHERE id IN (${placeholdersList})
+          RETURNING *
+        `,
+        values: updateValues,
+      });
     });
-
-    if (agendamentosResult.rows.length === 0) {
-      throw new Error("Nenhum agendamento encontrado com este recurrence_id");
-    }
-
-    // Preparar dados para atualização em lote
-    const updateCases = [];
-    const updateValues = [];
-    const agendamentoIds = [];
-    let paramCounter = 1;
-
-    agendamentosResult.rows.forEach((agendamento) => {
-      // Calcular nova data baseada no novo dia da semana
-      const dataAtual = new Date(agendamento.data_agendamento);
-      const diaSemanaAtual = dataAtual.getDay();
-      const diferenca = novoDiaSemana - diaSemanaAtual;
-
-      const novaData = new Date(dataAtual);
-      novaData.setDate(dataAtual.getDate() + diferenca);
-      const novaDataFormatada = format(novaData, "yyyy-MM-dd");
-
-      // Adicionar CASE para cada campo a ser atualizado
-      updateCases.push(`WHEN id = $${paramCounter} THEN $${paramCounter + 1}`);
-      updateValues.push(agendamento.id, novaDataFormatada);
-      agendamentoIds.push(agendamento.id);
-      paramCounter += 2;
-    });
-
-    // Adicionar outros campos se necessário
-    const otherFields = [];
-    if (agendamentoData.horarioAgendamento) {
-      otherFields.push(`horario_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.horarioAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.localAgendamento) {
-      otherFields.push(`local_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.localAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.modalidadeAgendamento) {
-      otherFields.push(`modalidade_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.modalidadeAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.tipoAgendamento) {
-      otherFields.push(`tipo_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.tipoAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.valorAgendamento) {
-      otherFields.push(`valor_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.valorAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.statusAgendamento) {
-      otherFields.push(`status_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.statusAgendamento);
-      paramCounter++;
-    }
-    if (agendamentoData.observacoesAgendamento) {
-      otherFields.push(`observacoes_agendamento = $${paramCounter}`);
-      updateValues.push(agendamentoData.observacoesAgendamento);
-      paramCounter++;
-    }
-
-    // Construir query com CASE WHEN para atualização em lote
-    const otherFieldsSQL =
-      otherFields.length > 0 ? `, ${otherFields.join(", ")}` : "";
-    const placeholdersList = agendamentoIds
-      .map((_, index) => `$${(index + 1) * 2 - 1}`)
-      .join(", ");
-
-    const result = await database.query({
-      text: `
-        UPDATE agendamentos
-        SET data_agendamento = CASE ${updateCases.join(" ")} END,
-            updated_at = NOW()
-            ${otherFieldsSQL}
-        WHERE id IN (${placeholdersList})
-        RETURNING *
-      `,
-      values: updateValues,
-    });
-
-    await database.query({ text: "COMMIT" });
 
     console.log(
       `✅ BATCH: ${result.rows.length} agendamentos atualizados com novo dia da semana`,
@@ -1224,7 +1247,6 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
       observacoesAgendamento: row.observacoes_agendamento,
     }));
   } catch (error) {
-    await database.query({ text: "ROLLBACK" });
     console.error("❌ BATCH: Erro ao atualizar com novo dia da semana:", error);
     throw error;
   }

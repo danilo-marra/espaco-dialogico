@@ -356,12 +356,9 @@ async function seedAgendamentos() {
       // Inserir o agendamento e criar uma sessão correspondente em uma transação
       insertPromises.push(
         (async () => {
-          try {
-            // Begin transaction
-            await database.query({ text: "BEGIN" });
-
+          return database.transaction(async (client) => {
             // Inserir o agendamento
-            const agendamentoResult = await database.query({
+            const agendamentoResult = await client.query({
               text: `
                 INSERT INTO agendamentos (
                   terapeuta_id,
@@ -407,7 +404,7 @@ async function seedAgendamentos() {
                 pagamentoRealizado,
               );
 
-              await database.query({
+              await client.query({
                 text: `
                   INSERT INTO sessoes (
                     terapeuta_id,
@@ -432,15 +429,8 @@ async function seedAgendamentos() {
               });
             }
 
-            // Commit transaction
-            await database.query({ text: "COMMIT" });
-
             return agendamentoResult;
-          } catch (error) {
-            // Rollback transaction on error
-            await database.query({ text: "ROLLBACK" });
-            throw error;
-          }
+          });
         })(),
       );
     }
