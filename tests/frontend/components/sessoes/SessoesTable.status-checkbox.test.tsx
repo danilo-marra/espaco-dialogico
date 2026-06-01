@@ -82,7 +82,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={null}
+        loadingPagamentoSessaoIds={new Set()}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );
@@ -120,7 +120,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={null}
+        loadingPagamentoSessaoIds={new Set()}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );
@@ -155,7 +155,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={"sessao-1"}
+        loadingPagamentoSessaoIds={new Set(["sessao-1"])}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );
@@ -187,7 +187,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={null}
+        loadingPagamentoSessaoIds={new Set()}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );
@@ -212,7 +212,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={"sessao-1"}
+        loadingPagamentoSessaoIds={new Set(["sessao-1"])}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );
@@ -239,7 +239,7 @@ describe("SessoesTable status checkbox", () => {
         toggleAccordion={jest.fn()}
         handleBulkUpdatePagamento={jest.fn()}
         loadingBulkPagamento={null}
-        loadingPagamentoSessaoId={null}
+        loadingPagamentoSessaoIds={new Set()}
         expandedPatients={["terapeuta-1-paciente-1"]}
       />,
     );

@@ -97,7 +97,11 @@ describe("DashboardPendencias", () => {
     );
     expect(links[2]).toHaveAttribute(
       "href",
-      "/dashboard/agenda?periodo=2026-05",
+      "/dashboard/agenda?pendencia=marcacao&periodo=2026-05",
+    );
+    expect(links[3]).toHaveAttribute(
+      "href",
+      "/dashboard/sessoes?repasse=Repasse%20Pendente&status=Pagamento%20Realizado&periodo=2026-05",
     );
   });
 });

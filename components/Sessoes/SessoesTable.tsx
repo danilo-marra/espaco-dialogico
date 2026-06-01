@@ -101,7 +101,7 @@ interface SessoesTableProps {
     _groupName: string,
   ) => void;
   loadingBulkPagamento: string | null;
-  loadingPagamentoSessaoId: string | null;
+  loadingPagamentoSessaoIds: Set<string>;
   expandedPatients: string[];
 }
 
@@ -116,7 +116,7 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
   toggleAccordion,
   handleBulkUpdatePagamento,
   loadingBulkPagamento,
-  loadingPagamentoSessaoId,
+  loadingPagamentoSessaoIds,
   expandedPatients,
 }) => {
   // Função para agrupar sessões por terapeuta e depois por paciente
@@ -379,9 +379,9 @@ export const SessoesTable: React.FC<SessoesTableProps> = ({
                                       <input
                                         type="checkbox"
                                         checked={!!sessao.pagamentoRealizado}
-                                        disabled={
-                                          loadingPagamentoSessaoId === sessao.id
-                                        }
+                                        disabled={loadingPagamentoSessaoIds.has(
+                                          sessao.id,
+                                        )}
                                         onChange={(e) =>
                                           handleUpdatePagamento(
                                             sessao,

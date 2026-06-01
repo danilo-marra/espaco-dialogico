@@ -72,7 +72,7 @@ export function DashboardPendencias({
           icon: CalendarClock,
           color: "text-purple-700",
           bgColor: "bg-purple-50 border-purple-200",
-          href: `/dashboard/agenda?periodo=${selectedPeriod}`,
+          href: `/dashboard/agenda?pendencia=marcacao&periodo=${selectedPeriod}`,
           items: data.marcacoesPendentes.map((item) => ({
             id: item.id,
             nome: item.nome,
@@ -88,7 +88,7 @@ export function DashboardPendencias({
           icon: HandCoins,
           color: "text-rose-700",
           bgColor: "bg-rose-50 border-rose-200",
-          href: `/dashboard/sessoes?repasse=${encodeURIComponent("Repasse Pendente")}&periodo=${selectedPeriod}`,
+          href: `/dashboard/sessoes?repasse=${encodeURIComponent("Repasse Pendente")}&status=${encodeURIComponent("Pagamento Realizado")}&periodo=${selectedPeriod}`,
           items: data.repassesPendentes.map((item) => ({
             id: item.id,
             nome: item.nome,
