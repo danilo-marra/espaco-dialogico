@@ -98,9 +98,9 @@ async function handler(request, response) {
     }
 
     const mailOptions = {
-      from: `Espaco Dialogico - Sistema <${senderAddress}>`,
+      from: `Espaço Dialógico <${senderAddress}>`,
       to: inviteData.email,
-      subject: `Convite para o Espaco Dialogico - ${inviteData.code}`,
+      subject: "Você recebeu um convite para o Espaço Dialógico",
       html: createInviteEmailTemplate(
         inviteData.code,
         senderName,
