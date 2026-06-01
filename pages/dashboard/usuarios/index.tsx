@@ -117,17 +117,14 @@ export default function UsersPage() {
         return;
       }
 
-      const response = await fetch(
-        `/api/v1/admin/users/${selectedUser.username}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
+      const response = await fetch(`/api/v1/admin/users/${selectedUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify(payload),
+      });
 
       const data = await response.json();
 
@@ -150,15 +147,12 @@ export default function UsersPage() {
 
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(
-        `/api/v1/admin/users/${selectedUser.username}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await fetch(`/api/v1/admin/users/${selectedUser.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (!response.ok) {
         const data = await response.json();
