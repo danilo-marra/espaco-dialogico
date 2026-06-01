@@ -78,10 +78,16 @@ async function handler(request, response) {
     } // Preparar dados para envio
     const senderName = inviteData.created_by_username || "Sistema";
 
+    const provider = email.getEmailProvider();
+
     const senderAddress =
-      process.env.EMAIL_FROM_ADDRESS ||
-      process.env.RESEND_FROM_ADDRESS ||
-      process.env.EMAIL_SMTP_USER;
+      provider === "resend"
+        ? process.env.RESEND_FROM_ADDRESS ||
+          process.env.EMAIL_FROM_ADDRESS ||
+          process.env.EMAIL_SMTP_USER
+        : process.env.EMAIL_FROM_ADDRESS ||
+          process.env.RESEND_FROM_ADDRESS ||
+          process.env.EMAIL_SMTP_USER;
 
     if (!senderAddress) {
       return response.status(503).json({

@@ -15,8 +15,17 @@ function validateMailOptions(mailOptions) {
     throw new Error("mailOptions must be a non-null object");
   }
 
+  mailOptions.to = toAddressList(mailOptions.to);
+
   const missing = [];
   for (const field of ["from", "to", "subject"]) {
+    if (field === "to") {
+      if (!Array.isArray(mailOptions.to) || mailOptions.to.length === 0) {
+        missing.push(field);
+      }
+      continue;
+    }
+
     if (!mailOptions[field]) missing.push(field);
   }
   if (!mailOptions.text && !mailOptions.html) {
@@ -29,16 +38,16 @@ function validateMailOptions(mailOptions) {
   }
 
   const fromAddr = extractAddress(mailOptions.from);
-  const toRaw = Array.isArray(mailOptions.to)
-    ? mailOptions.to[0]
-    : mailOptions.to;
-  const toAddr = extractAddress(toRaw);
 
   if (!EMAIL_REGEX.test(fromAddr)) {
     throw new Error(`Invalid email address in 'from': ${fromAddr}`);
   }
-  if (!EMAIL_REGEX.test(toAddr)) {
-    throw new Error(`Invalid email address in 'to': ${toAddr}`);
+
+  for (const toRaw of mailOptions.to) {
+    const toAddr = extractAddress(toRaw);
+    if (!EMAIL_REGEX.test(toAddr)) {
+      throw new Error(`Invalid email address in 'to': ${toAddr}`);
+    }
   }
 }
 
@@ -140,10 +149,11 @@ async function sendWithResend(mailOptions) {
 
 async function send(mailOptions) {
   validateMailOptions(mailOptions);
-
-  const provider = getEmailProvider();
+  let provider;
 
   try {
+    provider = getEmailProvider();
+
     if (provider === "resend") {
       await sendWithResend(mailOptions);
       return;

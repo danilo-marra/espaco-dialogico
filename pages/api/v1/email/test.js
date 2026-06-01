@@ -55,7 +55,9 @@ export default async function handler(request, response) {
     provider,
     status: isReady ? "OK" : "ERROR",
     ...(provider === "smtp" &&
-      isReady && {
+      isReady &&
+      process.env.EMAIL_HTTP_HOST &&
+      process.env.EMAIL_HTTP_PORT && {
         mailpitUrl: `http://${process.env.EMAIL_HTTP_HOST}:${process.env.EMAIL_HTTP_PORT}`,
       }),
   });
