@@ -3,7 +3,7 @@ const database = require("../database.js");
 const dotenv = require("dotenv");
 const path = require("path");
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 async function checkMigration() {
   try {

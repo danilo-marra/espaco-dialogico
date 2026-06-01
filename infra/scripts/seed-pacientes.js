@@ -14,8 +14,8 @@ const dotenv = require("dotenv");
 const path = require("path");
 const { faker } = require("@faker-js/faker/locale/pt_BR");
 
-// Carrega variáveis de ambiente do arquivo .env.development
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+// Carrega variáveis de ambiente do arquivo .env.development.local
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 // Número de pacientes a serem criados
 const NUM_PACIENTES = 15;

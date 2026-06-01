@@ -3,7 +3,7 @@ const { Pool } = require("pg");
 const dotenv = require("dotenv");
 const path = require("path");
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 async function validateAndFixDatabase() {
   console.log("🔍 Validando banco de dados...");

@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const path = require("path");
 
 // Carregando variáveis de ambiente
-const envPath = path.resolve(process.cwd(), ".env.development");
+const envPath = path.resolve(process.cwd(), ".env.development.local");
 dotenv.config({ path: envPath });
 
 async function waitForPostgres() {

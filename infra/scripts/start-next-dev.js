@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 
 // Carregando variáveis de ambiente
-dotenv.config({ path: path.resolve(process.cwd(), ".env.development") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env.development.local") });
 
 // Função para extrair nomes de tabelas dos arquivos de migração
 function extractTableNames() {
@@ -116,7 +116,7 @@ async function validateDatabase() {
       console.log("   1. Verifique se o Docker está rodando");
       console.log("   2. Execute: docker-compose up -d");
       console.log(
-        "   3. Verifique as variáveis de ambiente no .env.development",
+        "   3. Verifique as variáveis de ambiente no .env.development.local",
       );
       console.log(
         "   4. Aguarde alguns segundos para o PostgreSQL inicializar",
