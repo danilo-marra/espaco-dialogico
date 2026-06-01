@@ -133,32 +133,58 @@ async function create(agendamentoData) {
     // Garantir booleano para o campo falta
     const falta = !!agendamentoData.falta;
 
-    // Inserir o agendamento no banco de dados
     const result = await database.query({
       text: `
-        INSERT INTO agendamentos (
-          terapeuta_id,
-          paciente_id,
-          recurrence_id,
-          data_agendamento,
-          horario_agendamento,
-          local_agendamento,
-          modalidade_agendamento,
-          tipo_agendamento,
-          valor_agendamento,
-          status_agendamento,
-          observacoes_agendamento,
-          sessao_realizada,
-          falta
+        WITH inserted AS (
+          INSERT INTO agendamentos (
+            terapeuta_id,
+            paciente_id,
+            recurrence_id,
+            data_agendamento,
+            horario_agendamento,
+            local_agendamento,
+            modalidade_agendamento,
+            tipo_agendamento,
+            valor_agendamento,
+            status_agendamento,
+            observacoes_agendamento,
+            sessao_realizada,
+            falta
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          RETURNING *
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING *
+        SELECT
+          inserted.*,
+          t.nome as terapeuta_nome,
+          t.foto as terapeuta_foto,
+          t.telefone as terapeuta_telefone,
+          t.email as terapeuta_email,
+          t.crp as terapeuta_crp,
+          t.dt_nascimento as terapeuta_dt_nascimento,
+          t.dt_entrada as terapeuta_dt_entrada,
+          t.chave_pix as terapeuta_chave_pix,
+          p.nome as paciente_nome,
+          p.dt_nascimento as paciente_dt_nascimento,
+          p.nome_responsavel as paciente_nome_responsavel,
+          p.telefone_responsavel as paciente_telefone_responsavel,
+          p.nf_nome_completo as paciente_nf_nome_completo,
+          p.nf_telefone as paciente_nf_telefone,
+          p.nf_cpf as paciente_nf_cpf,
+          p.nf_email as paciente_nf_email,
+          p.nf_endereco as paciente_nf_endereco,
+          p.nf_dt_entrada as paciente_nf_dt_entrada,
+          p.origem as paciente_origem,
+          p.dt_entrada as paciente_dt_entrada
+        FROM inserted
+        JOIN terapeutas t ON inserted.terapeuta_id = t.id
+        JOIN pacientes p ON inserted.paciente_id = p.id
       `,
       values: [
         agendamentoData.terapeuta_id,
         agendamentoData.paciente_id,
         agendamentoData.recurrenceId,
-        dataFormatada, // Usar a data formatada de forma segura
+        dataFormatada,
         agendamentoData.horarioAgendamento,
         agendamentoData.localAgendamento,
         agendamentoData.modalidadeAgendamento,
@@ -171,8 +197,7 @@ async function create(agendamentoData) {
       ],
     });
 
-    // Retornar agendamento com informações completas
-    return await getById(result.rows[0].id);
+    return formatAgendamentoResult(result.rows[0]);
   } catch (error) {
     console.error("Erro ao inserir agendamento no banco:", {
       message: error.message,
@@ -1106,15 +1131,10 @@ async function updateAllByRecurrenceIdWithNewWeekday(
 }
 
 async function update(id, agendamentoData) {
-  // Verificar se o agendamento existe
-  await getById(id);
-
-  // Preparar os campos a serem atualizados
   const fieldsToUpdate = [];
   const values = [];
   let paramCounter = 1;
 
-  // Função auxiliar para adicionar campos a serem atualizados
   function addField(fieldName, value) {
     if (value !== undefined) {
       fieldsToUpdate.push(`${fieldName} = $${paramCounter}`);
@@ -1123,7 +1143,6 @@ async function update(id, agendamentoData) {
     }
   }
 
-  // Adicionar cada campo que precisa ser atualizado
   addField("paciente_id", agendamentoData.paciente_id);
   addField("terapeuta_id", agendamentoData.terapeuta_id);
   addField("data_agendamento", agendamentoData.dataAgendamento);
@@ -1138,30 +1157,56 @@ async function update(id, agendamentoData) {
   addField("falta", agendamentoData.falta);
   addField("recurrence_id", agendamentoData.recurrenceId);
 
-  // Se não houver campos para atualizar, retornar os dados atuais
   if (fieldsToUpdate.length === 0) {
     return await getById(id);
   }
 
-  // Adicionar o id para a cláusula WHERE
   values.push(id);
 
-  // Construir a query SQL
-  const sql = `
-    UPDATE agendamentos
-    SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
-    WHERE id = $${paramCounter}
-    RETURNING *
-  `;
-
-  // Executar a query
-  await database.query({
-    text: sql,
-    values: values,
+  const result = await database.query({
+    text: `
+      WITH updated AS (
+        UPDATE agendamentos
+        SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
+        WHERE id = $${paramCounter}
+        RETURNING *
+      )
+      SELECT
+        updated.*,
+        t.nome as terapeuta_nome,
+        t.foto as terapeuta_foto,
+        t.telefone as terapeuta_telefone,
+        t.email as terapeuta_email,
+        t.crp as terapeuta_crp,
+        t.dt_nascimento as terapeuta_dt_nascimento,
+        t.dt_entrada as terapeuta_dt_entrada,
+        t.chave_pix as terapeuta_chave_pix,
+        p.nome as paciente_nome,
+        p.dt_nascimento as paciente_dt_nascimento,
+        p.nome_responsavel as paciente_nome_responsavel,
+        p.telefone_responsavel as paciente_telefone_responsavel,
+        p.nf_nome_completo as paciente_nf_nome_completo,
+        p.nf_telefone as paciente_nf_telefone,
+        p.nf_cpf as paciente_nf_cpf,
+        p.nf_email as paciente_nf_email,
+        p.nf_endereco as paciente_nf_endereco,
+        p.nf_dt_entrada as paciente_nf_dt_entrada,
+        p.origem as paciente_origem,
+        p.dt_entrada as paciente_dt_entrada
+      FROM updated
+      JOIN terapeutas t ON updated.terapeuta_id = t.id
+      JOIN pacientes p ON updated.paciente_id = p.id
+    `,
+    values,
   });
 
-  // Retornar os dados atualizados
-  return await getById(id);
+  if (result.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Agendamento não encontrado",
+    });
+  }
+
+  return formatAgendamentoResult(result.rows[0]);
 }
 
 async function remove(id) {

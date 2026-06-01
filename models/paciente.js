@@ -209,37 +209,41 @@ function formatPacienteResult(row) {
 }
 
 async function update(id, pacienteInputValues) {
-  // Primeiro, buscar o paciente existente
-  const currentPaciente = await getById(id);
-
-  // Se não encontrar o paciente, lançar erro
-  if (!currentPaciente) {
-    throw new NotFoundError({
-      message: "Paciente não encontrado",
-      action: "Verifique o ID e tente novamente",
-    });
-  }
-
-  const queryObject = {
+  const result = await database.query({
     text: `
-      UPDATE pacientes
-      SET
-        nome = $1,
-        dt_nascimento = $2,
-        terapeuta_id = $3,
-        nome_responsavel = $4,
-        telefone_responsavel = $5,
-        origem = $6,
-        dt_entrada = $7,
-        nf_nome_completo = $8,
-        nf_telefone = $9,
-        nf_cpf = $10,
-        nf_email = $11,
-        nf_endereco = $12,
-        nf_dt_entrada = $13,
-        updated_at = timezone('utc', now())
-      WHERE id = $14
-      RETURNING *
+      WITH updated AS (
+        UPDATE pacientes
+        SET
+          nome = $1,
+          dt_nascimento = $2,
+          terapeuta_id = $3,
+          nome_responsavel = $4,
+          telefone_responsavel = $5,
+          origem = $6,
+          dt_entrada = $7,
+          nf_nome_completo = $8,
+          nf_telefone = $9,
+          nf_cpf = $10,
+          nf_email = $11,
+          nf_endereco = $12,
+          nf_dt_entrada = $13,
+          updated_at = timezone('utc', now())
+        WHERE id = $14
+        RETURNING *
+      )
+      SELECT
+        updated.*,
+        t.id as terapeuta_id,
+        t.nome as terapeuta_nome,
+        t.telefone as terapeuta_telefone,
+        t.email as terapeuta_email,
+        t.crp as terapeuta_crp,
+        t.dt_nascimento as terapeuta_dt_nascimento,
+        t.dt_entrada as terapeuta_dt_entrada,
+        t.chave_pix as terapeuta_chave_pix,
+        t.foto as terapeuta_foto
+      FROM updated
+      LEFT JOIN terapeutas t ON updated.terapeuta_id = t.id
     `,
     values: [
       pacienteInputValues.nome,
@@ -257,10 +261,16 @@ async function update(id, pacienteInputValues) {
       pacienteInputValues.nf_dt_entrada,
       id,
     ],
-  };
+  });
 
-  const result = await database.query(queryObject);
-  return result.rows[0];
+  if (result.rowCount === 0) {
+    throw new NotFoundError({
+      message: "Paciente não encontrado",
+      action: "Verifique o ID e tente novamente",
+    });
+  }
+
+  return formatPacienteResult(result.rows[0]);
 }
 
 async function remove(id) {
