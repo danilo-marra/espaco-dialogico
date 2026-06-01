@@ -31,7 +31,11 @@ async function transaction(callback) {
     await client.query("COMMIT");
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      error.rollbackError = rollbackError;
+    }
     throw error;
   } finally {
     await client.end();

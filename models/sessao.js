@@ -748,6 +748,23 @@ async function updateBatch(sessoesData) {
             values.push(sessaoData.valorSessao);
           }
 
+          const terapeutaId = sessaoData.terapeuta_id ?? sessaoData.terapeutaId;
+          if (terapeutaId !== undefined) {
+            updateFields.push(`terapeuta_id = $${valueIndex++}`);
+            values.push(terapeutaId);
+          }
+
+          const pacienteId = sessaoData.paciente_id ?? sessaoData.pacienteId;
+          if (pacienteId !== undefined) {
+            updateFields.push(`paciente_id = $${valueIndex++}`);
+            values.push(pacienteId);
+          }
+
+          if (sessaoData.agendamento_id !== undefined) {
+            updateFields.push(`agendamento_id = $${valueIndex++}`);
+            values.push(sessaoData.agendamento_id);
+          }
+
           if (sessaoData.valorRepasse !== undefined) {
             updateFields.push(`valor_repasse = $${valueIndex++}`);
             values.push(sessaoData.valorRepasse);

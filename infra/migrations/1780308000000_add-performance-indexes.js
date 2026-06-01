@@ -26,10 +26,4 @@ exports.up = (pgm) => {
   `);
 };
 
-exports.down = (pgm) => {
-  pgm.sql("DROP INDEX IF EXISTS idx_pacientes_terapeuta_id;");
-  pgm.sql("DROP INDEX IF EXISTS idx_agendamentos_data_horario;");
-  pgm.sql("DROP INDEX IF EXISTS idx_agendamentos_paciente_data;");
-  pgm.sql("DROP INDEX IF EXISTS idx_agendamentos_terapeuta_data;");
-  pgm.sql("DROP INDEX IF EXISTS idx_agendamentos_recurrence_id;");
-};
+exports.down = false;

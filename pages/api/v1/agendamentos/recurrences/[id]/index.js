@@ -5,6 +5,7 @@ import sessao from "models/sessao.js";
 import authMiddleware from "utils/authMiddleware.js";
 import { requirePermission } from "utils/roleMiddleware.js";
 import withTimeout from "utils/withTimeout.js";
+import { NotFoundError } from "infra/errors.js";
 
 // Criar o router
 const router = createRouter();
@@ -422,6 +423,17 @@ async function putHandler(req, res) {
       `Erro ao atualizar agendamentos recorrentes após ${duration}ms:`,
       error,
     );
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({
+        message: error.message,
+        error: error.name,
+        metadata: {
+          duration: `${duration}ms`,
+        },
+      });
+    }
+
     return res.status(500).json({
       message: "Erro ao atualizar agendamentos recorrentes",
       error: error.message,
@@ -711,12 +723,15 @@ async function atualizarSessoesDeAgendamentosOtimizado(
       sessao.getByAgendamentoIds(agendamentoIds),
       agendamento.getByIds(agendamentoIds),
     ]);
-    const sessoesPorAgendamentoId = new Map(
-      sessoesExistentes.map((sessaoExistente) => [
-        sessaoExistente.agendamento_id,
-        sessaoExistente,
-      ]),
-    );
+    const sessoesPorAgendamentoId = new Map();
+    for (const sessaoExistente of sessoesExistentes) {
+      if (!sessoesPorAgendamentoId.has(sessaoExistente.agendamento_id)) {
+        sessoesPorAgendamentoId.set(
+          sessaoExistente.agendamento_id,
+          sessaoExistente,
+        );
+      }
+    }
     const agendamentosPersistidosPorId = new Map(
       agendamentosPersistidos.map((agendamentoPersistido) => [
         agendamentoPersistido.id,
@@ -1000,7 +1015,7 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
 
   // Função auxiliar para adicionar campos
   function addField(fieldsToUpdate, values, paramCounter, fieldName, value) {
-    if (value !== undefined && value !== null) {
+    if (value !== undefined) {
       fieldsToUpdate.push(`${fieldName} = $${paramCounter}`);
       values.push(value);
       return paramCounter + 1;
@@ -1015,7 +1030,7 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
     let paramCounter = 2;
 
     // Adicionar campos a serem atualizados
-    paramCounter = addField(
+    addField(
       fieldsToUpdate,
       values,
       paramCounter,
@@ -1068,10 +1083,24 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
       fieldsToUpdate,
       values,
       paramCounter,
+      "sessao_realizada",
+      agendamentoData.sessaoRealizada,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
+      "falta",
+      agendamentoData.falta,
+    );
+    paramCounter = addField(
+      fieldsToUpdate,
+      values,
+      paramCounter,
       "status_agendamento",
       agendamentoData.statusAgendamento,
     );
-    addField(
+    paramCounter = addField(
       fieldsToUpdate,
       values,
       paramCounter,
@@ -1085,8 +1114,8 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
     }
 
     // Atualização em uma única query
-    const result = await database.transaction((client) => {
-      return client.query({
+    const result = await database.transaction(async (client) => {
+      const updateResult = await client.query({
         text: `
           UPDATE agendamentos
           SET ${fieldsToUpdate.join(", ")}, updated_at = NOW()
@@ -1095,6 +1124,14 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
         `,
         values: values,
       });
+
+      if (updateResult.rowCount === 0) {
+        throw new NotFoundError({
+          message: "Nenhum agendamento encontrado com este recurrence_id",
+        });
+      }
+
+      return updateResult;
     });
 
     console.log(
@@ -1113,6 +1150,8 @@ async function updateAllByRecurrenceIdOptimized(recurrenceId, agendamentoData) {
       modalidadeAgendamento: row.modalidade_agendamento,
       tipoAgendamento: row.tipo_agendamento,
       valorAgendamento: row.valor_agendamento,
+      sessaoRealizada: row.sessao_realizada,
+      falta: row.falta,
       statusAgendamento: row.status_agendamento,
       observacoesAgendamento: row.observacoes_agendamento,
     }));
@@ -1142,7 +1181,9 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
       });
 
       if (agendamentosResult.rows.length === 0) {
-        throw new Error("Nenhum agendamento encontrado com este recurrence_id");
+        throw new NotFoundError({
+          message: "Nenhum agendamento encontrado com este recurrence_id",
+        });
       }
 
       // Preparar dados para atualização em lote
@@ -1172,37 +1213,57 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
 
       // Adicionar outros campos se necessário
       const otherFields = [];
-      if (agendamentoData.horarioAgendamento) {
+      if (agendamentoData.paciente_id !== undefined) {
+        otherFields.push(`paciente_id = $${paramCounter}`);
+        updateValues.push(agendamentoData.paciente_id);
+        paramCounter++;
+      }
+      if (agendamentoData.terapeuta_id !== undefined) {
+        otherFields.push(`terapeuta_id = $${paramCounter}`);
+        updateValues.push(agendamentoData.terapeuta_id);
+        paramCounter++;
+      }
+      if (agendamentoData.horarioAgendamento !== undefined) {
         otherFields.push(`horario_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.horarioAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.localAgendamento) {
+      if (agendamentoData.localAgendamento !== undefined) {
         otherFields.push(`local_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.localAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.modalidadeAgendamento) {
+      if (agendamentoData.modalidadeAgendamento !== undefined) {
         otherFields.push(`modalidade_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.modalidadeAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.tipoAgendamento) {
+      if (agendamentoData.tipoAgendamento !== undefined) {
         otherFields.push(`tipo_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.tipoAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.valorAgendamento) {
+      if (agendamentoData.valorAgendamento !== undefined) {
         otherFields.push(`valor_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.valorAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.statusAgendamento) {
+      if (agendamentoData.sessaoRealizada !== undefined) {
+        otherFields.push(`sessao_realizada = $${paramCounter}`);
+        updateValues.push(agendamentoData.sessaoRealizada);
+        paramCounter++;
+      }
+      if (agendamentoData.falta !== undefined) {
+        otherFields.push(`falta = $${paramCounter}`);
+        updateValues.push(agendamentoData.falta);
+        paramCounter++;
+      }
+      if (agendamentoData.statusAgendamento !== undefined) {
         otherFields.push(`status_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.statusAgendamento);
         paramCounter++;
       }
-      if (agendamentoData.observacoesAgendamento) {
+      if (agendamentoData.observacoesAgendamento !== undefined) {
         otherFields.push(`observacoes_agendamento = $${paramCounter}`);
         updateValues.push(agendamentoData.observacoesAgendamento);
         paramCounter++;
@@ -1215,7 +1276,7 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
         .map((_, index) => `$${(index + 1) * 2 - 1}`)
         .join(", ");
 
-      return client.query({
+      const updateResult = await client.query({
         text: `
           UPDATE agendamentos
           SET data_agendamento = CASE ${updateCases.join(" ")} END,
@@ -1226,6 +1287,14 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
         `,
         values: updateValues,
       });
+
+      if (updateResult.rowCount === 0) {
+        throw new NotFoundError({
+          message: "Nenhum agendamento encontrado com este recurrence_id",
+        });
+      }
+
+      return updateResult;
     });
 
     console.log(
@@ -1243,6 +1312,8 @@ async function updateAllByRecurrenceIdWithNewWeekdayOptimized(
       modalidadeAgendamento: row.modalidade_agendamento,
       tipoAgendamento: row.tipo_agendamento,
       valorAgendamento: row.valor_agendamento,
+      sessaoRealizada: row.sessao_realizada,
+      falta: row.falta,
       statusAgendamento: row.status_agendamento,
       observacoesAgendamento: row.observacoes_agendamento,
     }));
