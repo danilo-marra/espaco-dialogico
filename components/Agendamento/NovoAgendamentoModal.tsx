@@ -119,7 +119,6 @@ export function getDataFimRecorrenciaPlusThreeMonths(
 export function shouldAutoFillDataFimRecorrencia({
   periodicidade,
   dataAgendamento,
-  dataFimRecorrencia,
   dataFimRecorrenciaFoiEditadaManualmente,
 }: RecorrenciaAutoFillInput): boolean {
   if (periodicidade === "Não repetir") {
@@ -127,10 +126,6 @@ export function shouldAutoFillDataFimRecorrencia({
   }
 
   if (!dataAgendamento) {
-    return false;
-  }
-
-  if (dataFimRecorrencia) {
     return false;
   }
 
@@ -359,7 +354,13 @@ export function NovoAgendamentoModal({
       selectedDataAgendamento,
     );
 
-    if (suggestedEndDate) {
+    const shouldUpdateSuggestedEndDate =
+      suggestedEndDate &&
+      (!selectedDataFimRecorrencia ||
+        suggestedEndDate.getTime() !==
+          new Date(selectedDataFimRecorrencia).getTime());
+
+    if (shouldUpdateSuggestedEndDate) {
       setValue("dataFimRecorrencia", suggestedEndDate, {
         shouldValidate: true,
       });

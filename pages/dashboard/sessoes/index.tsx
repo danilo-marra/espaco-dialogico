@@ -247,9 +247,9 @@ export default function Sessoes() {
   const [sessaoEditando, setSessaoEditando] = useState<Sessao | null>(null);
   const [expandedTherapists, setExpandedTherapists] = useState<string[]>([]);
   const [expandedPatients, setExpandedPatients] = useState<string[]>([]);
-  const [loadingPagamentoSessaoId, setLoadingPagamentoSessaoId] = useState<
-    string | null
-  >(null);
+  const [loadingPagamentoSessaoIds, setLoadingPagamentoSessaoIds] = useState<
+    Set<string>
+  >(new Set());
   const [loadingBulkUpdate, setLoadingBulkUpdate] = useState<string | null>(
     null,
   );
@@ -501,12 +501,16 @@ export default function Sessoes() {
     sessao: Sessao,
     pagamentoRealizado: boolean,
   ) => {
-    if (!canEdit || loadingPagamentoSessaoId === sessao.id) {
+    if (!canEdit || loadingPagamentoSessaoIds.has(sessao.id)) {
       return;
     }
 
     const previousSessoes = sessoes;
-    setLoadingPagamentoSessaoId(sessao.id);
+    setLoadingPagamentoSessaoIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      nextIds.add(sessao.id);
+      return nextIds;
+    });
 
     mutate(
       (currentData) =>
@@ -533,7 +537,11 @@ export default function Sessoes() {
           : "Erro ao atualizar o status do pagamento.",
       );
     } finally {
-      setLoadingPagamentoSessaoId(null);
+      setLoadingPagamentoSessaoIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(sessao.id);
+        return nextIds;
+      });
     }
   };
 
@@ -975,7 +983,7 @@ export default function Sessoes() {
           handleUpdatePagamento={handleUpdatePagamento}
           handleBulkUpdateRepasse={handleBulkUpdateRepasse}
           loadingBulkUpdate={loadingBulkUpdate}
-          loadingPagamentoSessaoId={loadingPagamentoSessaoId}
+          loadingPagamentoSessaoIds={loadingPagamentoSessaoIds}
           expandedTherapists={expandedTherapists}
           expandedPatients={expandedPatients}
           toggleAccordion={toggleAccordion}

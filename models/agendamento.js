@@ -934,6 +934,8 @@ async function createRecurrencesOptimizedForStaging({
         valorAgendamento: row.valor_agendamento,
         statusAgendamento: row.status_agendamento,
         observacoesAgendamento: row.observacoes_agendamento,
+        sessaoRealizada: row.sessao_realizada,
+        falta: row.falta,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       });

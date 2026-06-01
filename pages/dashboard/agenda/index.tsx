@@ -112,13 +112,21 @@ export default function Agenda() {
   useEffect(() => {
     if (!router.isReady) return;
 
-    const { periodo } = router.query;
+    const { periodo, pendencia } = router.query;
     if (typeof periodo === "string" && /^\d{4}-\d{2}$/.test(periodo)) {
       const [ano, mes] = periodo.split("-").map(Number);
       if (Number.isInteger(mes) && mes >= 1 && mes <= 12) {
         setSelectedDate(new Date(ano, mes - 1, 1));
         setPeriodMode("mes");
       }
+    }
+
+    if (pendencia === "marcacao") {
+      setViewMode("terapeuta");
+      setSelectedStatus({
+        confirmado: true,
+        cancelado: false,
+      });
     }
   }, [router.isReady, router.query]);
 

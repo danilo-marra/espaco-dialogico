@@ -42,4 +42,18 @@ describe("NovoAgendamentoModal recorrencia", () => {
 
     expect(shouldAutoFill).toBe(false);
   });
+
+  test("deve recalcular data fim automatica quando a data inicial muda", () => {
+    const dataAgendamento = new Date("2026-04-10T00:00:00.000Z");
+    const valorPreenchidoAutomaticamente = new Date("2026-06-10T00:00:00.000Z");
+
+    const shouldAutoFill = shouldAutoFillDataFimRecorrencia({
+      periodicidade: "Semanal",
+      dataAgendamento,
+      dataFimRecorrencia: valorPreenchidoAutomaticamente,
+      dataFimRecorrenciaFoiEditadaManualmente: false,
+    });
+
+    expect(shouldAutoFill).toBe(true);
+  });
 });
