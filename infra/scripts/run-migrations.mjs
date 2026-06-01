@@ -25,6 +25,9 @@ if (fs.existsSync(envPath)) {
 const { default: migrator } = await import(
   `file:///${path.resolve(process.cwd(), "models/migrator.mjs").replace(/\\/g, "/")}`
 );
+const { default: database } = await import(
+  `file:///${path.resolve(process.cwd(), "infra/database.mjs").replace(/\\/g, "/")}`
+);
 
 console.log("Executando migrações automaticamente...");
 console.log(`NODE_ENV: ${process.env.NODE_ENV || "não definido"}`);
@@ -60,8 +63,10 @@ async function runMigrations() {
   } catch (error) {
     console.error(`Erro ao executar migrações: ${error.message}`);
     console.error(error.stack);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await database.shutdown();
   }
 }
 
-runMigrations();
+await runMigrations();

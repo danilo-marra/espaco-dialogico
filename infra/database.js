@@ -1,11 +1,12 @@
-const { Client } = require("pg");
+const { Pool } = require("pg");
 const { ServiceError } = require("./errors.js");
 
+let pool;
+let poolKey;
+
 async function query(queryObject) {
-  let client;
   try {
-    client = await getNewClient();
-    const result = await client.query(queryObject);
+    const result = await getPool().query(queryObject);
     return result;
   } catch (error) {
     const serviceErrorObject = new ServiceError({
@@ -13,12 +14,80 @@ async function query(queryObject) {
       cause: error,
     });
     throw serviceErrorObject;
-  } finally {
-    await client?.end();
   }
 }
 
 async function getNewClient() {
+  const client = await getPool().connect();
+  return createPooledClient(client);
+}
+
+async function transaction(callback) {
+  const client = await getNewClient();
+
+  try {
+    await client.query("BEGIN");
+    const result = await callback(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      error.rollbackError = rollbackError;
+    }
+    throw error;
+  } finally {
+    await client.end();
+  }
+}
+
+async function shutdown() {
+  if (pool) {
+    await pool.end();
+    pool = undefined;
+    poolKey = undefined;
+  }
+}
+
+function getPool() {
+  const config = withPoolOptions(getConnectionConfig());
+  const nextPoolKey = JSON.stringify(config);
+
+  if (!pool || poolKey !== nextPoolKey) {
+    pool = new Pool(config);
+    poolKey = nextPoolKey;
+  }
+
+  return pool;
+}
+
+function withPoolOptions(config) {
+  if (process.env.NODE_ENV !== "test") {
+    return config;
+  }
+
+  return {
+    ...config,
+    idleTimeoutMillis: 100,
+  };
+}
+
+function createPooledClient(client) {
+  let released = false;
+
+  return {
+    query: (...args) => client.query(...args),
+    end: () => {
+      if (!released) {
+        released = true;
+        client.release();
+      }
+    },
+  };
+}
+
+function getConnectionConfig() {
   const ssl = getSSLValues();
   const rawUrl = process.env.DATABASE_URL;
   const hasConnStr = !!rawUrl && rawUrl.trim().length > 0;
@@ -56,9 +125,7 @@ async function getNewClient() {
       if (process.env.DEBUG_DB === "true") {
         console.log(`🔐 Usando DATABASE_URL: ${masked}`);
       }
-      const client = new Client({ connectionString: expandedUrl, ssl });
-      await client.connect();
-      return client;
+      return { connectionString: expandedUrl, ssl };
     } catch (e) {
       console.warn(
         `⚠️ DATABASE_URL inválida ou não parseável (${e.message}). Tentando fallback para variáveis separadas...`,
@@ -82,26 +149,27 @@ async function getNewClient() {
     );
   }
 
-  const client = new Client({
+  const config = {
     host: process.env.POSTGRES_HOST,
     port: Number(process.env.POSTGRES_PORT),
     user: process.env.POSTGRES_USER,
     database: process.env.POSTGRES_DB,
     password: process.env.POSTGRES_PASSWORD,
     ssl,
-  });
+  };
   if (process.env.DEBUG_DB === "true") {
     console.log(
       `🔌 Conectando via parâmetros separados: ${process.env.POSTGRES_USER}@${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT}/${process.env.POSTGRES_DB}`,
     );
   }
-  await client.connect();
-  return client;
+  return config;
 }
 
 const database = {
   query,
   getNewClient,
+  transaction,
+  shutdown,
 };
 
 module.exports = database;
