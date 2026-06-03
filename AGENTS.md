@@ -6,7 +6,7 @@ This is a Next.js application using the `pages/` router. Page views live in `pag
 
 ## Build, Test, and Development Commands
 
-Use Node `22.x`.
+Use Node `24.x`.
 
 - `npm run dev`: starts Docker services, waits for Postgres, runs migrations, and launches Next.js locally.
 - `npm run dev:safe`: same setup, with Next launched through `infra/scripts/start-next-dev.js`.
