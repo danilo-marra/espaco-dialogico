@@ -22,7 +22,7 @@ const dotenv = require("dotenv");
 const dotenvExpand = require("dotenv-expand");
 const fs = require("fs");
 const path = require("path");
-const xlsx = require("xlsx");
+const xlsx = require("@e965/xlsx");
 
 const argv = process.argv.slice(2);
 function arg(flag) {

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const xlsx = require("xlsx");
+const xlsx = require("@e965/xlsx");
 
 function makeSheet(headers, exampleRow) {
   const ws = xlsx.utils.aoa_to_sheet([headers, exampleRow]);

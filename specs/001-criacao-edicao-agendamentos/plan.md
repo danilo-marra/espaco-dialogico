@@ -10,7 +10,7 @@ Estabilizar os fluxos de criação, edição e consulta de agendamentos, com foc
 
 ## Technical Context
 
-**Language/Version**: TypeScript + JavaScript, Node.js 22.x, React 18, Next.js (pages router)
+**Language/Version**: TypeScript + JavaScript, Node.js 24.x, React 18, Next.js (pages router)
 
 **Primary Dependencies**: next-connect, pg, swr, axios, react-hook-form, zod, redux-toolkit, radix-ui, sonner
 

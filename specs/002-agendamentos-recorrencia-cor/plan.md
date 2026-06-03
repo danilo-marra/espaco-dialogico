@@ -12,7 +12,7 @@ Implementar dois ajustes no fluxo de agendamentos: sugerir e preservar automatic
 
 ## Technical Context
 
-**Language/Version**: TypeScript + JavaScript, Node.js 22.x, React 18, Next.js (pages router)
+**Language/Version**: TypeScript + JavaScript, Node.js 24.x, React 18, Next.js (pages router)
 
 **Primary Dependencies**: next-connect, pg, swr, axios, react-hook-form, zod, redux-toolkit, radix-ui, sonner
 
